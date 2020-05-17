@@ -40,7 +40,7 @@ pub fn decrypt<S: AsRef<str>>(s: S, ek: &Key, ak: &Key, check_uuid: S) -> Result
 }
 
 impl Crypto {
-    pub fn new(params: &AuthParams, password: &str) -> Result<Crypto> {
+    pub fn new(params: &AuthParams, password: &str) -> Result<Self> {
         let cost = std::num::NonZeroU32::new(params.pw_cost).unwrap();
         let salt_input = std::format!("{}:SF:003:{}:{}", params.identifier, cost, params.pw_nonce);
         let salt = digest::digest(&digest::SHA256, salt_input.as_bytes());
