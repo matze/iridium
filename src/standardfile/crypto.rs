@@ -1,3 +1,4 @@
+use super::{AuthParams, Item};
 use aes::Aes256;
 use anyhow::Result;
 use block_modes::block_padding::Pkcs7;
@@ -5,7 +6,6 @@ use block_modes::{BlockMode, Cbc};
 use data_encoding::{BASE64, HEXLOWER};
 use ring::{digest, hmac};
 use std::str;
-use super::{AuthParams, Item};
 
 pub type Key = [u8; 768 / 8 / 3];
 

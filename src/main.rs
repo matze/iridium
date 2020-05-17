@@ -2,7 +2,6 @@ mod standardfile;
 
 use anyhow::{Context, Result};
 use standardfile::Root;
-use standardfile::crypto::Crypto;
 
 fn main() -> Result<()> {
     let filename = "test.json";
@@ -11,9 +10,13 @@ fn main() -> Result<()> {
 
     let root: Root = serde_json::from_str(&contents)?;
     let pass = std::env::var("SF_PASS").unwrap();
-    let crypto = Crypto::new(&root.auth_params, pass.as_ref())?;
 
-    println!("{}", crypto.decrypt(&root.items[0])?);
+    for note in root.notes(&pass)? {
+        match note.title {
+            None => println!("n/a"),
+            Some(x) => println!("{}", x),
+        }
+    }
 
     Ok(())
 }
