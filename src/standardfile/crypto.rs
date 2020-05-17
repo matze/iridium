@@ -10,9 +10,8 @@ use std::str;
 pub type Key = [u8; 768 / 8 / 3];
 
 pub struct Crypto {
-    pub pw: Key,
-    pub mk: Key,
-    pub ak: Key,
+    mk: Key,
+    ak: Key,
 }
 
 pub fn decrypt<S: AsRef<str>>(s: S, ek: &Key, ak: &Key, check_uuid: S) -> Result<String> {
@@ -55,16 +54,13 @@ impl Crypto {
             &mut hashed,
         );
 
-        let mut pw: Key = [0u8; 32];
         let mut mk: Key = [0u8; 32];
         let mut ak: Key = [0u8; 32];
 
-        pw.clone_from_slice(&hashed[0..32]);
         mk.clone_from_slice(&hashed[32..64]);
         ak.clone_from_slice(&hashed[64..]);
 
         Ok(Crypto {
-            pw: pw,
             mk: mk,
             ak: ak,
         })
