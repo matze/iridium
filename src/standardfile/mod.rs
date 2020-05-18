@@ -24,7 +24,7 @@ pub struct Item {
 
 #[derive(Deserialize, Debug)]
 pub struct Root {
-    pub auth_params: AuthParams,
+    auth_params: AuthParams,
     pub items: Vec<Item>,
 }
 
