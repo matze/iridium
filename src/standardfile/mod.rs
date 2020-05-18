@@ -12,7 +12,7 @@ pub struct AuthParams {
     pub version: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Item {
     pub uuid: String,
     pub content: String,
@@ -28,22 +28,27 @@ pub struct Root {
     pub items: Vec<Item>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct Note {
     pub title: Option<String>,
     pub text: String,
 }
 
+pub struct NoteItem {
+    pub item: Item,
+    pub note: Note,
+}
+
 impl Root {
-    pub fn notes(&self, password: &str) -> Result<Vec<Note>> {
+    pub fn notes(&self, password: &str) -> Result<Vec<NoteItem>> {
         let crypto = crypto::Crypto::new(&self.auth_params, password)?;
 
         let notes = self
             .items
             .iter()
             .filter(|x| x.content_type == "Note")
-            .map(|x| serde_json::from_str(&crypto.decrypt(x).unwrap()).unwrap())
-            .collect::<Vec<Note>>();
+            .map(|x| NoteItem {item: x.clone(), note: serde_json::from_str(&crypto.decrypt(x).unwrap()).unwrap()})
+            .collect::<Vec<NoteItem>>();
 
         Ok(notes)
     }

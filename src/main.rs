@@ -11,8 +11,9 @@ fn main() -> Result<()> {
     let root: Root = serde_json::from_str(&contents)?;
     let pass = std::env::var("SF_PASS").unwrap();
 
-    for note in root.notes(&pass)? {
-        match note.title {
+    for item in root.notes(&pass)? {
+        println!("{}", item.item.updated_at);
+        match item.note.title {
             None => println!("n/a"),
             Some(x) => println!("{}", x),
         }
