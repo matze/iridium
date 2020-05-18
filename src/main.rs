@@ -4,6 +4,8 @@ use anyhow::{Context, Result};
 use standardfile::Root;
 
 fn main() -> Result<()> {
+    let _data: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/resources.gresource"));
+
     let filename = "test.json";
     let contents = std::fs::read_to_string(filename)
         .with_context(|| format!("Could not open {}.", filename))?;
