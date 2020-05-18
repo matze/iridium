@@ -1,4 +1,5 @@
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
 pub mod crypto;
@@ -17,6 +18,8 @@ pub struct Item {
     pub content: String,
     pub content_type: String,
     pub enc_item_key: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Deserialize, Debug)]
