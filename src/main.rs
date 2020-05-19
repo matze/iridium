@@ -1,11 +1,26 @@
-mod standardfile;
+#[macro_use]
+extern crate glib;
 
+mod config;
+mod standardfile;
+mod ui;
+
+use gio::{resources_register, Resource};
+use glib::Bytes;
 use anyhow::{Context, Result};
 use standardfile::Root;
+use ui::application::Application;
+
+fn init_resources() -> Result<()> {
+    let data: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/resources.gresource"));
+    let gbytes = Bytes::from_static(data.as_ref());
+    let resource = Resource::new_from_data(&gbytes)?;
+    resources_register(&resource);
+
+    Ok(())
+}
 
 fn main() -> Result<()> {
-    let _data: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/resources.gresource"));
-
     let filename = "test.json";
     let contents = std::fs::read_to_string(filename)
         .with_context(|| format!("Could not open {}.", filename))?;
@@ -20,6 +35,10 @@ fn main() -> Result<()> {
             Some(x) => println!("{}", x),
         }
     }
+
+    init_resources()?;
+    let app = Application::new()?;
+    app.run();
 
     Ok(())
 }

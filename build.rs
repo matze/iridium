@@ -9,7 +9,6 @@ fn main() {
         format!("--target={}", out_path.display()),
         "data/resources.gresource.xml".to_string(),
     ];
-    println!("{:?}", args);
 
     Command::new("glib-compile-resources")
         .args(&args)
@@ -17,4 +16,5 @@ fn main() {
         .expect("failure");
 
     println!("cargo:rerun-if-changed=data/resources.gresource.xml");
+    println!("cargo:rerun-if-changed=data/resources/ui/window.ui");
 }

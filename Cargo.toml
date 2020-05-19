@@ -15,3 +15,7 @@ ring = "0.16"
 data-encoding = "2.2.0"
 aes = "0.3.2"
 block-modes = "0.3.3"
+gtk = { version = "0.8", features = ["v3_22"] }
+glib = "0.9"
+gio = { version = "0.8", features = ["v2_46"] }
+gdk = "0.12"
