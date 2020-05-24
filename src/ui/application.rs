@@ -8,7 +8,6 @@ use crate::ui::window::Window;
 
 pub struct Application {
     app: gtk::Application,
-    window: Window,
 }
 
 impl Application {
@@ -22,7 +21,11 @@ impl Application {
             window.present();
         }));
 
-        Ok(Self { app, window })
+        action!(app, "quit", clone!(@strong app => move |_, _| {
+            app.quit();
+        }));
+
+        Ok(Self { app })
     }
 
     pub fn run(&self) {
