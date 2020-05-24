@@ -19,3 +19,4 @@ gtk = { version = "0.8", features = ["v3_22"] }
 glib = "0.9"
 gio = { version = "0.8", features = ["v2_46"] }
 gdk = "0.12"
+secret-service = "1.0"
