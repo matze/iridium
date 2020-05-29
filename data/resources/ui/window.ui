@@ -194,7 +194,7 @@
                     <property name="orientation">GTK_ORIENTATION_VERTICAL</property>
                     <child>
                       <object class="GtkEntry" id="title_entry">
-                        <property name="name">title-entry</property>
+                        <property name="name">iridium-title-entry</property>
                         <property name="visible">True</property>
                         <property name="placeholder-text">Add title …</property>
                         <property name="margin-top">6</property>
@@ -212,7 +212,8 @@
                             <property name="visible">True</property>
                             <property name="margin">12</property>
                             <child>
-                              <object class="GtkTextView" id="source_view">
+                              <object class="GtkTextView" id="iridium-editor">
+                                <property name="name">iridium-editor</property>
                                 <property name="visible">True</property>
                                 <property name="expand">True</property>
                               </object>

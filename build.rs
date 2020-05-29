@@ -13,10 +13,11 @@ fn main() {
 
     Command::new("glib-compile-resources")
         .args(&args)
-        .status()
+        .output()
         .unwrap();
 
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=data/resources.gresource.xml");
+    println!("cargo:rerun-if-changed=data/resources/css/base.css");
     println!("cargo:rerun-if-changed=data/resources/ui/window.ui");
 }

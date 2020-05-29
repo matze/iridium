@@ -1,0 +1,10 @@
+#iridium-title-entry {
+  border: none;
+  font-family: 'Fira Mono', monospace;
+  font-weight: bold;
+}
+
+#iridium-editor {
+  background-color: transparent;
+  font-family: 'Fira Mono', monospace;
+}
