@@ -3,7 +3,8 @@ use std::path::Path;
 use std::process::Command;
 
 fn main() {
-    let out_path = Path::new(&env::var_os("OUT_DIR").unwrap()).join("resources.gresource");
+    let out_dir = env::var_os("OUT_DIR").unwrap();
+    let out_path = Path::new(&out_dir).join("resources.gresource");
 
     let args = [
         format!("--target={}", out_path.display()),
@@ -12,9 +13,10 @@ fn main() {
 
     Command::new("glib-compile-resources")
         .args(&args)
-        .output()
-        .expect("failure");
+        .status()
+        .unwrap();
 
+    println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=data/resources.gresource.xml");
     println!("cargo:rerun-if-changed=data/resources/ui/window.ui");
 }
