@@ -190,6 +190,7 @@
                 </child>
                 <child>
                   <object class="GtkBox">
+                    <property name="name">iridium-entry-box</property>
                     <property name="visible">True</property>
                     <property name="orientation">GTK_ORIENTATION_VERTICAL</property>
                     <child>
