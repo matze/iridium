@@ -8,7 +8,7 @@ impl Window {
     pub fn new() -> Self {
         let builder =
             gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/window.ui");
-        get_widget!(builder, gtk::ApplicationWindow, window);
+        let window: gtk::ApplicationWindow = builder.get_object("window").unwrap();
 
         let style_provider = gtk::CssProvider::new();
         style_provider.load_from_resource("/net/bloerg/Iridium/data/resources/css/base.css");
