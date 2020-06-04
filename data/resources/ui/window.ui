@@ -213,8 +213,8 @@
                             <property name="visible">True</property>
                             <property name="margin">12</property>
                             <child>
-                              <object class="GtkTextView" id="iridium-editor">
-                                <property name="name">iridium-editor</property>
+                              <object class="GtkTextView" id="iridium-text-view">
+                                <property name="name">iridium-text-view</property>
                                 <property name="visible">True</property>
                                 <property name="expand">True</property>
                               </object>
