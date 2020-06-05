@@ -1,11 +1,36 @@
+use crate::standardfile::NoteItem;
 use gtk::prelude::*;
 
 pub struct Window {
     pub widget: gtk::ApplicationWindow,
+    notes: Vec<NoteItem>,
+}
+
+struct NoteListRow {
+    widget: gtk::ListBoxRow,
+}
+
+impl NoteListRow {
+    pub fn new(title: &str) -> Self {
+        let label = gtk::Label::new(Some(title));
+        label.set_halign(gtk::Align::Start);
+        label.set_margin_start(9);
+        label.set_margin_end(9);
+        label.set_margin_top(9);
+        label.set_margin_bottom(9);
+        label.set_widget_name("iridium-note-row-label");
+
+        let widget = gtk::ListBoxRow::new();
+        widget.add(&label);
+        widget.set_widget_name("iridium-note-row");
+        widget.show_all();
+
+        Self { widget }
+    }
 }
 
 impl Window {
-    pub fn new() -> Self {
+    pub fn new(notes: Vec<NoteItem>) -> Self {
         let builder =
             gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/window.ui");
         let window: gtk::ApplicationWindow = builder.get_object("window").unwrap();
@@ -17,6 +42,13 @@ impl Window {
             &style_provider,
             gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
+
+        let note_list_box: gtk::ListBox = builder.get_object("iridium-note-list").unwrap();
+
+        for item in &notes {
+            let row = NoteListRow::new(&item.note.title.as_ref().unwrap_or(&String::from("foo")));
+            note_list_box.insert(&row.widget, -1);
+        }
 
         let bold_tag = gtk::TextTag::new(Some("semibold"));
 
@@ -40,6 +72,9 @@ impl Window {
             println!("changed {}", position);
         });
 
-        Window { widget: window }
+        Window {
+            widget: window,
+            notes: notes,
+        }
     }
 }

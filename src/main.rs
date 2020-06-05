@@ -7,12 +7,11 @@ mod config;
 mod standardfile;
 mod ui;
 
-use anyhow::Result;
-// use anyhow::{Context, Result};
+use anyhow::{Context, Result};
 use gio::{resources_register, Resource};
 use glib::Bytes;
 use secret_service::{EncryptionType, SecretService};
-// use standardfile::Root;
+use standardfile::Root;
 use ui::application::Application;
 
 fn init_resources() -> Result<()> {
@@ -42,23 +41,16 @@ fn get_password(email: &String) -> Result<String> {
 }
 
 fn main() -> Result<()> {
-    // let filename = "test.json";
-    // let contents = std::fs::read_to_string(filename)
-    //     .with_context(|| format!("Could not open {}.", filename))?;
+    let filename = "test.json";
+    let contents = std::fs::read_to_string(filename)
+        .with_context(|| format!("Could not open {}.", filename))?;
 
-    // let root: Root = serde_json::from_str(&contents)?;
-    // let pass = get_password(&std::env::var("SF_EMAIL")?)?;
-
-    // for item in root.notes(&pass)? {
-    //     println!("{}", item.item.updated_at);
-    //     match item.note.title {
-    //         None => println!("n/a"),
-    //         Some(x) => println!("{}", x),
-    //     }
-    // }
+    let root: Root = serde_json::from_str(&contents)?;
+    let pass = get_password(&std::env::var("SF_EMAIL")?)?;
+    let notes = root.notes(&pass);
 
     init_resources()?;
-    let app = Application::new()?;
+    let app = Application::new(notes?)?;
     app.run();
 
     Ok(())

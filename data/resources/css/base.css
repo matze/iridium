@@ -12,3 +12,12 @@
   background-color: transparent;
   font-family: 'Fira Mono', monospace;
 }
+
+#iridium-note-row {
+  border-bottom: 1px solid #ddd; /* non-theme-dependent? */
+}
+
+#iridium-note-row-label {
+  font-weight: 600;
+  font-size: 1.2em;
+}

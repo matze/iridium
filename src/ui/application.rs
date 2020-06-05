@@ -5,15 +5,16 @@ use std::env;
 
 use crate::config::APP_ID;
 use crate::ui::window::Window;
+use crate::standardfile::NoteItem;
 
 pub struct Application {
     app: gtk::Application,
 }
 
 impl Application {
-    pub fn new() -> Result<Self> {
+    pub fn new(notes: Vec<NoteItem>) -> Result<Self> {
         let app = gtk::Application::new(Some(APP_ID), gio::ApplicationFlags::FLAGS_NONE)?;
-        let window = Window::new();
+        let window = Window::new(notes);
 
         app.connect_activate(clone!(@weak window.widget as window => move |app| {
             window.set_application(Some(app));

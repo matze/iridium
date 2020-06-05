@@ -178,12 +178,10 @@
                     <property name="visible">True</property>
                     <property name="hexpand">True</property>
                     <child>
-                      <object class="GtkListBox" id="note_list">
+                      <object class="GtkListBox" id="iridium-note-list">
                         <property name="visible">True</property>
+                        <property name="name">iridium-note-list</property>
                         <signal name="row-selected" handler="on_note_selected" object="IridiumWindow"/>
-                        <style>
-                          <class name="list-box"/>
-                        </style>
                       </object>
                     </child>
                   </object>
