@@ -3,16 +3,17 @@ use gtk::prelude::*;
 
 pub struct Window {
     pub widget: gtk::ApplicationWindow,
-    notes: Vec<NoteItem>,
 }
 
 struct NoteListRow {
     widget: gtk::ListBoxRow,
+    item: NoteItem,
 }
 
 impl NoteListRow {
-    pub fn new(title: &str) -> Self {
-        let label = gtk::Label::new(Some(title));
+    pub fn new(item: NoteItem) -> Self {
+        let title = Some(item.note.title.as_deref().unwrap_or("foo"));
+        let label = gtk::Label::new(title);
         label.set_halign(gtk::Align::Start);
         label.set_margin_start(9);
         label.set_margin_end(9);
@@ -25,7 +26,7 @@ impl NoteListRow {
         widget.set_widget_name("iridium-note-row");
         widget.show_all();
 
-        Self { widget }
+        Self { widget, item }
     }
 }
 
@@ -45,8 +46,8 @@ impl Window {
 
         let note_list_box: gtk::ListBox = builder.get_object("iridium-note-list").unwrap();
 
-        for item in &notes {
-            let row = NoteListRow::new(&item.note.title.as_ref().unwrap_or(&String::from("foo")));
+        for item in notes {
+            let row = NoteListRow::new(item);
             note_list_box.insert(&row.widget, -1);
         }
 
@@ -72,9 +73,6 @@ impl Window {
             println!("changed {}", position);
         });
 
-        Window {
-            widget: window,
-            notes: notes,
-        }
+        Window { widget: window }
     }
 }
