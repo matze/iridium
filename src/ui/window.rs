@@ -11,11 +11,18 @@ pub struct Window {
     title_entry: gtk::Entry,
 }
 
+fn get_shortcuts_window() -> gtk::ShortcutsWindow {
+    let builder = gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/shortcuts.ui");
+    builder.get_object("shortcuts").unwrap()
+}
+
 impl Window {
     pub fn new(sender: glib::Sender<UiEvent>, notes: &Vec<NoteItem>) -> Self {
         let builder =
             gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/window.ui");
         let window: gtk::ApplicationWindow = builder.get_object("window").unwrap();
+
+        window.set_help_overlay(Some(&get_shortcuts_window()));
 
         let style_provider = gtk::CssProvider::new();
         style_provider.load_from_resource("/net/bloerg/Iridium/data/resources/css/base.css");

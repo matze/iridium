@@ -20,5 +20,6 @@ fn main() {
     println!("cargo:rerun-if-changed=data/resources.gresource.xml");
     println!("cargo:rerun-if-changed=data/resources/css/base.css");
     println!("cargo:rerun-if-changed=data/resources/ui/about.ui");
+    println!("cargo:rerun-if-changed=data/resources/ui/shortcuts.ui");
     println!("cargo:rerun-if-changed=data/resources/ui/window.ui");
 }
