@@ -68,7 +68,7 @@
       <object class="GtkHeaderBar" id="headerbar">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="title" translatable="yes">GTK + Rust Application Template</property>
+        <property name="title" translatable="yes">Iridium</property>
         <property name="show_close_button">True</property>
         <child>
           <object class="GtkMenuButton" id="appmenu_button">
