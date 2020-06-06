@@ -29,6 +29,14 @@ impl Application {
             app.quit();
         }));
 
+        action!(app, "about", clone!(@weak window.widget as window => move |_, _| {
+            let builder = gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/about.ui");
+            let dialog = builder.get_object::<gtk::AboutDialog>("about-dialog").unwrap();
+            dialog.set_transient_for(Some(&window));
+            dialog.connect_response(|dialog, _| dialog.destroy());
+            dialog.show();
+        }));
+
         app.set_accels_for_action("app.quit", &["<primary>q"]);
 
         receiver.attach(None, move |event| {
