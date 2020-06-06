@@ -192,7 +192,7 @@
                     <property name="visible">True</property>
                     <property name="orientation">GTK_ORIENTATION_VERTICAL</property>
                     <child>
-                      <object class="GtkEntry" id="title_entry">
+                      <object class="GtkEntry" id="iridium-title-entry">
                         <property name="name">iridium-title-entry</property>
                         <property name="visible">True</property>
                         <property name="placeholder-text">Add title …</property>

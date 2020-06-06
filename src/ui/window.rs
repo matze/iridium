@@ -8,10 +8,11 @@ use row_data::RowData;
 pub struct Window {
     pub widget: gtk::ApplicationWindow,
     text_buffer: gtk::TextBuffer,
+    title_entry: gtk::Entry,
 }
 
 impl Window {
-    pub fn new(sender: glib::Sender<UiEvent>, notes: Vec<NoteItem>) -> Self {
+    pub fn new(sender: glib::Sender<UiEvent>, notes: &Vec<NoteItem>) -> Self {
         let builder =
             gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/window.ui");
         let window: gtk::ApplicationWindow = builder.get_object("window").unwrap();
@@ -56,7 +57,7 @@ impl Window {
 
         for item in notes {
             row_model.append(&RowData::new(
-                item.note.title.unwrap_or("foo".to_owned()).as_str(),
+                item.note.title.as_ref().unwrap_or(&"foo".to_owned()).as_str(),
                 item.item.uuid.as_str(),
             ));
         }
@@ -95,11 +96,13 @@ impl Window {
         Window {
             widget: window,
             text_buffer: text_buffer,
+            title_entry: builder.get_object("iridium-title-entry").unwrap(),
         }
     }
 
-    pub fn load_note(&self, uuid: &str) {
-        self.text_buffer.set_text(uuid);
+    pub fn load_note(&self, title: &str, content: &str) {
+        self.title_entry.set_text(title);
+        self.text_buffer.set_text(content);
     }
 }
 

@@ -17,7 +17,7 @@ impl Application {
         let app = gtk::Application::new(Some(APP_ID), gio::ApplicationFlags::FLAGS_NONE)?;
 
         let (sender, receiver) = glib::MainContext::channel::<UiEvent>(glib::PRIORITY_DEFAULT);
-        let window = Window::new(sender, notes);
+        let window = Window::new(sender, &notes);
 
         app.connect_activate(clone!(@weak window.widget as window => move |app| {
             window.set_application(Some(app));
@@ -32,7 +32,8 @@ impl Application {
         receiver.attach(None, move |event| {
             match event {
                 UiEvent::NoteSelected(uuid) => {
-                    window.load_note(uuid.as_str());
+                    let item = notes.iter().filter(|&x| x.item.uuid == uuid).collect::<Vec<_>>()[0];
+                    window.load_note(item.note.title.as_deref().unwrap_or(""), item.note.text.as_str());
                 }
             }
 
