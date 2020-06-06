@@ -29,6 +29,8 @@ impl Application {
             app.quit();
         }));
 
+        app.set_accels_for_action("app.quit", &["<primary>q"]);
+
         receiver.attach(None, move |event| {
             match event {
                 UiEvent::NoteSelected(uuid) => {
