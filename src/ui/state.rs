@@ -1,3 +1,3 @@
 pub enum UiEvent {
-    NoteSelected,
+    NoteSelected(String),
 }

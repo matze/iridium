@@ -31,8 +31,8 @@ impl Application {
 
         receiver.attach(None, move |event| {
             match event {
-                UiEvent::NoteSelected => {
-                    window.load_note("foobar");
+                UiEvent::NoteSelected(uuid) => {
+                    window.load_note(uuid.as_str());
                 }
             }
 
