@@ -1,8 +1,10 @@
 use crate::standardfile::NoteItem;
+use crate::ui::state::UiEvent;
 use gtk::prelude::*;
 
 pub struct Window {
     pub widget: gtk::ApplicationWindow,
+    text_buffer: gtk::TextBuffer,
 }
 
 struct NoteListRow {
@@ -31,7 +33,7 @@ impl NoteListRow {
 }
 
 impl Window {
-    pub fn new(notes: Vec<NoteItem>) -> Self {
+    pub fn new(sender: glib::Sender<UiEvent>, notes: Vec<NoteItem>) -> Self {
         let builder =
             gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/window.ui");
         let window: gtk::ApplicationWindow = builder.get_object("window").unwrap();
@@ -50,6 +52,12 @@ impl Window {
             let row = NoteListRow::new(item);
             note_list_box.insert(&row.widget, -1);
         }
+
+        let sender_ = sender.clone();
+
+        note_list_box.connect_row_selected(move |_, _| {
+            sender_.send(UiEvent::NoteSelected).unwrap();
+        });
 
         let bold_tag = gtk::TextTag::new(Some("semibold"));
 
@@ -70,9 +78,12 @@ impl Window {
 
         text_buffer.connect_changed(|text_buffer| {
             let position = text_buffer.get_property_cursor_position();
-            println!("changed {}", position);
         });
 
-        Window { widget: window }
+        Window { widget: window, text_buffer: text_buffer }
+    }
+
+    pub fn load_note(&self, uuid: &str) {
+        self.text_buffer.set_text(uuid);
     }
 }

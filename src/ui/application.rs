@@ -5,6 +5,7 @@ use std::env;
 
 use crate::config::APP_ID;
 use crate::ui::window::Window;
+use crate::ui::state::UiEvent;
 use crate::standardfile::NoteItem;
 
 pub struct Application {
@@ -14,7 +15,9 @@ pub struct Application {
 impl Application {
     pub fn new(notes: Vec<NoteItem>) -> Result<Self> {
         let app = gtk::Application::new(Some(APP_ID), gio::ApplicationFlags::FLAGS_NONE)?;
-        let window = Window::new(notes);
+
+        let (sender, receiver) = glib::MainContext::channel::<UiEvent>(glib::PRIORITY_DEFAULT);
+        let window = Window::new(sender, notes);
 
         app.connect_activate(clone!(@weak window.widget as window => move |app| {
             window.set_application(Some(app));
@@ -25,6 +28,16 @@ impl Application {
         action!(app, "quit", clone!(@strong app => move |_, _| {
             app.quit();
         }));
+
+        receiver.attach(None, move |event| {
+            match event {
+                UiEvent::NoteSelected => {
+                    window.load_note("foobar");
+                }
+            }
+
+            glib::Continue(true)
+        });
 
         Ok(Self { app })
     }
