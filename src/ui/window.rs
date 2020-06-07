@@ -9,6 +9,7 @@ pub struct Window {
     pub widget: gtk::ApplicationWindow,
     text_buffer: gtk::TextBuffer,
     title_entry: gtk::Entry,
+    search_bar: gtk::SearchBar,
 }
 
 fn get_shortcuts_window() -> gtk::ShortcutsWindow {
@@ -100,11 +101,20 @@ impl Window {
 
         text_buffer.apply_tag(&bold_tag, &start, &end);
 
+        let search_bar = builder.get_object::<gtk::SearchBar>("iridium-search-bar").unwrap();
+        let search_entry = builder.get_object::<gtk::SearchEntry>("iridium-search-entry").unwrap();
+        search_bar.connect_entry(&search_entry);
+
         Window {
             widget: window,
             text_buffer: text_buffer,
             title_entry: builder.get_object("iridium-title-entry").unwrap(),
+            search_bar: search_bar,
         }
+    }
+
+    pub fn toggle_search_bar(&self) {
+        self.search_bar.set_search_mode(!self.search_bar.get_search_mode());
     }
 
     pub fn load_note(&self, title: &str, content: &str) {

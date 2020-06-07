@@ -17,6 +17,7 @@ impl Application {
         let app = gtk::Application::new(Some(APP_ID), gio::ApplicationFlags::FLAGS_NONE)?;
 
         let (sender, receiver) = glib::MainContext::channel::<UiEvent>(glib::PRIORITY_DEFAULT);
+        let sender_ = sender.clone();
         let window = Window::new(sender, &notes);
 
         app.connect_activate(clone!(@weak window.widget as window => move |app| {
@@ -37,13 +38,21 @@ impl Application {
             dialog.show();
         }));
 
+        action!(app, "search", move |_, _| {
+            sender_.send(UiEvent::ToggleSearchBar).unwrap();
+        });
+
         app.set_accels_for_action("app.quit", &["<primary>q"]);
+        app.set_accels_for_action("app.search", &["<primary>f"]);
 
         receiver.attach(None, move |event| {
             match event {
                 UiEvent::NoteSelected(uuid) => {
                     let item = notes.iter().filter(|&x| x.item.uuid == uuid).collect::<Vec<_>>()[0];
                     window.load_note(item.note.title.as_deref().unwrap_or(""), item.note.text.as_str());
+                },
+                UiEvent::ToggleSearchBar => {
+                    window.toggle_search_bar();
                 }
             }
 
