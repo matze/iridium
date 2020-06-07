@@ -23,9 +23,9 @@ pub struct Item {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct Root {
+pub struct Exported {
     auth_params: AuthParams,
-    pub items: Vec<Item>,
+    items: Vec<Item>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -39,7 +39,7 @@ pub struct NoteItem {
     pub note: Note,
 }
 
-impl Root {
+impl Exported {
     pub fn notes(&self, password: &str) -> Result<Vec<NoteItem>> {
         let crypto = crypto::Crypto::new(&self.auth_params, password)?;
 

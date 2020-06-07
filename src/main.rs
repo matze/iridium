@@ -11,7 +11,7 @@ use anyhow::{Context, Result};
 use gio::{resources_register, Resource};
 use glib::Bytes;
 use secret_service::{EncryptionType, SecretService};
-use standardfile::Root;
+use standardfile::Exported;
 use ui::application::Application;
 
 fn init_resources() -> Result<()> {
@@ -45,7 +45,7 @@ fn main() -> Result<()> {
     let contents = std::fs::read_to_string(filename)
         .with_context(|| format!("Could not open {}.", filename))?;
 
-    let root: Root = serde_json::from_str(&contents)?;
+    let root = serde_json::from_str::<Exported>(&contents)?;
     let pass = get_password(&std::env::var("SF_EMAIL")?)?;
     let notes = root.notes(&pass);
 
