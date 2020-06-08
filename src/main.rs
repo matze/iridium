@@ -3,12 +3,14 @@ extern crate glib;
 extern crate secret_service;
 
 mod config;
+mod models;
 mod standardfile;
 mod ui;
 
 use anyhow::{Context, Result};
 use gio::{resources_register, Resource};
 use glib::Bytes;
+use models::Storage;
 use secret_service::{EncryptionType, SecretService};
 use standardfile::Exported;
 use ui::application::Application;
@@ -22,7 +24,7 @@ fn init_resources() -> Result<()> {
     Ok(())
 }
 
-fn get_password(email: &String) -> Result<String> {
+fn get_password(email: &str) -> Result<String> {
     let service = SecretService::new(EncryptionType::Dh).unwrap();
 
     let items = service
@@ -45,8 +47,12 @@ fn main() -> Result<()> {
         .with_context(|| format!("Could not open {}.", filename))?;
 
     let root = serde_json::from_str::<Exported>(&contents)?;
-    let pass = get_password(&std::env::var("SF_EMAIL")?)?;
+    let email = &std::env::var("SF_EMAIL")?;
+    let pass = get_password(email)?;
     let notes = root.notes(&pass);
+    let storage = Storage::new(email);
+
+    storage.flush();
 
     init_resources()?;
     let app = Application::new(notes?)?;
