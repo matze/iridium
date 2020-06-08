@@ -21,3 +21,4 @@ gio = { version = "0.8", features = ["v2_46"] }
 gdk = "0.12"
 secret-service = "1.0"
 directories = "2.0"
+uuid = { version = "0.8", features = ["v4"] }
