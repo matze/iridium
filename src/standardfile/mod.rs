@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 
 pub mod crypto;
 
@@ -28,7 +28,7 @@ pub struct Exported {
     items: Vec<Item>,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Note {
     pub title: Option<String>,
     pub text: String,

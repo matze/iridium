@@ -49,14 +49,16 @@ fn main() -> Result<()> {
     let root = serde_json::from_str::<Exported>(&contents)?;
     let email = &std::env::var("SF_EMAIL")?;
     let pass = get_password(email)?;
-    let notes = root.notes(&pass);
-    let storage = Storage::new(email);
+    let notes = root.notes(&pass)?;
+    let mut storage = Storage::new(email);
 
-    storage.flush();
+    let uuid = storage.create_note();
+    storage.update_title(&uuid, "foo");
+    storage.update_text(&uuid, "# Header\n\nText");
 
-    init_resources()?;
-    let app = Application::new(notes?)?;
-    app.run();
+    // init_resources()?;
+    // let app = Application::new(notes?)?;
+    // app.run();
 
     Ok(())
 }

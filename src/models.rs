@@ -1,15 +1,24 @@
+use chrono::{DateTime, Utc};
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
 use ring::digest;
 use std::collections::HashMap;
 use std::fs::{create_dir_all, File};
-use std::path::PathBuf;
 use std::io::prelude::*;
+use crate::standardfile;
+use std::path::PathBuf;
 use uuid::Uuid;
+
+pub struct Note {
+    pub title: String,
+    pub text: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
 
 pub struct Storage {
     path: PathBuf,
-    notes: HashMap<Uuid, i32>,
+    notes: HashMap<Uuid, Note>,
 }
 
 impl Storage {
@@ -20,17 +29,14 @@ impl Storage {
         path.push("iridium");
         path.push(name);
 
-        let mut notes = HashMap::new();
-        notes.insert(Uuid::new_v4(), 1234);
-
         Self {
             path: path,
-            notes: notes,
+            notes: HashMap::new(),
         }
     }
 
-    pub fn flush(&self) {
-        for (uuid, _) in &self.notes {
+    pub fn flush(&self, uuid: &Uuid) {
+        if let Some(item) = self.notes.get(uuid) {
             let mut path = PathBuf::from(&self.path);
 
             if !path.exists() {
@@ -38,8 +44,49 @@ impl Storage {
             }
 
             path.push(uuid.to_hyphenated().to_string());
-            // let mut file = File::create(path).unwrap();
-            // file.write_all(s.as_bytes()).unwrap();
+
+            let note = standardfile::Note {
+                title: Some(item.title.clone()),
+                text: item.text.clone(),
+            };
+
+            let serialized = serde_json::to_string(&note).unwrap();
+            let mut file = File::create(path).unwrap();
+            file.write_all(serialized.as_bytes()).unwrap();
         }
+    }
+
+    pub fn create_note(&mut self) -> Uuid {
+        let now = Utc::now();
+        let uuid = Uuid::new_v4();
+
+        let note = Note {
+            title: "".to_owned(),
+            text: "".to_owned(),
+            created_at: now,
+            updated_at: now,
+        };
+
+        self.notes.insert(uuid, note);
+
+        uuid
+    }
+
+    pub fn update_text(&mut self, uuid: &Uuid, text: &str) {
+        if let Some(item) = self.notes.get_mut(uuid) {
+            item.updated_at = Utc::now();
+            item.text = text.to_owned();
+        }
+
+        // Returning an error?
+    }
+
+    pub fn update_title(&mut self, uuid: &Uuid, title: &str) {
+        if let Some(item) = self.notes.get_mut(uuid) {
+            item.updated_at = Utc::now();
+            item.title = title.to_owned();
+        }
+
+        // Returning an error?
     }
 }
