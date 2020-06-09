@@ -35,6 +35,7 @@ impl Storage {
         }
     }
 
+    /// Encrypts item and writes it to disk.
     pub fn flush(&self, uuid: &Uuid) {
         if let Some(item) = self.notes.get(uuid) {
             let mut path = PathBuf::from(&self.path);
@@ -56,6 +57,7 @@ impl Storage {
         }
     }
 
+    /// Create a new note and return its new uuid.
     pub fn create_note(&mut self) -> Uuid {
         let now = Utc::now();
         let uuid = Uuid::new_v4();
@@ -72,6 +74,7 @@ impl Storage {
         uuid
     }
 
+    /// Update the contents of a note.
     pub fn update_text(&mut self, uuid: &Uuid, text: &str) {
         if let Some(item) = self.notes.get_mut(uuid) {
             item.updated_at = Utc::now();
@@ -81,6 +84,7 @@ impl Storage {
         // Returning an error?
     }
 
+    /// Update the title of a note.
     pub fn update_title(&mut self, uuid: &Uuid, title: &str) {
         if let Some(item) = self.notes.get_mut(uuid) {
             item.updated_at = Utc::now();

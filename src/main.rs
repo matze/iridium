@@ -55,6 +55,7 @@ fn main() -> Result<()> {
     let uuid = storage.create_note();
     storage.update_title(&uuid, "foo");
     storage.update_text(&uuid, "# Header\n\nText");
+    storage.flush(&uuid);
 
     // init_resources()?;
     // let app = Application::new(notes?)?;
