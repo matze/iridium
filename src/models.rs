@@ -1,3 +1,5 @@
+use crate::standardfile::crypto::Crypto;
+use crate::standardfile;
 use chrono::{DateTime, Utc};
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
@@ -5,7 +7,6 @@ use ring::digest;
 use std::collections::HashMap;
 use std::fs::{create_dir_all, File};
 use std::io::prelude::*;
-use crate::standardfile;
 use std::path::PathBuf;
 use uuid::Uuid;
 
@@ -19,11 +20,14 @@ pub struct Note {
 pub struct Storage {
     path: PathBuf,
     notes: HashMap<Uuid, Note>,
+    crypto: Crypto,
 }
 
 impl Storage {
-    pub fn new(email: &str) -> Storage {
-        let name = HEXLOWER.encode(digest::digest(&digest::SHA256, &email.as_bytes()).as_ref());
+    pub fn new(auth_params: &standardfile::AuthParams, password: &str) -> Storage {
+        let name = HEXLOWER
+            .encode(digest::digest(&digest::SHA256, &auth_params.identifier.as_bytes()).as_ref());
+        let crypto = Crypto::new(auth_params, password).unwrap();
         let dirs = BaseDirs::new().unwrap();
         let mut path = PathBuf::from(dirs.cache_dir());
         path.push("iridium");
@@ -32,7 +36,22 @@ impl Storage {
         Self {
             path: path,
             notes: HashMap::new(),
+            crypto: crypto,
         }
+    }
+
+    /// Decrypt item and add it to the storage.
+    pub fn decrypt(&mut self, item: &standardfile::Item) {
+        let decrypted = serde_json::from_str::<standardfile::Note>(&self.crypto.decrypt(item).unwrap()).unwrap();
+        let note = Note {
+            title: decrypted.title.unwrap_or("".to_owned()),
+            text: decrypted.text,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+        };
+
+        let uuid = Uuid::parse_str(item.uuid.as_str()).unwrap();
+        self.notes.insert(uuid, note);
     }
 
     /// Encrypts item and writes it to disk.

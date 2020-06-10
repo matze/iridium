@@ -46,16 +46,19 @@ fn main() -> Result<()> {
     let contents = std::fs::read_to_string(filename)
         .with_context(|| format!("Could not open {}.", filename))?;
 
-    let root = serde_json::from_str::<Exported>(&contents)?;
+    let exported = serde_json::from_str::<Exported>(&contents)?;
     let email = &std::env::var("SF_EMAIL")?;
     let pass = get_password(email)?;
-    let notes = root.notes(&pass)?;
-    let mut storage = Storage::new(email);
+    let mut storage = Storage::new(&exported.auth_params, pass.as_str());
 
-    let uuid = storage.create_note();
-    storage.update_title(&uuid, "foo");
-    storage.update_text(&uuid, "# Header\n\nText");
-    storage.flush(&uuid);
+    for note in exported.encrypted_notes() {
+        storage.decrypt(note);
+    }
+    // let notes = exported.notes(&pass)?;
+
+    // let uuid = storage.create_note();
+    // storage.update_title(&uuid, "foo");
+    // storage.update_text(&uuid, "# Header\n\nText");
 
     // init_resources()?;
     // let app = Application::new(notes?)?;

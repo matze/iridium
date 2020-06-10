@@ -24,11 +24,11 @@ pub struct Item {
 
 #[derive(Deserialize, Debug)]
 pub struct Exported {
-    auth_params: AuthParams,
+    pub auth_params: AuthParams,
     items: Vec<Item>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Note {
     pub title: Option<String>,
     pub text: String,
@@ -40,16 +40,11 @@ pub struct NoteItem {
 }
 
 impl Exported {
-    pub fn notes(&self, password: &str) -> Result<Vec<NoteItem>> {
-        let crypto = crypto::Crypto::new(&self.auth_params, password)?;
-
-        let notes = self
+    pub fn encrypted_notes(&self) -> Vec<&Item> {
+        self
             .items
             .iter()
             .filter(|x| x.content_type == "Note")
-            .map(|x| NoteItem {item: x.clone(), note: serde_json::from_str(&crypto.decrypt(x).unwrap()).unwrap()})
-            .collect::<Vec<NoteItem>>();
-
-        Ok(notes)
+            .collect::<Vec<&Item>>()
     }
 }
