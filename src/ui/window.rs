@@ -9,7 +9,6 @@ pub struct Window {
     pub sender: glib::Sender<WindowEvent>,
     text_buffer: gtk::TextBuffer,
     title_entry: gtk::Entry,
-    search_bar: gtk::SearchBar,
 }
 
 fn get_shortcuts_window() -> gtk::ShortcutsWindow {
@@ -65,6 +64,10 @@ impl Window {
             }),
         );
 
+        let search_bar = builder.get_object::<gtk::SearchBar>("iridium-search-bar").unwrap();
+        let search_entry = builder.get_object::<gtk::SearchEntry>("iridium-search-entry").unwrap();
+        search_bar.connect_entry(&search_entry);
+
         win_receiver.attach(None, move |event| {
             match event {
                 WindowEvent::AddNote(uuid, title) => {
@@ -78,6 +81,9 @@ impl Window {
                     let item = item.downcast_ref::<RowData>().unwrap();
                     let uuid = item.get_property("uuid").unwrap().get::<String>();
                     app_sender.send(AppEvent::NoteSelected(uuid.unwrap().unwrap())).unwrap();
+                },
+                WindowEvent::ToggleSearchBar => {
+                    search_bar.set_search_mode(!search_bar.get_search_mode());
                 }
             }
 
@@ -98,21 +104,12 @@ impl Window {
         let text_view: gtk::TextView = builder.get_object("iridium-text-view").unwrap();
         let text_buffer = text_view.get_buffer().unwrap();
 
-        let search_bar = builder.get_object::<gtk::SearchBar>("iridium-search-bar").unwrap();
-        let search_entry = builder.get_object::<gtk::SearchEntry>("iridium-search-entry").unwrap();
-        search_bar.connect_entry(&search_entry);
-
         Window {
             widget: window,
             sender: win_sender,
             text_buffer: text_buffer,
             title_entry: builder.get_object("iridium-title-entry").unwrap(),
-            search_bar: search_bar,
         }
-    }
-
-    pub fn toggle_search_bar(&self) {
-        self.search_bar.set_search_mode(!self.search_bar.get_search_mode());
     }
 
     pub fn load_note(&self, title: &str, content: &str) {

@@ -62,12 +62,12 @@ impl Application {
             })
         );
 
-        let s1 = sender.clone();
+        let win_sender = window.sender.clone();
         action!(app, "search", move |_, _| {
-            s1.send(AppEvent::ToggleSearchBar).unwrap();
+            win_sender.send(WindowEvent::ToggleSearchBar).unwrap();
         });
 
-        let s2 = sender.clone();
+        let app_sender = sender.clone();
         action!(app, "import",
             clone!(@weak window.widget as window => move |_, _| {
                 let dialog = gtk::FileChooserDialog::with_buttons(
@@ -79,7 +79,7 @@ impl Application {
                 match dialog.run() {
                     gtk::ResponseType::Accept => {
                         if let Some(filename) = dialog.get_filename() {
-                            s2.send(AppEvent::Import(filename)).unwrap();
+                            app_sender.send(AppEvent::Import(filename)).unwrap();
                         }
                     },
                     _ => {}
@@ -117,9 +117,6 @@ impl Application {
                         window.load_note(item.title.as_str(), item.text.as_str());
                     }
                 },
-                AppEvent::ToggleSearchBar => {
-                    window.toggle_search_bar();
-                }
             }
 
             glib::Continue(true)
