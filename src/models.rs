@@ -1,5 +1,5 @@
-use crate::standardfile::crypto::Crypto;
 use crate::standardfile;
+use crate::standardfile::crypto::Crypto;
 use chrono::{DateTime, Utc};
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
@@ -23,6 +23,11 @@ pub struct Storage {
     crypto: Crypto,
 }
 
+pub enum Decrypted {
+    Note(standardfile::Note),
+    None,
+}
+
 impl Storage {
     pub fn new(auth_params: &standardfile::AuthParams, password: &str) -> Storage {
         let name = HEXLOWER
@@ -42,15 +47,16 @@ impl Storage {
 
     /// Decrypt item and add it to the storage.
     pub fn decrypt(&mut self, item: &standardfile::Item) {
-        let decrypted = serde_json::from_str::<standardfile::Note>(&self.crypto.decrypt(item).unwrap()).unwrap();
-        let note = Note {
-            title: decrypted.title.unwrap_or("".to_owned()),
-            text: decrypted.text,
-            created_at: item.created_at,
-            updated_at: item.updated_at,
-        };
+        if let Decrypted::Note(decrypted) = self.crypto.decrypt(item).unwrap() {
+            let note = Note {
+                title: decrypted.title.unwrap_or("".to_owned()),
+                text: decrypted.text,
+                created_at: item.created_at,
+                updated_at: item.updated_at,
+            };
 
-        self.notes.insert(item.uuid, note);
+            self.notes.insert(item.uuid, note);
+        }
     }
 
     /// Encrypts item and writes it to disk.

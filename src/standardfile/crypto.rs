@@ -1,7 +1,8 @@
 use super::{AuthParams, Item, Note};
 use crate::models;
+use crate::standardfile;
 use aes::Aes256;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use block_modes::block_padding::Pkcs7;
 use block_modes::{BlockMode, Cbc};
 use data_encoding::{BASE64, HEXLOWER};
@@ -93,7 +94,7 @@ impl Crypto {
         Ok(Crypto { mk: mk, ak: ak })
     }
 
-    pub fn decrypt(&self, item: &Item) -> Result<String> {
+    pub fn decrypt(&self, item: &Item) -> Result<models::Decrypted> {
         let item_key = decrypt(&item.enc_item_key, &self.mk, &self.ak, &item.uuid)?;
         let mut item_ek: Key = [0; 32];
         let mut item_ak: Key = [0; 32];
@@ -105,7 +106,13 @@ impl Crypto {
             .decode_mut(item_key[64..].as_bytes(), &mut item_ak)
             .expect("foo");
 
-        Ok(decrypt(&item.content, &item_ek, &item_ak, &item.uuid)?)
+        let decrypted = decrypt(&item.content, &item_ek, &item_ak, &item.uuid)?;
+
+        if item.content_type == "Note" {
+            Ok(models::Decrypted::Note(serde_json::from_str::<standardfile::Note>(decrypted.as_str())?))
+        } else {
+            Ok(models::Decrypted::None)
+        }
     }
 
     pub fn encrypt(&self, note: &models::Note, uuid: &Uuid) -> Result<Item> {
@@ -169,10 +176,15 @@ mod tests {
         let crypto = Crypto::new(&auth_params, "foobar").unwrap();
         let uuid = Uuid::new_v4();
         let encrypted = crypto.encrypt(&note, &uuid).unwrap();
-        let decrypted = crypto.decrypt(&encrypted).unwrap();
-        let item = serde_json::from_str::<Note>(&decrypted).unwrap();
 
-        assert_eq!(item.title.unwrap(), note.title);
-        assert_eq!(item.text, note.text);
+        match crypto.decrypt(&encrypted).unwrap() {
+            models::Decrypted::Note(decrypted) => {
+                assert_eq!(decrypted.title.unwrap(), note.title);
+                assert_eq!(decrypted.text, note.text);
+            },
+            models::Decrypted::None => {
+                assert!(false);
+            }
+        }
     }
 }
