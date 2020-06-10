@@ -613,6 +613,8 @@ dependencies = [
  "gio",
  "glib",
  "gtk",
+ "rand 0.7.3",
+ "rand_chacha 0.2.2",
  "ring",
  "secret-service",
  "serde",
