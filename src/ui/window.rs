@@ -2,6 +2,7 @@ use crate::standardfile::NoteItem;
 use crate::ui::state::UiEvent;
 use gio::prelude::*;
 use gtk::prelude::*;
+use uuid::Uuid;
 
 use row_data::RowData;
 
@@ -66,7 +67,7 @@ impl Window {
         for item in notes {
             row_model.append(&RowData::new(
                 item.note.title.as_ref().unwrap_or(&"foo".to_owned()).as_str(),
-                item.item.uuid.as_str(),
+                item.item.uuid.to_hyphenated().to_string().as_str()
             ));
         }
 

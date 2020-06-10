@@ -2,6 +2,7 @@ use anyhow::Result;
 use gio::prelude::*;
 use gtk::prelude::*;
 use std::env;
+use uuid::Uuid;
 
 use crate::config::APP_ID;
 use crate::ui::window::Window;
@@ -48,6 +49,7 @@ impl Application {
         receiver.attach(None, move |event| {
             match event {
                 UiEvent::NoteSelected(uuid) => {
+                    let uuid = Uuid::parse_str(uuid.as_str()).unwrap();
                     let item = notes.iter().filter(|&x| x.item.uuid == uuid).collect::<Vec<_>>()[0];
                     window.load_note(item.note.title.as_deref().unwrap_or(""), item.note.text.as_str());
                 },

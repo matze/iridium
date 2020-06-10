@@ -19,16 +19,16 @@ pub struct Crypto {
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 
-fn decrypt(s: &str, ek: &Key, ak: &Key, check_uuid: &str) -> Result<String> {
+fn decrypt(s: &str, ek: &Key, ak: &Key, check_uuid: &Uuid) -> Result<String> {
     let s: Vec<&str> = s.split(':').collect();
     let version = s[0];
     let auth_hash = s[1];
-    let uuid = s[2];
+    let uuid = Uuid::parse_str(s[2])?;
     let iv = s[3];
     let ciphertext = s[4];
 
     assert!(version == "003");
-    assert!(check_uuid == uuid);
+    assert!(check_uuid == &uuid);
 
     let to_auth = std::format!("003:{}:{}:{}", uuid, iv, ciphertext);
     let auth_hash_bytes = HEXLOWER.decode(&auth_hash.as_bytes())?;
@@ -133,7 +133,7 @@ impl Crypto {
         let item_key_encoded = HEXLOWER.encode(item_key.as_ref());
 
         Ok(Item {
-            uuid: uuid.to_hyphenated().to_string(),
+            uuid: uuid.clone(),
             content: encrypt(to_encrypt.as_ref(), &item_ek, &item_ak, &uuid)?,
             content_type: "Note".to_owned(),
             enc_item_key: encrypt(item_key_encoded.as_ref(), &self.mk, &self.ak, &uuid)?,

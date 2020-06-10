@@ -50,8 +50,7 @@ impl Storage {
             updated_at: item.updated_at,
         };
 
-        let uuid = Uuid::parse_str(item.uuid.as_str()).unwrap();
-        self.notes.insert(uuid, note);
+        self.notes.insert(item.uuid, note);
     }
 
     /// Encrypts item and writes it to disk.
