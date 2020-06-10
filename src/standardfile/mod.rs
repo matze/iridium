@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 
 pub mod crypto;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct AuthParams {
     pub identifier: String,
     pub pw_cost: u32,
@@ -13,7 +13,7 @@ pub struct AuthParams {
     pub version: String,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize)]
 pub struct Item {
     pub uuid: Uuid,
     pub content: String,
@@ -23,13 +23,13 @@ pub struct Item {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct Exported {
     pub auth_params: AuthParams,
     items: Vec<Item>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize)]
 pub struct Note {
     pub title: Option<String>,
     pub text: String,

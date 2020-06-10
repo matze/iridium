@@ -77,9 +77,10 @@ impl Storage {
                 text: item.text.clone(),
             };
 
-            let serialized = serde_json::to_string(&note).unwrap();
+            let encrypted = self.crypto.encrypt(item, uuid).unwrap();
+            let serialized = serde_json::to_string(&encrypted).unwrap();
             let mut file = File::create(path).unwrap();
-            file.write_all(serialized.as_bytes()).unwrap();
+            file.write_all(serialized.as_ref()).unwrap();
         }
     }
 
