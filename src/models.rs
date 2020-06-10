@@ -72,11 +72,6 @@ impl Storage {
 
             path.push(uuid.to_hyphenated().to_string());
 
-            let note = standardfile::Note {
-                title: Some(item.title.clone()),
-                text: item.text.clone(),
-            };
-
             let encrypted = self.crypto.encrypt(item, uuid).unwrap();
             let serialized = serde_json::to_string(&encrypted).unwrap();
             let mut file = File::create(path).unwrap();

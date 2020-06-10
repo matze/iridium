@@ -2,7 +2,7 @@ use super::{AuthParams, Item, Note};
 use crate::models;
 use crate::standardfile;
 use aes::Aes256;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use block_modes::block_padding::Pkcs7;
 use block_modes::{BlockMode, Cbc};
 use data_encoding::{BASE64, HEXLOWER};

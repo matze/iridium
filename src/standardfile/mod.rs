@@ -1,4 +1,3 @@
-use anyhow::Result;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
