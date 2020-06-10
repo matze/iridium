@@ -158,12 +158,14 @@ mod tests {
     #[test]
     fn test_encrypt_decrypt() {
         let now = Utc::now();
+        let uuid = Uuid::new_v4();
 
         let note = models::Note {
             title: "Title".to_owned(),
             text: "Text".to_owned(),
             created_at: now,
             updated_at: now,
+            uuid: uuid,
         };
 
         let auth_params = AuthParams {
@@ -174,7 +176,6 @@ mod tests {
         };
 
         let crypto = Crypto::new(&auth_params, "foobar").unwrap();
-        let uuid = Uuid::new_v4();
         let encrypted = crypto.encrypt(&note, &uuid).unwrap();
 
         match crypto.decrypt(&encrypted).unwrap() {

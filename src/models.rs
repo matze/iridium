@@ -15,6 +15,7 @@ pub struct Note {
     pub text: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub uuid: Uuid,
 }
 
 pub struct Storage {
@@ -53,6 +54,7 @@ impl Storage {
                 text: decrypted.text,
                 created_at: item.created_at,
                 updated_at: item.updated_at,
+                uuid: item.uuid,
             };
 
             self.notes.insert(item.uuid, note);
@@ -91,6 +93,7 @@ impl Storage {
             text: "".to_owned(),
             created_at: now,
             updated_at: now,
+            uuid: uuid,
         };
 
         self.notes.insert(uuid, note);
