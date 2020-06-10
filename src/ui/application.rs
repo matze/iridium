@@ -5,21 +5,21 @@ use std::env;
 use uuid::Uuid;
 
 use crate::config::APP_ID;
+use crate::models::Storage;
 use crate::ui::window::Window;
 use crate::ui::state::UiEvent;
-use crate::standardfile::NoteItem;
 
 pub struct Application {
     app: gtk::Application,
 }
 
 impl Application {
-    pub fn new(notes: Vec<NoteItem>) -> Result<Self> {
+    pub fn new(storage: Storage) -> Result<Self> {
         let app = gtk::Application::new(Some(APP_ID), gio::ApplicationFlags::FLAGS_NONE)?;
 
         let (sender, receiver) = glib::MainContext::channel::<UiEvent>(glib::PRIORITY_DEFAULT);
         let sender_ = sender.clone();
-        let window = Window::new(sender, &notes);
+        let window = Window::new(sender, &storage);
 
         app.connect_activate(clone!(@weak window.widget as window => move |app| {
             window.set_application(Some(app));
@@ -50,8 +50,10 @@ impl Application {
             match event {
                 UiEvent::NoteSelected(uuid) => {
                     let uuid = Uuid::parse_str(uuid.as_str()).unwrap();
-                    let item = notes.iter().filter(|&x| x.item.uuid == uuid).collect::<Vec<_>>()[0];
-                    window.load_note(item.note.title.as_deref().unwrap_or(""), item.note.text.as_str());
+
+                    if let Some(item) = storage.notes.get(&uuid) {
+                        window.load_note(item.title.as_str(), item.text.as_str());
+                    }
                 },
                 UiEvent::ToggleSearchBar => {
                     window.toggle_search_bar();

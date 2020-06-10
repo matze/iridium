@@ -35,11 +35,6 @@ pub struct Note {
     pub text: String,
 }
 
-pub struct NoteItem {
-    pub item: Item,
-    pub note: Note,
-}
-
 impl Exported {
     pub fn encrypted_notes(&self) -> Vec<&Item> {
         self

@@ -1,8 +1,7 @@
-use crate::standardfile::NoteItem;
+use crate::models::Storage;
 use crate::ui::state::UiEvent;
 use gio::prelude::*;
 use gtk::prelude::*;
-use uuid::Uuid;
 
 use row_data::RowData;
 
@@ -19,7 +18,7 @@ fn get_shortcuts_window() -> gtk::ShortcutsWindow {
 }
 
 impl Window {
-    pub fn new(sender: glib::Sender<UiEvent>, notes: &Vec<NoteItem>) -> Self {
+    pub fn new(sender: glib::Sender<UiEvent>, storage: &Storage) -> Self {
         let builder =
             gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/window.ui");
         let window: gtk::ApplicationWindow = builder.get_object("window").unwrap();
@@ -64,10 +63,10 @@ impl Window {
             }),
         );
 
-        for item in notes {
+        for item in storage.notes.values() {
             row_model.append(&RowData::new(
-                item.note.title.as_ref().unwrap_or(&"foo".to_owned()).as_str(),
-                item.item.uuid.to_hyphenated().to_string().as_str()
+                item.title.as_str(),
+                item.uuid.to_hyphenated().to_string().as_str()
             ));
         }
 

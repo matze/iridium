@@ -20,7 +20,7 @@ pub struct Note {
 
 pub struct Storage {
     path: PathBuf,
-    notes: HashMap<Uuid, Note>,
+    pub notes: HashMap<Uuid, Note>,
     crypto: Crypto,
 }
 
