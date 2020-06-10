@@ -1,5 +1,4 @@
-use crate::models::Storage;
-use crate::ui::state::UiEvent;
+use crate::ui::state::{AppEvent, WindowEvent};
 use gio::prelude::*;
 use gtk::prelude::*;
 
@@ -7,6 +6,7 @@ use row_data::RowData;
 
 pub struct Window {
     pub widget: gtk::ApplicationWindow,
+    pub sender: glib::Sender<WindowEvent>,
     text_buffer: gtk::TextBuffer,
     title_entry: gtk::Entry,
     search_bar: gtk::SearchBar,
@@ -18,10 +18,12 @@ fn get_shortcuts_window() -> gtk::ShortcutsWindow {
 }
 
 impl Window {
-    pub fn new(sender: glib::Sender<UiEvent>, storage: &Storage) -> Self {
+    pub fn new(app_sender: glib::Sender<AppEvent>) -> Self {
         let builder =
             gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/window.ui");
         let window: gtk::ApplicationWindow = builder.get_object("window").unwrap();
+
+        let (win_sender, win_receiver) = glib::MainContext::channel::<WindowEvent>(glib::PRIORITY_DEFAULT);
 
         window.set_help_overlay(Some(&get_shortcuts_window()));
 
@@ -63,43 +65,38 @@ impl Window {
             }),
         );
 
-        for item in storage.notes.values() {
-            row_model.append(&RowData::new(
-                item.title.as_str(),
-                item.uuid.to_hyphenated().to_string().as_str()
-            ));
-        }
+        win_receiver.attach(None, move |event| {
+            match event {
+                WindowEvent::AddNote(uuid, title) => {
+                    row_model.append(&RowData::new(
+                        title.as_str(),
+                        uuid.to_hyphenated().to_string().as_str()
+                    ));
+                },
+                WindowEvent::SelectNote(row_index) => {
+                    let item = row_model.get_object(row_index as u32).unwrap();
+                    let item = item.downcast_ref::<RowData>().unwrap();
+                    let uuid = item.get_property("uuid").unwrap().get::<String>();
+                    app_sender.send(AppEvent::NoteSelected(uuid.unwrap().unwrap())).unwrap();
+                }
+            }
 
-        let sender_ = sender.clone();
+            glib::Continue(true)
+        });
+
+        let win_sender_ = win_sender.clone();
 
         note_list_box.connect_row_selected(move |_, row| {
             match row {
                 Some(row) => {
-                    let item = row_model.get_object(row.get_index() as u32).unwrap();
-                    let item = item.downcast_ref::<RowData>().unwrap();
-                    let uuid = item.get_property("uuid").unwrap().get::<String>();
-                    sender_.send(UiEvent::NoteSelected(uuid.unwrap().unwrap())).unwrap();
+                    win_sender_.send(WindowEvent::SelectNote(row.get_index())).unwrap();
                 }
                 None => {}
             }
         });
 
-        let bold_tag = gtk::TextTag::new(Some("semibold"));
-
-        // I'd like to use Pango::Weight::Bold but it's too much of a hassle.
-        bold_tag.set_property_weight(600);
-
         let text_view: gtk::TextView = builder.get_object("iridium-text-view").unwrap();
         let text_buffer = text_view.get_buffer().unwrap();
-        let tag_table = text_buffer.get_tag_table().unwrap();
-        tag_table.add(&bold_tag);
-
-        text_buffer.set_text("# this is a heading\nthis is regular text");
-        let start = text_buffer.get_start_iter();
-        let mut end = start.clone();
-        end.forward_line();
-
-        text_buffer.apply_tag(&bold_tag, &start, &end);
 
         let search_bar = builder.get_object::<gtk::SearchBar>("iridium-search-bar").unwrap();
         let search_entry = builder.get_object::<gtk::SearchEntry>("iridium-search-entry").unwrap();
@@ -107,6 +104,7 @@ impl Window {
 
         Window {
             widget: window,
+            sender: win_sender,
             text_buffer: text_buffer,
             title_entry: builder.get_object("iridium-title-entry").unwrap(),
             search_bar: search_bar,

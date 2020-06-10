@@ -19,9 +19,9 @@ pub struct Note {
 }
 
 pub struct Storage {
-    path: PathBuf,
+    path: Option<PathBuf>,
     pub notes: HashMap<Uuid, Note>,
-    crypto: Crypto,
+    crypto: Option<Crypto>,
 }
 
 pub enum Decrypted {
@@ -30,25 +30,29 @@ pub enum Decrypted {
 }
 
 impl Storage {
-    pub fn new(auth_params: &standardfile::AuthParams, password: &str) -> Storage {
+    pub fn new() -> Storage {
+        Self {
+            path: None,
+            notes: HashMap::new(),
+            crypto: None,
+        }
+    }
+
+    pub fn reset(&mut self, auth_params: &standardfile::AuthParams, password: &str) {
         let name = HEXLOWER
             .encode(digest::digest(&digest::SHA256, &auth_params.identifier.as_bytes()).as_ref());
-        let crypto = Crypto::new(auth_params, password).unwrap();
         let dirs = BaseDirs::new().unwrap();
         let mut path = PathBuf::from(dirs.cache_dir());
         path.push("iridium");
         path.push(name);
 
-        Self {
-            path: path,
-            notes: HashMap::new(),
-            crypto: crypto,
-        }
+        self.path = Some(path);
+        self.crypto = Some(Crypto::new(auth_params, password).unwrap());
     }
 
     /// Decrypt item and add it to the storage.
-    pub fn decrypt(&mut self, item: &standardfile::Item) {
-        if let Decrypted::Note(decrypted) = self.crypto.decrypt(item).unwrap() {
+    pub fn decrypt(&mut self, item: &standardfile::Item) -> Option<Uuid> {
+        if let Decrypted::Note(decrypted) = self.crypto.as_ref().unwrap().decrypt(item).unwrap() {
             let note = Note {
                 title: decrypted.title.unwrap_or("".to_owned()),
                 text: decrypted.text,
@@ -58,13 +62,17 @@ impl Storage {
             };
 
             self.notes.insert(item.uuid, note);
+            Some(item.uuid)
+        }
+        else {
+            None
         }
     }
 
     /// Encrypts item and writes it to disk.
     pub fn flush(&self, uuid: &Uuid) {
         if let Some(item) = self.notes.get(uuid) {
-            let mut path = PathBuf::from(&self.path);
+            let mut path = PathBuf::from(&self.path.as_ref().unwrap());
 
             if !path.exists() {
                 create_dir_all(&path).unwrap();
@@ -72,7 +80,7 @@ impl Storage {
 
             path.push(uuid.to_hyphenated().to_string());
 
-            let encrypted = self.crypto.encrypt(item, uuid).unwrap();
+            let encrypted = self.crypto.as_ref().unwrap().encrypt(item, uuid).unwrap();
             let serialized = serde_json::to_string(&encrypted).unwrap();
             let mut file = File::create(path).unwrap();
             file.write_all(serialized.as_ref()).unwrap();

@@ -7,12 +7,9 @@ mod models;
 mod standardfile;
 mod ui;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use gio::{resources_register, Resource};
 use glib::Bytes;
-use models::Storage;
-use secret_service::{EncryptionType, SecretService};
-use standardfile::Exported;
 use ui::application::Application;
 
 fn init_resources() -> Result<()> {
@@ -24,39 +21,9 @@ fn init_resources() -> Result<()> {
     Ok(())
 }
 
-fn get_password(email: &str) -> Result<String> {
-    let service = SecretService::new(EncryptionType::Dh).unwrap();
-
-    let items = service
-        .search_items(vec![
-            ("service", "standardnotes"),
-            ("email", email),
-            ("server", "https://app.standardnotes.org"),
-        ])
-        .unwrap();
-
-    let item = items.get(0).unwrap();
-    let pass = item.get_secret().unwrap();
-
-    Ok(String::from_utf8(pass)?)
-}
-
 fn main() -> Result<()> {
-    let filename = "test.json";
-    let contents = std::fs::read_to_string(filename)
-        .with_context(|| format!("Could not open {}.", filename))?;
-
-    let exported = serde_json::from_str::<Exported>(&contents)?;
-    let email = &std::env::var("SF_EMAIL")?;
-    let pass = get_password(email)?;
-    let mut storage = Storage::new(&exported.auth_params, pass.as_str());
-
-    for note in exported.encrypted_notes() {
-        storage.decrypt(note);
-    }
-
     init_resources()?;
-    let app = Application::new(storage)?;
+    let app = Application::new()?;
     app.run();
 
     Ok(())
