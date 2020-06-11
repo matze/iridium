@@ -124,14 +124,14 @@ impl Application {
                         let note = storage.notes.get(&uuid).unwrap();
                         sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
                     },
-                    AppEvent::NoteSelected(uuid) => {
+                    AppEvent::SelectNote(uuid) => {
                         let uuid = Uuid::parse_str(uuid.as_str()).unwrap();
 
                         if let Some(item) = storage.notes.get(&uuid) {
                             window.load_note(item.title.as_str(), item.text.as_str());
                         }
                     },
-                    AppEvent::TitleUpdated(uuid, text) => {
+                    AppEvent::UpdateTitle(uuid, text) => {
                         storage.update_title(&uuid, text.as_str());
                     },
                 }

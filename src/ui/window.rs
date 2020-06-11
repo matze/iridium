@@ -75,7 +75,7 @@ impl Window {
 
         title_entry.connect_changed(
             clone!(@strong win_sender as sender => move|_| {
-                sender.send(WindowEvent::TitleUpdated).unwrap();
+                sender.send(WindowEvent::UpdateTitle).unwrap();
             })
         );
 
@@ -105,14 +105,14 @@ impl Window {
                         let binding = title_entry.bind_property("text", item, "title").build();
                         bindings.push(binding.unwrap());
                         current_uuid = Some(Uuid::parse_str(uuid.as_str()).unwrap());
-                        app_sender.send(AppEvent::NoteSelected(uuid)).unwrap();
+                        app_sender.send(AppEvent::SelectNote(uuid)).unwrap();
                     },
-                    WindowEvent::TitleUpdated => {
+                    WindowEvent::UpdateTitle => {
                         if let Some(uuid) = current_uuid {
                             // Should we actually get that from the model?
                             let text = title_entry.get_text().unwrap();
                             let text = text.as_str();
-                            app_sender.send(AppEvent::TitleUpdated(uuid.clone(), text.to_owned())).unwrap();
+                            app_sender.send(AppEvent::UpdateTitle(uuid.clone(), text.to_owned())).unwrap();
                         }
                     },
                     WindowEvent::ToggleSearchBar => {
