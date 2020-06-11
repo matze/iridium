@@ -23,8 +23,6 @@ impl Window {
             gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/window.ui");
         let window: gtk::ApplicationWindow = builder.get_object("window").unwrap();
 
-        let (win_sender, win_receiver) = glib::MainContext::channel::<WindowEvent>(glib::PRIORITY_DEFAULT);
-
         window.set_help_overlay(Some(&get_shortcuts_window()));
 
         let style_provider = gtk::CssProvider::new();
@@ -36,10 +34,41 @@ impl Window {
         );
 
         let row_model = gio::ListStore::new(RowData::static_type());
-        let note_list_box: gtk::ListBox = builder.get_object("iridium-note-list").unwrap();
+        let note_list_box = builder.get_object::<gtk::ListBox>("iridium-note-list").unwrap();
+        let title_entry = builder.get_object::<gtk::Entry>("iridium-title-entry").unwrap();
+        let search_bar = builder.get_object::<gtk::SearchBar>("iridium-search-bar").unwrap();
+        let search_entry = builder.get_object::<gtk::SearchEntry>("iridium-search-entry").unwrap();
+        let text_view = builder.get_object::<gtk::TextView>("iridium-text-view").unwrap();
+        let text_buffer = text_view.get_buffer().unwrap();
 
-        note_list_box.bind_model(
-            Some(&row_model),
+        let (win_sender, win_receiver) = glib::MainContext::channel::<WindowEvent>(glib::PRIORITY_DEFAULT);
+
+        let mut bindings: Vec<glib::Binding> = vec![];
+        let mut current_uuid: Option<Uuid> = None;
+
+        search_bar.connect_entry(&search_entry);
+
+        title_entry.connect_changed(
+            clone!(@strong win_sender as sender => move|_| {
+                sender.send(WindowEvent::UpdateTitle).unwrap();
+            })
+        );
+
+        text_buffer.connect_changed(
+            clone!(@strong win_sender as sender => move|_| {
+                sender.send(WindowEvent::UpdateText).unwrap();
+            })
+        );
+
+        note_list_box.connect_row_selected(
+            clone!(@strong win_sender as sender => move |_, row| {
+                if let Some(row) = row {
+                    sender.send(WindowEvent::SelectNote(row.get_index())).unwrap();
+                }
+            })
+        );
+
+        note_list_box.bind_model(Some(&row_model),
             clone!(@weak window => @default-panic, move |item| {
                 let item = item.downcast_ref::<RowData>().unwrap();
 
@@ -63,29 +92,6 @@ impl Window {
                 row_widget.show_all();
                 row_widget.upcast::<gtk::Widget>()
             }),
-        );
-
-        let title_entry = builder.get_object::<gtk::Entry>("iridium-title-entry").unwrap();
-        let search_bar = builder.get_object::<gtk::SearchBar>("iridium-search-bar").unwrap();
-        let search_entry = builder.get_object::<gtk::SearchEntry>("iridium-search-entry").unwrap();
-        let text_view = builder.get_object::<gtk::TextView>("iridium-text-view").unwrap();
-        let text_buffer = text_view.get_buffer().unwrap();
-
-        search_bar.connect_entry(&search_entry);
-
-        let mut bindings: Vec<glib::Binding> = vec![];
-        let mut current_uuid: Option<Uuid> = None;
-
-        title_entry.connect_changed(
-            clone!(@strong win_sender as sender => move|_| {
-                sender.send(WindowEvent::UpdateTitle).unwrap();
-            })
-        );
-
-        text_buffer.connect_changed(
-            clone!(@strong win_sender as sender => move|_| {
-                sender.send(WindowEvent::UpdateText).unwrap();
-            })
         );
 
         win_receiver.attach(None,
@@ -139,17 +145,6 @@ impl Window {
                 }
 
                 glib::Continue(true)
-            })
-        );
-
-        note_list_box.connect_row_selected(
-            clone!(@strong win_sender as sender => move |_, row| {
-                match row {
-                    Some(row) => {
-                        sender.send(WindowEvent::SelectNote(row.get_index())).unwrap();
-                    }
-                    None => {}
-                }
             })
         );
 
