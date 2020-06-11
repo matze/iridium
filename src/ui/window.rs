@@ -43,7 +43,7 @@ impl Window {
 
         let (win_sender, win_receiver) = glib::MainContext::channel::<WindowEvent>(glib::PRIORITY_DEFAULT);
 
-        let mut bindings: Vec<glib::Binding> = vec![];
+        let mut current_binding: Option<glib::Binding> = None;
         let mut current_uuid: Option<Uuid> = None;
 
         search_bar.connect_entry(&search_entry);
@@ -109,16 +109,15 @@ impl Window {
                         current_uuid = Some(uuid);
                     },
                     WindowEvent::SelectNote(row_index) => {
-                        if bindings.len() > 0 {
-                            bindings[0].unbind();
-                            bindings.clear();
+                        if let Some(binding) = &current_binding {
+                            binding.unbind();
                         }
 
                         let item = row_model.get_object(row_index as u32).unwrap();
                         let item = item.downcast_ref::<RowData>().unwrap();
                         let uuid = item.get_property("uuid").unwrap().get::<String>().unwrap().unwrap();
                         let binding = title_entry.bind_property("text", item, "title").build();
-                        bindings.push(binding.unwrap());
+                        current_binding = Some(binding.unwrap());
                         current_uuid = Some(Uuid::parse_str(uuid.as_str()).unwrap());
                         app_sender.send(AppEvent::SelectNote(uuid)).unwrap();
                     },
