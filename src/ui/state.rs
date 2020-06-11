@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use uuid::Uuid;
 
 pub enum AppEvent {
+    AddNote,
     NoteSelected(String),
     Import(PathBuf),
 }

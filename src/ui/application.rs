@@ -62,6 +62,10 @@ impl Application {
             })
         );
 
+        action!(app, "add", clone!(@strong sender as sender => move |_, _| {
+            sender.send(AppEvent::AddNote).unwrap();
+        }));
+
         let win_sender = window.sender.clone();
         action!(app, "search", move |_, _| {
             win_sender.send(WindowEvent::ToggleSearchBar).unwrap();
@@ -109,6 +113,11 @@ impl Application {
                             }
                         }
                     }
+                },
+                AppEvent::AddNote => {
+                    let uuid = storage.create_note();
+                    let note = storage.notes.get(&uuid).unwrap();
+                    window.sender.clone().send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
                 },
                 AppEvent::NoteSelected(uuid) => {
                     let uuid = Uuid::parse_str(uuid.as_str()).unwrap();
