@@ -69,6 +69,8 @@ impl Window {
         let search_entry = builder.get_object::<gtk::SearchEntry>("iridium-search-entry").unwrap();
         search_bar.connect_entry(&search_entry);
 
+        let mut bindings: Vec<glib::Binding> = vec![];
+
         win_receiver.attach(None, move |event| {
             match event {
                 WindowEvent::AddNote(uuid, title) => {
@@ -78,10 +80,16 @@ impl Window {
                     ));
                 },
                 WindowEvent::SelectNote(row_index) => {
+                    if bindings.len() > 0 {
+                        bindings[0].unbind();
+                        bindings.clear();
+                    }
+
                     let item = row_model.get_object(row_index as u32).unwrap();
                     let item = item.downcast_ref::<RowData>().unwrap();
                     let uuid = item.get_property("uuid").unwrap().get::<String>();
-                    item.bind_property("title", &title_entry, "text").flags(glib::BindingFlags::BIDIRECTIONAL).build();
+                    let binding = title_entry.bind_property("text", item, "title").build();
+                    bindings.push(binding.unwrap());
                     app_sender.send(AppEvent::NoteSelected(uuid.unwrap().unwrap())).unwrap();
                 },
                 WindowEvent::ToggleSearchBar => {
