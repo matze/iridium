@@ -1,6 +1,7 @@
 use crate::ui::state::{AppEvent, WindowEvent};
 use gio::prelude::*;
 use gtk::prelude::*;
+use uuid::Uuid;
 
 use row_data::RowData;
 
@@ -71,34 +72,40 @@ impl Window {
 
         let mut bindings: Vec<glib::Binding> = vec![];
 
-        win_receiver.attach(None, move |event| {
-            match event {
-                WindowEvent::AddNote(uuid, title) => {
-                    row_model.append(&RowData::new(
-                        title.as_str(),
-                        uuid.to_hyphenated().to_string().as_str()
-                    ));
-                },
-                WindowEvent::SelectNote(row_index) => {
-                    if bindings.len() > 0 {
-                        bindings[0].unbind();
-                        bindings.clear();
-                    }
+        win_receiver.attach(None,
+            clone!(@strong note_list_box as note_list_box => move |event| {
+                match event {
+                    WindowEvent::AddNote(uuid, title) => {
+                        let row = RowData::new(
+                            title.as_str(),
+                            uuid.to_hyphenated().to_string().as_str()
+                        );
+                        row_model.append(&row);
 
-                    let item = row_model.get_object(row_index as u32).unwrap();
-                    let item = item.downcast_ref::<RowData>().unwrap();
-                    let uuid = item.get_property("uuid").unwrap().get::<String>();
-                    let binding = title_entry.bind_property("text", item, "title").build();
-                    bindings.push(binding.unwrap());
-                    app_sender.send(AppEvent::NoteSelected(uuid.unwrap().unwrap())).unwrap();
-                },
-                WindowEvent::ToggleSearchBar => {
-                    search_bar.set_search_mode(!search_bar.get_search_mode());
+                        let row = note_list_box.get_row_at_index((row_model.get_n_items() - 1) as i32).unwrap();
+                        note_list_box.select_row(Some(&row));
+                    },
+                    WindowEvent::SelectNote(row_index) => {
+                        if bindings.len() > 0 {
+                            bindings[0].unbind();
+                            bindings.clear();
+                        }
+
+                        let item = row_model.get_object(row_index as u32).unwrap();
+                        let item = item.downcast_ref::<RowData>().unwrap();
+                        let uuid = item.get_property("uuid").unwrap().get::<String>();
+                        let binding = title_entry.bind_property("text", item, "title").build();
+                        bindings.push(binding.unwrap());
+                        app_sender.send(AppEvent::NoteSelected(uuid.unwrap().unwrap())).unwrap();
+                    },
+                    WindowEvent::ToggleSearchBar => {
+                        search_bar.set_search_mode(!search_bar.get_search_mode());
+                    },
                 }
-            }
 
-            glib::Continue(true)
-        });
+                glib::Continue(true)
+            })
+        );
 
         note_list_box.connect_row_selected(
             clone!(@strong win_sender as sender => move |_, row| {
