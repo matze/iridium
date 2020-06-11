@@ -107,6 +107,7 @@ impl Window {
                         let row = note_list_box.get_row_at_index((row_model.get_n_items() - 1) as i32).unwrap();
                         note_list_box.select_row(Some(&row));
                         current_uuid = Some(uuid);
+                        title_entry.grab_focus();
                     },
                     WindowEvent::SelectNote(row_index) => {
                         if let Some(binding) = &current_binding {
