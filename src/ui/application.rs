@@ -2,7 +2,6 @@ use anyhow::Result;
 use gio::prelude::*;
 use gtk::prelude::*;
 use std::env;
-use uuid::Uuid;
 use secret_service::{EncryptionType, SecretService};
 
 use crate::config::APP_ID;
@@ -125,8 +124,6 @@ impl Application {
                         sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
                     },
                     AppEvent::SelectNote(uuid) => {
-                        let uuid = Uuid::parse_str(uuid.as_str()).unwrap();
-
                         if let Some(item) = storage.notes.get(&uuid) {
                             window.load_note(item.title.as_str(), item.text.as_str());
                         }

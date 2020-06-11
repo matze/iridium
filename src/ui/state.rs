@@ -1,9 +1,10 @@
 use std::path::PathBuf;
+use gtk::ListBoxRow;
 use uuid::Uuid;
 
 pub enum AppEvent {
     AddNote,
-    SelectNote(String),
+    SelectNote(Uuid),
     Import(PathBuf),
     UpdateTitle(Uuid, String),
     UpdateText(Uuid, String),
@@ -11,7 +12,7 @@ pub enum AppEvent {
 
 pub enum WindowEvent {
     AddNote(Uuid, String),
-    SelectNote(i32),
+    SelectNote(ListBoxRow),
     ToggleSearchBar,
     UpdateTitle,
     UpdateText,
