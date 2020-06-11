@@ -131,6 +131,9 @@ impl Application {
                             window.load_note(item.title.as_str(), item.text.as_str());
                         }
                     },
+                    AppEvent::TitleUpdated(uuid, text) => {
+                        storage.update_title(&uuid, text.as_str());
+                    },
                 }
 
                 glib::Continue(true)

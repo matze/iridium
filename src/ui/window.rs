@@ -71,6 +71,13 @@ impl Window {
         search_bar.connect_entry(&search_entry);
 
         let mut bindings: Vec<glib::Binding> = vec![];
+        let mut current_uuid: Option<Uuid> = None;
+
+        title_entry.connect_changed(
+            clone!(@strong win_sender as sender => move|_| {
+                sender.send(WindowEvent::TitleUpdated).unwrap();
+            })
+        );
 
         win_receiver.attach(None,
             clone!(@strong note_list_box as note_list_box => move |event| {
@@ -84,6 +91,7 @@ impl Window {
 
                         let row = note_list_box.get_row_at_index((row_model.get_n_items() - 1) as i32).unwrap();
                         note_list_box.select_row(Some(&row));
+                        current_uuid = Some(uuid);
                     },
                     WindowEvent::SelectNote(row_index) => {
                         if bindings.len() > 0 {
@@ -93,10 +101,19 @@ impl Window {
 
                         let item = row_model.get_object(row_index as u32).unwrap();
                         let item = item.downcast_ref::<RowData>().unwrap();
-                        let uuid = item.get_property("uuid").unwrap().get::<String>();
+                        let uuid = item.get_property("uuid").unwrap().get::<String>().unwrap().unwrap();
                         let binding = title_entry.bind_property("text", item, "title").build();
                         bindings.push(binding.unwrap());
-                        app_sender.send(AppEvent::NoteSelected(uuid.unwrap().unwrap())).unwrap();
+                        current_uuid = Some(Uuid::parse_str(uuid.as_str()).unwrap());
+                        app_sender.send(AppEvent::NoteSelected(uuid)).unwrap();
+                    },
+                    WindowEvent::TitleUpdated => {
+                        if let Some(uuid) = current_uuid {
+                            // Should we actually get that from the model?
+                            let text = title_entry.get_text().unwrap();
+                            let text = text.as_str();
+                            app_sender.send(AppEvent::TitleUpdated(uuid.clone(), text.to_owned())).unwrap();
+                        }
                     },
                     WindowEvent::ToggleSearchBar => {
                         search_bar.set_search_mode(!search_bar.get_search_mode());
