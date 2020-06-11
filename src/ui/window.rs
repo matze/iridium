@@ -90,16 +90,16 @@ impl Window {
             glib::Continue(true)
         });
 
-        let win_sender_ = win_sender.clone();
-
-        note_list_box.connect_row_selected(move |_, row| {
-            match row {
-                Some(row) => {
-                    win_sender_.send(WindowEvent::SelectNote(row.get_index())).unwrap();
+        note_list_box.connect_row_selected(
+            clone!(@strong win_sender as sender => move |_, row| {
+                match row {
+                    Some(row) => {
+                        sender.send(WindowEvent::SelectNote(row.get_index())).unwrap();
+                    }
+                    None => {}
                 }
-                None => {}
-            }
-        });
+            })
+        );
 
         let text_view: gtk::TextView = builder.get_object("iridium-text-view").unwrap();
         let text_buffer = text_view.get_buffer().unwrap();

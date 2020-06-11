@@ -40,11 +40,13 @@ impl Application {
         let window = Window::new(sender.clone());
         let mut storage = Storage::new();
 
-        app.connect_activate(clone!(@weak window.widget as window => move |app| {
-            window.set_application(Some(app));
-            app.add_window(&window);
-            window.present();
-        }));
+        app.connect_activate(
+            clone!(@weak window.widget as window => move |app| {
+                window.set_application(Some(app));
+                app.add_window(&window);
+                window.present();
+            })
+        );
 
         action!(app, "quit",
             clone!(@strong app => move |_, _| {
@@ -62,18 +64,20 @@ impl Application {
             })
         );
 
-        action!(app, "add", clone!(@strong sender as sender => move |_, _| {
-            sender.send(AppEvent::AddNote).unwrap();
-        }));
+        action!(app, "add",
+            clone!(@strong sender as sender => move |_, _| {
+                sender.send(AppEvent::AddNote).unwrap();
+            })
+        );
 
-        let win_sender = window.sender.clone();
-        action!(app, "search", move |_, _| {
-            win_sender.send(WindowEvent::ToggleSearchBar).unwrap();
-        });
+        action!(app, "search",
+            clone!(@strong window.sender as sender => move |_, _| {
+                sender.send(WindowEvent::ToggleSearchBar).unwrap();
+            })
+        );
 
-        let app_sender = sender.clone();
         action!(app, "import",
-            clone!(@weak window.widget as window => move |_, _| {
+            clone!(@weak window.widget as window, @strong sender as sender => move |_, _| {
                 let dialog = gtk::FileChooserDialog::with_buttons(
                     Some("Import notes"),
                     Some(&window),
@@ -83,7 +87,7 @@ impl Application {
                 match dialog.run() {
                     gtk::ResponseType::Accept => {
                         if let Some(filename) = dialog.get_filename() {
-                            app_sender.send(AppEvent::Import(filename)).unwrap();
+                            sender.send(AppEvent::Import(filename)).unwrap();
                         }
                     },
                     _ => {}
@@ -96,40 +100,42 @@ impl Application {
         app.set_accels_for_action("app.quit", &["<primary>q"]);
         app.set_accels_for_action("app.search", &["<primary>f"]);
 
-        receiver.attach(None, move |event| {
-            match event {
-                AppEvent::Import(filename) => {
-                    let contents = std::fs::read_to_string(filename).unwrap();
-                    let exported = serde_json::from_str::<Exported>(&contents).unwrap();
-                    let email = exported.auth_params.identifier.as_str();
-                    let pass = get_password(email).unwrap();
+        receiver.attach(None,
+            clone!(@strong window.sender as sender => move |event| {
+                match event {
+                    AppEvent::Import(filename) => {
+                        let contents = std::fs::read_to_string(filename).unwrap();
+                        let exported = serde_json::from_str::<Exported>(&contents).unwrap();
+                        let email = exported.auth_params.identifier.as_str();
+                        let pass = get_password(email).unwrap();
 
-                    storage.reset(&exported.auth_params, pass.as_str());
+                        storage.reset(&exported.auth_params, pass.as_str());
 
-                    for note in exported.encrypted_notes() {
-                        if let Some(uuid) = storage.decrypt(note) {
-                            if let Some(note) = storage.notes.get(&uuid) {
-                                window.sender.clone().send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
+                        for note in exported.encrypted_notes() {
+                            if let Some(uuid) = storage.decrypt(note) {
+                                if let Some(note) = storage.notes.get(&uuid) {
+                                    sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
+                                }
                             }
                         }
-                    }
-                },
-                AppEvent::AddNote => {
-                    let uuid = storage.create_note();
-                    let note = storage.notes.get(&uuid).unwrap();
-                    window.sender.clone().send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
-                },
-                AppEvent::NoteSelected(uuid) => {
-                    let uuid = Uuid::parse_str(uuid.as_str()).unwrap();
+                    },
+                    AppEvent::AddNote => {
+                        let uuid = storage.create_note();
+                        let note = storage.notes.get(&uuid).unwrap();
+                        sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
+                    },
+                    AppEvent::NoteSelected(uuid) => {
+                        let uuid = Uuid::parse_str(uuid.as_str()).unwrap();
 
-                    if let Some(item) = storage.notes.get(&uuid) {
-                        window.load_note(item.title.as_str(), item.text.as_str());
-                    }
-                },
-            }
+                        if let Some(item) = storage.notes.get(&uuid) {
+                            window.load_note(item.title.as_str(), item.text.as_str());
+                        }
+                    },
+                }
 
-            glib::Continue(true)
-        });
+                glib::Continue(true)
+            })
+        );
 
         Ok(Self { app })
     }
