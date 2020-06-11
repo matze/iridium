@@ -68,6 +68,9 @@ impl Window {
         let title_entry = builder.get_object::<gtk::Entry>("iridium-title-entry").unwrap();
         let search_bar = builder.get_object::<gtk::SearchBar>("iridium-search-bar").unwrap();
         let search_entry = builder.get_object::<gtk::SearchEntry>("iridium-search-entry").unwrap();
+        let text_view = builder.get_object::<gtk::TextView>("iridium-text-view").unwrap();
+        let text_buffer = text_view.get_buffer().unwrap();
+
         search_bar.connect_entry(&search_entry);
 
         let mut bindings: Vec<glib::Binding> = vec![];
@@ -79,8 +82,14 @@ impl Window {
             })
         );
 
+        text_buffer.connect_changed(
+            clone!(@strong win_sender as sender => move|_| {
+                sender.send(WindowEvent::UpdateText).unwrap();
+            })
+        );
+
         win_receiver.attach(None,
-            clone!(@strong note_list_box as note_list_box => move |event| {
+            clone!(@strong note_list_box, @strong text_buffer => move |event| {
                 match event {
                     WindowEvent::AddNote(uuid, title) => {
                         let row = RowData::new(
@@ -115,6 +124,15 @@ impl Window {
                             app_sender.send(AppEvent::UpdateTitle(uuid.clone(), text.to_owned())).unwrap();
                         }
                     },
+                    WindowEvent::UpdateText => {
+                        if let Some(uuid) = current_uuid {
+                            let start = text_buffer.get_start_iter();
+                            let end = text_buffer.get_end_iter();
+                            let text = text_buffer.get_text(&start, &end, false).unwrap();
+                            let text = text.as_str();
+                            app_sender.send(AppEvent::UpdateText(uuid.clone(), text.to_owned())).unwrap();
+                        }
+                    },
                     WindowEvent::ToggleSearchBar => {
                         search_bar.set_search_mode(!search_bar.get_search_mode());
                     },
@@ -134,9 +152,6 @@ impl Window {
                 }
             })
         );
-
-        let text_view: gtk::TextView = builder.get_object("iridium-text-view").unwrap();
-        let text_buffer = text_view.get_buffer().unwrap();
 
         Window {
             widget: window,

@@ -134,6 +134,9 @@ impl Application {
                     AppEvent::UpdateTitle(uuid, text) => {
                         storage.update_title(&uuid, text.as_str());
                     },
+                    AppEvent::UpdateText(uuid, text) => {
+                        storage.update_text(&uuid, text.as_str());
+                    },
                 }
 
                 glib::Continue(true)

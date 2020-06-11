@@ -6,6 +6,7 @@ pub enum AppEvent {
     SelectNote(String),
     Import(PathBuf),
     UpdateTitle(Uuid, String),
+    UpdateText(Uuid, String),
 }
 
 pub enum WindowEvent {
@@ -13,4 +14,5 @@ pub enum WindowEvent {
     SelectNote(i32),
     ToggleSearchBar,
     UpdateTitle,
+    UpdateText,
 }
