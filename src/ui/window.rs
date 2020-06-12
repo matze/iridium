@@ -49,6 +49,19 @@ impl Window {
 
         search_bar.connect_entry(&search_entry);
 
+        search_entry.connect_search_changed(
+            clone!(@weak search_entry, @strong win_sender => move |_| {
+                let text = search_entry.get_text().unwrap();
+
+                if text != "" {
+                    win_sender.send(WindowEvent::UpdateFilter(Some(text.as_str().to_string()))).unwrap();
+                }
+                else {
+                    win_sender.send(WindowEvent::UpdateFilter(None)).unwrap();
+                }
+            })
+        );
+
         title_entry.connect_changed(
             clone!(@strong win_sender as sender => move|_| {
                 sender.send(WindowEvent::UpdateTitle).unwrap();
@@ -102,6 +115,18 @@ impl Window {
                             app_sender.send(AppEvent::SelectNote(*uuid)).unwrap();
                             current_binding = Some(title_entry.bind_property("text", label, "label").build().unwrap());
                             current_uuid = Some(*uuid);
+                        }
+                    },
+                    WindowEvent::UpdateFilter(text) => {
+                        match text {
+                            Some(_) => {
+                                note_list_box.set_filter_func(Some(Box::new(|_| -> bool {
+                                    true
+                                })));
+                            },
+                            None => {
+                                note_list_box.set_filter_func(None);
+                            }
                         }
                     },
                     WindowEvent::UpdateTitle => {

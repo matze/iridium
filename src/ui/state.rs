@@ -16,4 +16,5 @@ pub enum WindowEvent {
     ToggleSearchBar,
     UpdateTitle,
     UpdateText,
+    UpdateFilter(Option<String>),
 }
