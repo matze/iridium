@@ -34,6 +34,20 @@ struct RemoteSignInResponse {
     pub token: String,
 }
 
+#[derive(Serialize)]
+struct RemoteSyncRequest {
+    pub items: Vec<Item>,
+    pub sync_token: String,
+}
+
+#[derive(Deserialize)]
+struct RemoteSyncResponse {
+    pub retrieved_items: Vec<Item>,
+    pub saved_items: Vec<Item>,
+    pub unsaved: Vec<Item>,
+    pub sync_token: String,
+}
+
 #[derive(Deserialize)]
 pub struct ExportedAuthParams {
     pub identifier: String,
