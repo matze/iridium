@@ -4,8 +4,6 @@ use gio::prelude::*;
 use gtk::prelude::*;
 use uuid::Uuid;
 
-// use row_data::RowData;
-
 pub struct Window {
     pub widget: gtk::ApplicationWindow,
     pub sender: glib::Sender<WindowEvent>,
