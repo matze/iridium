@@ -44,8 +44,7 @@ fn decrypt(s: &str, ek: &Key, ak: &Key, check_uuid: &Uuid) -> Result<String> {
 }
 
 fn encrypt(s: &str, ek: &Key, ak: &Key, uuid: &Uuid) -> Result<String> {
-    // FIXME: use a different seed, obviously ...
-    let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(10);
+    let mut rng = rand_chacha::ChaCha20Rng::from_entropy();
     let mut iv_bytes = [0u8; 16];
     rng.fill_bytes(&mut iv_bytes);
 
@@ -121,8 +120,7 @@ impl Crypto {
             text: note.text.clone(),
         };
 
-        // FIXME: use a different seed, obviously ...
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(10);
+        let mut rng = rand_chacha::ChaCha20Rng::from_entropy();
         let mut item_key = [0u8; 64];
         rng.fill_bytes(&mut item_key);
 
