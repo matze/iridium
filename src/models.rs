@@ -38,7 +38,7 @@ impl Storage {
         }
     }
 
-    pub fn reset(&mut self, auth_params: &standardfile::AuthParams, password: &str) {
+    pub fn reset(&mut self, auth_params: &standardfile::ExportedAuthParams, password: &str) {
         let name = HEXLOWER
             .encode(digest::digest(&digest::SHA256, &auth_params.identifier.as_bytes()).as_ref());
         let dirs = BaseDirs::new().unwrap();
@@ -47,7 +47,7 @@ impl Storage {
         path.push(name);
 
         self.path = Some(path);
-        self.crypto = Some(Crypto::new(auth_params, password).unwrap());
+        self.crypto = Some(Crypto::new_from_exported(auth_params, password).unwrap());
     }
 
     /// Decrypt item and add it to the storage.

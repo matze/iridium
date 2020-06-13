@@ -3,14 +3,7 @@ use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
 
 pub mod crypto;
-
-#[derive(Deserialize)]
-pub struct AuthParams {
-    pub identifier: String,
-    pub pw_cost: u32,
-    pub pw_nonce: String,
-    pub version: String,
-}
+pub mod remote;
 
 #[derive(Serialize, Deserialize)]
 pub struct Item {
@@ -22,9 +15,24 @@ pub struct Item {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct RemoteAuthParams {
+    pub pw_cost: u32,
+    pub pw_nonce: String,
+    pub version: String,
+}
+
+#[derive(Deserialize)]
+pub struct ExportedAuthParams {
+    pub identifier: String,
+    pub pw_cost: u32,
+    pub pw_nonce: String,
+    pub version: String,
+}
+
 #[derive(Deserialize)]
 pub struct Exported {
-    pub auth_params: AuthParams,
+    pub auth_params: ExportedAuthParams,
     items: Vec<Item>,
 }
 

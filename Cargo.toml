@@ -24,3 +24,4 @@ directories = "2.0"
 uuid = { version = "0.8", features = ["serde", "v4"] }
 rand = "0.7"
 rand_chacha = "0.2"
+reqwest = { version = "0.10", features = ["json", "blocking", "gzip"] }

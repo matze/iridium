@@ -14,7 +14,7 @@ pub struct Application {
     app: gtk::Application,
 }
 
-fn get_password(email: &str) -> Result<String> {
+pub fn get_password(email: &str) -> Result<String> {
     let service = SecretService::new(EncryptionType::Dh).unwrap();
 
     let items = service

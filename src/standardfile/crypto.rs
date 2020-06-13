@@ -1,4 +1,4 @@
-use super::{AuthParams, Item, Note};
+use super::{ExportedAuthParams, RemoteAuthParams, Item, Note};
 use crate::models;
 use crate::standardfile;
 use aes::Aes256;
@@ -14,6 +14,7 @@ use uuid::Uuid;
 pub type Key = [u8; 768 / 8 / 3];
 
 pub struct Crypto {
+    pw: Key,
     mk: Key,
     ak: Key,
 }
@@ -69,9 +70,9 @@ fn encrypt(s: &str, ek: &Key, ak: &Key, uuid: &Uuid) -> Result<String> {
 }
 
 impl Crypto {
-    pub fn new(params: &AuthParams, password: &str) -> Result<Self> {
-        let cost = std::num::NonZeroU32::new(params.pw_cost).unwrap();
-        let salt_input = std::format!("{}:SF:003:{}:{}", params.identifier, cost, params.pw_nonce);
+    fn new(identifier: &str, cost: u32, nonce: &str, password: &str) -> Result<Self> {
+        let cost = std::num::NonZeroU32::new(cost).unwrap();
+        let salt_input = std::format!("{}:SF:003:{}:{}", identifier, cost, nonce);
         let salt = digest::digest(&digest::SHA256, salt_input.as_bytes());
         let hex_salt = HEXLOWER.encode(&salt.as_ref());
         let mut hashed = [0u8; 768 / 8];
@@ -84,13 +85,29 @@ impl Crypto {
             &mut hashed,
         );
 
+        let mut pw: Key = [0u8; 32];
         let mut mk: Key = [0u8; 32];
         let mut ak: Key = [0u8; 32];
 
+        pw.clone_from_slice(&hashed[32..64]);
         mk.clone_from_slice(&hashed[32..64]);
         ak.clone_from_slice(&hashed[64..]);
 
-        Ok(Crypto { mk: mk, ak: ak })
+        Ok(Crypto { pw: pw, mk: mk, ak: ak })
+    }
+
+    /// Construct crypto manager from local, exported JSON.
+    pub fn new_from_exported(params: &ExportedAuthParams, password: &str) -> Result<Self> {
+        Self::new(params.identifier.as_str(), params.pw_cost, params.pw_nonce.as_str(), password)
+    }
+
+    /// Construct crypto manager from remote signin process.
+    pub fn new_from_remote(params: &RemoteAuthParams, identifier: &str, password: &str) -> Result<Self> {
+        Self::new(identifier, params.pw_cost, params.pw_nonce.as_str(), password)
+    }
+
+    pub fn password(&self) -> String {
+        HEXLOWER.encode(&self.pw)
     }
 
     pub fn decrypt(&self, item: &Item) -> Result<models::Decrypted> {
@@ -166,14 +183,14 @@ mod tests {
             uuid: uuid,
         };
 
-        let auth_params = AuthParams {
+        let auth_params = ExportedAuthParams {
             identifier: "foo@bar.com".to_owned(),
             pw_cost: 110000,
             pw_nonce: "3f8ea1ffd8067c1550ca3ad78de71c9b6e68b5cb540e370c12065eca15d9a049".to_owned(),
             version: "003".to_owned(),
         };
 
-        let crypto = Crypto::new(&auth_params, "foobar").unwrap();
+        let crypto = Crypto::new_from_exported(&auth_params, "foobar").unwrap();
         let encrypted = crypto.encrypt(&note, &uuid).unwrap();
 
         match crypto.decrypt(&encrypted).unwrap() {
