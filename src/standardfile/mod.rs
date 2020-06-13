@@ -15,11 +15,23 @@ pub struct Item {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct RemoteAuthParams {
     pub pw_cost: u32,
     pub pw_nonce: String,
     pub version: String,
+}
+
+#[derive(Deserialize)]
+struct RemoteUser {
+    pub uuid: Uuid,
+    pub email: String,
+}
+
+#[derive(Deserialize)]
+struct RemoteSignInResponse {
+    pub user: RemoteUser,
+    pub token: String,
 }
 
 #[derive(Deserialize)]
