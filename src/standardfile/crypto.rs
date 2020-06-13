@@ -89,7 +89,7 @@ impl Crypto {
         let mut mk: Key = [0u8; 32];
         let mut ak: Key = [0u8; 32];
 
-        pw.clone_from_slice(&hashed[32..64]);
+        pw.clone_from_slice(&hashed[0..32]);
         mk.clone_from_slice(&hashed[32..64]);
         ak.clone_from_slice(&hashed[64..]);
 
