@@ -83,6 +83,8 @@ impl Application {
                     gtk::FileChooserAction::Open,
                     &[("_Cancel", gtk::ResponseType::Cancel), ("_Open", gtk::ResponseType::Accept)]);
 
+                dialog.set_transient_for(Some(&window));
+
                 match dialog.run() {
                     gtk::ResponseType::Accept => {
                         if let Some(filename) = dialog.get_filename() {
