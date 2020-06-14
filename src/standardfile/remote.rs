@@ -1,9 +1,7 @@
 use super::crypto::Crypto;
 use super::{RemoteAuthParams, RemoteSignInResponse, RemoteSyncRequest, RemoteSyncResponse};
 use anyhow::Result;
-use reqwest::blocking;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
-use serde::Deserialize;
 use std::collections::HashMap;
 
 /// Sign in and return JWT on success.
