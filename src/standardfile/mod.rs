@@ -37,7 +37,8 @@ struct RemoteSignInResponse {
 #[derive(Serialize)]
 struct RemoteSyncRequest {
     pub items: Vec<Item>,
-    pub sync_token: String,
+    pub sync_token: Option<String>,
+    pub cursor_token: Option<String>,
 }
 
 #[derive(Deserialize)]

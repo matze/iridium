@@ -38,7 +38,8 @@ pub fn sync(host: &str, token: &str) -> Result<()> {
 
     let sync_request = RemoteSyncRequest {
         items: vec![],
-        sync_token: "".to_string(),
+        sync_token: None,
+        cursor_token: None,
     };
 
     let response = client
