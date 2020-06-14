@@ -26,9 +26,12 @@
           </packing>
         </child>
         <child>
-          <object class="GtkSeparator">
+          <object class="GtkModelButton">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">False</property>
+            <property name="action_name">app.sync</property>
+            <property name="text" translatable="yes">Sync</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -37,12 +40,9 @@
           </packing>
         </child>
         <child>
-          <object class="GtkModelButton">
+          <object class="GtkSeparator">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">False</property>
-            <property name="action_name">app.preferences</property>
-            <property name="text" translatable="yes">Preferences</property>
+            <property name="can_focus">False</property>
           </object>
           <packing>
             <property name="expand">False</property>

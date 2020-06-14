@@ -98,6 +98,21 @@ impl Application {
             })
         );
 
+        action!(app, "sync",
+            clone!(@weak window.widget as window => move |_, _| {
+                let builder = gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/sync.ui");
+                let dialog = builder.get_object::<gtk::Dialog>("sync-dialog").unwrap();
+                let server_box = builder.get_object::<gtk::ComboBoxText>("sync-server").unwrap();
+                let server_entry = server_box.get_child().unwrap().downcast::<gtk::Entry>().unwrap();
+
+                server_entry.set_input_purpose(gtk::InputPurpose::Url);
+
+                dialog.set_transient_for(Some(&window));
+                dialog.connect_response(|dialog, _| dialog.destroy());
+                dialog.show();
+            })
+        );
+
         app.set_accels_for_action("app.quit", &["<primary>q"]);
         app.set_accels_for_action("app.search", &["<primary>f"]);
 
