@@ -1,3 +1,4 @@
+use anyhow::Result;
 use crate::standardfile;
 use crate::standardfile::crypto::Crypto;
 use chrono::{DateTime, Utc};
@@ -5,8 +6,7 @@ use data_encoding::HEXLOWER;
 use directories::BaseDirs;
 use ring::digest;
 use std::collections::HashMap;
-use std::fs::{create_dir_all, File};
-use std::io::prelude::*;
+use std::fs::{create_dir_all, write};
 use std::path::PathBuf;
 use uuid::Uuid;
 
@@ -70,21 +70,22 @@ impl Storage {
     }
 
     /// Encrypts item and writes it to disk.
-    pub fn flush(&self, uuid: &Uuid) {
+    pub fn flush(&self, uuid: &Uuid) -> Result<()> {
         if let Some(item) = self.notes.get(uuid) {
             let mut path = PathBuf::from(&self.path.as_ref().unwrap());
 
             if !path.exists() {
-                create_dir_all(&path).unwrap();
+                create_dir_all(&path)?;
             }
 
             path.push(uuid.to_hyphenated().to_string());
 
-            let encrypted = self.crypto.as_ref().unwrap().encrypt(item, uuid).unwrap();
-            let serialized = serde_json::to_string(&encrypted).unwrap();
-            let mut file = File::create(path).unwrap();
-            file.write_all(serialized.as_ref()).unwrap();
+            let encrypted = self.crypto.as_ref().unwrap().encrypt(item, uuid)?;
+            let serialized = serde_json::to_string(&encrypted)?;
+            write(path, serialized)?;
         }
+
+        Ok(())
     }
 
     /// Create a new note and return its new uuid.
