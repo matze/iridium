@@ -3,8 +3,8 @@
   <gresource prefix="/net/bloerg/Iridium/">
     <file compressed="true">data/resources/css/base.css</file>
     <file compressed="true" preprocess="xml-stripblanks">data/resources/ui/about.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">data/resources/ui/setup.ui</file>
     <file compressed="true" preprocess="xml-stripblanks">data/resources/ui/shortcuts.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">data/resources/ui/sync.ui</file>
     <file compressed="true" preprocess="xml-stripblanks">data/resources/ui/window.ui</file>
   </gresource>
 </gresources>

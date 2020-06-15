@@ -30,8 +30,8 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">False</property>
-            <property name="action_name">app.sync</property>
-            <property name="text" translatable="yes">Sync</property>
+            <property name="action_name">app.setup</property>
+            <property name="text" translatable="yes">Setup</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -93,7 +93,6 @@
     <property name="can_focus">False</property>
     <property name="default_width">600</property>
     <property name="default_height">400</property>
-    <!-- <property name="icon_name">@app-id@</property> -->
     <child type="titlebar">
       <object class="GtkHeaderBar" id="headerbar">
         <property name="visible">True</property>
