@@ -42,7 +42,7 @@ impl Storage {
         let name = HEXLOWER
             .encode(digest::digest(&digest::SHA256, &auth_params.identifier.as_bytes()).as_ref());
         let dirs = BaseDirs::new().unwrap();
-        let mut path = PathBuf::from(dirs.cache_dir());
+        let mut path = PathBuf::from(dirs.data_dir());
         path.push("iridium");
         path.push(name);
 
