@@ -150,8 +150,14 @@ impl Window {
                     WindowEvent::ShowNotification(message) => {
                         let revealer = builder.get_object::<gtk::Revealer>("iridium-notification-revealer").unwrap();
                         let label = builder.get_object::<gtk::Label>("iridium-notification-label").unwrap();
+                        let close_button = builder.get_object::<gtk::Button>("iridium-notification-button").unwrap();
+
                         label.set_text(message.as_str());
                         revealer.set_reveal_child(true);
+
+                        close_button.connect_clicked(move |_| {
+                            revealer.set_reveal_child(false);
+                        });
                     },
                 }
 

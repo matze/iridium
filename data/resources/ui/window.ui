@@ -150,7 +150,6 @@
                     <child>
                       <object class="GtkLabel" id="iridium-notification-label">
                         <property name="visible">True</property>
-                        <property name="margin_end">30</property>
                         <property name="label"></property>
                         <attributes>
                           <attribute name="weight" value="bold"/>
@@ -162,11 +161,10 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton">
+                      <object class="GtkButton" id="iridium-notification-button">
                         <property name="visible">True</property>
                         <property name="relief">none</property>
                         <property name="margin_end">6</property>
-                        <signal name="clicked" handler="on_notification_close_clicked" object="IridiumWindow"/>
                         <child>
                           <object class="GtkImage">
                             <property name="visible">True</property>

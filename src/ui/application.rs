@@ -139,22 +139,28 @@ impl Application {
             clone!(@strong window.sender as sender => move |event| {
                 match event {
                     AppEvent::Import(path, password) => {
-                        let contents = std::fs::read_to_string(&path).unwrap();
+                        let filename = path.file_name().unwrap().to_string_lossy();
 
-                        if let Ok(exported) = serde_json::from_str::<Exported>(&contents) {
-                            storage.reset(&exported.auth_params, password.as_str());
+                        if let Ok(contents) = std::fs::read_to_string(&path) {
+                            if let Ok(exported) = serde_json::from_str::<Exported>(&contents) {
+                                storage.reset(&exported.auth_params, password.as_str());
 
-                            for note in exported.encrypted_notes() {
-                                if let Some(uuid) = storage.decrypt(note) {
-                                    if let Some(note) = storage.notes.get(&uuid) {
-                                        sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
+                                for note in exported.encrypted_notes() {
+                                    if let Some(uuid) = storage.decrypt(note) {
+                                        if let Some(note) = storage.notes.get(&uuid) {
+                                            sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
+                                        }
                                     }
                                 }
                             }
+                            else {
+                                let message = format!("{} is not exported JSON.", filename);
+                                sender.send(WindowEvent::ShowNotification(message)).unwrap();
+                            }
                         }
                         else {
-                            let filename = path.file_name().unwrap().to_string_lossy();
-                            sender.send(WindowEvent::ShowNotification(format!("Importing {} failed.", filename))).unwrap();
+                            let message = format!("{} does not contain UTF-8 data.", filename);
+                            sender.send(WindowEvent::ShowNotification(message)).unwrap();
                         }
                     },
                     AppEvent::AddNote => {
