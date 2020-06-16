@@ -138,19 +138,23 @@ impl Application {
         receiver.attach(None,
             clone!(@strong window.sender as sender => move |event| {
                 match event {
-                    AppEvent::Import(filename, password) => {
-                        let contents = std::fs::read_to_string(filename).unwrap();
-                        let exported = serde_json::from_str::<Exported>(&contents).unwrap();
-                        let email = exported.auth_params.identifier.as_str();
+                    AppEvent::Import(path, password) => {
+                        let contents = std::fs::read_to_string(&path).unwrap();
 
-                        storage.reset(&exported.auth_params, password.as_str());
+                        if let Ok(exported) = serde_json::from_str::<Exported>(&contents) {
+                            storage.reset(&exported.auth_params, password.as_str());
 
-                        for note in exported.encrypted_notes() {
-                            if let Some(uuid) = storage.decrypt(note) {
-                                if let Some(note) = storage.notes.get(&uuid) {
-                                    sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
+                            for note in exported.encrypted_notes() {
+                                if let Some(uuid) = storage.decrypt(note) {
+                                    if let Some(note) = storage.notes.get(&uuid) {
+                                        sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
+                                    }
                                 }
                             }
+                        }
+                        else {
+                            let filename = path.file_name().unwrap().to_string_lossy();
+                            sender.send(WindowEvent::ShowNotification(format!("Importing {} failed.", filename))).unwrap();
                         }
                     },
                     AppEvent::AddNote => {

@@ -81,7 +81,7 @@ impl Window {
         );
 
         win_receiver.attach(None,
-            clone!(@strong note_list_box, @strong text_buffer => move |event| {
+            clone!(@strong note_list_box, @strong text_buffer, @strong builder => move |event| {
                 match event {
                     WindowEvent::AddNote(uuid, title) => {
                         let label = gtk::Label::new(None);
@@ -146,6 +146,12 @@ impl Window {
                     },
                     WindowEvent::ToggleSearchBar => {
                         search_bar.set_search_mode(!search_bar.get_search_mode());
+                    },
+                    WindowEvent::ShowNotification(message) => {
+                        let revealer = builder.get_object::<gtk::Revealer>("iridium-notification-revealer").unwrap();
+                        let label = builder.get_object::<gtk::Label>("iridium-notification-label").unwrap();
+                        label.set_text(message.as_str());
+                        revealer.set_reveal_child(true);
                     },
                 }
 

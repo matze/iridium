@@ -134,7 +134,7 @@
       <object class="GtkOverlay">
         <property name="visible">True</property>
         <child type="overlay">
-          <object class="GtkRevealer" id="notification_revealer">
+          <object class="GtkRevealer" id="iridium-notification-revealer">
             <property name="visible">True</property>
             <property name="valign">start</property>
             <property name="halign">center</property>
@@ -148,7 +148,7 @@
                   <object class="GtkBox">
                     <property name="visible">True</property>
                     <child>
-                      <object class="GtkLabel" id="notification_label">
+                      <object class="GtkLabel" id="iridium-notification-label">
                         <property name="visible">True</property>
                         <property name="margin_end">30</property>
                         <property name="label"></property>

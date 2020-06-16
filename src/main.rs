@@ -10,7 +10,7 @@ mod ui;
 use anyhow::Result;
 use gio::{resources_register, Resource};
 use glib::Bytes;
-use ui::application::{Application, get_password};
+use ui::application::Application;
 
 fn init_resources() -> Result<()> {
     let data: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/resources.gresource"));

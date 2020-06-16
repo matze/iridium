@@ -17,4 +17,5 @@ pub enum WindowEvent {
     UpdateTitle,
     UpdateText,
     UpdateFilter(Option<String>),
+    ShowNotification(String),
 }
