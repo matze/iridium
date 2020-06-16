@@ -36,7 +36,7 @@ impl Config {
 
         if path.exists() {
             let contents = read_to_string(path)?;
-            Ok(Some(toml::from_str(contents.as_str())?))
+            Ok(Some(toml::from_str(&contents)?))
         }
         else {
             Ok(None)

@@ -125,7 +125,7 @@ impl Crypto {
         let decrypted = decrypt(&item.content, &item_ek, &item_ak, &item.uuid)?;
 
         if item.content_type == "Note" {
-            Ok(models::Decrypted::Note(serde_json::from_str::<standardfile::Note>(decrypted.as_str())?))
+            Ok(models::Decrypted::Note(serde_json::from_str::<standardfile::Note>(&decrypted)?))
         } else {
             Ok(models::Decrypted::None)
         }

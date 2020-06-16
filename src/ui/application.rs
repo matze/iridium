@@ -135,7 +135,7 @@ impl Application {
 
                         if let Ok(contents) = std::fs::read_to_string(&path) {
                             if let Ok(exported) = serde_json::from_str::<Exported>(&contents) {
-                                storage.reset(&exported.auth_params, password.as_str());
+                                storage.reset(&exported.auth_params, &password);
                                 let config = Config::new(&exported.auth_params);
                                 config.write().unwrap();
 
@@ -166,14 +166,14 @@ impl Application {
                     },
                     AppEvent::SelectNote(uuid) => {
                         if let Some(item) = storage.notes.get(&uuid) {
-                            window.load_note(item.title.as_str(), item.text.as_str());
+                            window.load_note(&item.title, &item.text);
                         }
                     },
                     AppEvent::UpdateTitle(uuid, text) => {
-                        storage.update_title(&uuid, text.as_str());
+                        storage.update_title(&uuid, &text);
                     },
                     AppEvent::UpdateText(uuid, text) => {
-                        storage.update_text(&uuid, text.as_str());
+                        storage.update_text(&uuid, &text);
                     },
                 }
 

@@ -91,7 +91,7 @@ impl Window {
                         label.set_margin_top(9);
                         label.set_margin_bottom(9);
                         label.set_widget_name("iridium-note-row-label");
-                        label.set_text(title.as_str());
+                        label.set_text(&title);
 
                         let row_widget = gtk::ListBoxRow::new();
                         row_widget.add(&label);
@@ -152,7 +152,7 @@ impl Window {
                         let label = builder.get_object::<gtk::Label>("iridium-notification-label").unwrap();
                         let close_button = builder.get_object::<gtk::Button>("iridium-notification-button").unwrap();
 
-                        label.set_text(message.as_str());
+                        label.set_text(&message);
                         revealer.set_reveal_child(true);
 
                         close_button.connect_clicked(move |_| {

@@ -53,17 +53,17 @@ impl Storage {
         let service = SecretService::new(EncryptionType::Dh).unwrap();
         // TODO: rename email to identifier
         // TODO: select by server as well
-        let query = vec![("service", "standardnotes"), ("email", config.identifier.as_str())];
+        let query = vec![("service", "standardnotes"), ("email", &config.identifier)];
         let items = service.search_items(query).unwrap();
         let item = items.get(0).unwrap();
         let password = String::from_utf8(item.get_secret().unwrap()).unwrap();
         let path = data_path_from_identifier(&config.identifier);
 
         let crypto = Crypto::new(
-            config.identifier.as_str(),
+            &config.identifier,
             config.cost,
-            config.nonce.as_str(),
-            password.as_str())?;
+            &config.nonce,
+            &password)?;
 
         let mut storage = Self {
             path: Some(path.clone()),
@@ -75,7 +75,7 @@ impl Storage {
             let file_path = entry?.path();
             let uuid = Uuid::parse_str(file_path.file_name().unwrap().to_string_lossy().as_ref())?;
             let contents = read_to_string(file_path)?;
-            let encrypted_item = serde_json::from_str::<standardfile::Item>(contents.as_str())?;
+            let encrypted_item = serde_json::from_str::<standardfile::Item>(&contents)?;
             assert_eq!(uuid, encrypted_item.uuid);
             storage.decrypt(&encrypted_item);
         }
