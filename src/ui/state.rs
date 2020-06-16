@@ -5,7 +5,7 @@ use uuid::Uuid;
 pub enum AppEvent {
     AddNote,
     SelectNote(Uuid),
-    Import(PathBuf),
+    Import(PathBuf, String),
     UpdateTitle(Uuid, String),
     UpdateText(Uuid, String),
 }

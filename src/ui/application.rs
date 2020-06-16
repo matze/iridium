@@ -77,18 +77,31 @@ impl Application {
 
         action!(app, "import",
             clone!(@weak window.widget as window, @strong sender as sender => move |_, _| {
-                let dialog = gtk::FileChooserDialog::with_buttons(
-                    Some("Import notes"),
-                    Some(&window),
-                    gtk::FileChooserAction::Open,
-                    &[("_Cancel", gtk::ResponseType::Cancel), ("_Open", gtk::ResponseType::Accept)]);
+                let builder = gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/import.ui");
+                let dialog = builder.get_object::<gtk::Dialog>("import-dialog").unwrap();
+                let server_box = builder.get_object::<gtk::ComboBoxText>("import-server").unwrap();
+                let server_entry = server_box.get_child().unwrap().downcast::<gtk::Entry>().unwrap();
+                let sync_button = builder.get_object::<gtk::Switch>("import-sync").unwrap();
+
+                server_entry.set_input_purpose(gtk::InputPurpose::Url);
+                server_entry.set_icon_from_icon_name(gtk::EntryIconPosition::Primary, Some("network-server-symbolic"));
+                server_entry.set_placeholder_text(Some("Server address"));
+                sync_button.bind_property("active", &server_box, "sensitive").flags(glib::BindingFlags::SYNC_CREATE).build();
+                sync_button.bind_property("active", &server_entry, "sensitive").flags(glib::BindingFlags::SYNC_CREATE).build();
 
                 dialog.set_transient_for(Some(&window));
+                dialog.set_modal(true);
 
                 match dialog.run() {
-                    gtk::ResponseType::Accept => {
-                        if let Some(filename) = dialog.get_filename() {
-                            sender.send(AppEvent::Import(filename)).unwrap();
+                    gtk::ResponseType::Ok => {
+                        let file_chooser = builder.get_object::<gtk::FileChooserButton>("import-file-button").unwrap();
+
+                        if let Some(filename) = file_chooser.get_filename() {
+                            let password_entry = builder.get_object::<gtk::Entry>("import-password").unwrap();
+
+                            if let Some(password) = password_entry.get_text() {
+                                sender.send(AppEvent::Import(filename, password.as_str().to_string())).unwrap();
+                            }
                         }
                     },
                     _ => {}
@@ -125,13 +138,12 @@ impl Application {
         receiver.attach(None,
             clone!(@strong window.sender as sender => move |event| {
                 match event {
-                    AppEvent::Import(filename) => {
+                    AppEvent::Import(filename, password) => {
                         let contents = std::fs::read_to_string(filename).unwrap();
                         let exported = serde_json::from_str::<Exported>(&contents).unwrap();
                         let email = exported.auth_params.identifier.as_str();
-                        let pass = get_password(email).unwrap();
 
-                        storage.reset(&exported.auth_params, pass.as_str());
+                        storage.reset(&exported.auth_params, password.as_str());
 
                         for note in exported.encrypted_notes() {
                             if let Some(uuid) = storage.decrypt(note) {
