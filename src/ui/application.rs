@@ -147,6 +147,8 @@ impl Application {
 
                                 for note in exported.encrypted_notes() {
                                     if let Some(uuid) = storage.decrypt(note) {
+                                        storage.flush(&uuid).unwrap();
+
                                         if let Some(note) = storage.notes.get(&uuid) {
                                             sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
                                         }
