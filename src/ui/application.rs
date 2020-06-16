@@ -107,6 +107,8 @@ impl Application {
                 let sync_button = builder.get_object::<gtk::Switch>("setup-sync").unwrap();
 
                 server_entry.set_input_purpose(gtk::InputPurpose::Url);
+                server_entry.set_icon_from_icon_name(gtk::EntryIconPosition::Primary, Some("network-server-symbolic"));
+                server_entry.set_placeholder_text(Some("Server address"));
                 sync_button.bind_property("active", &server_entry, "sensitive").flags(glib::BindingFlags::SYNC_CREATE).build();
 
                 dialog.set_transient_for(Some(&window));

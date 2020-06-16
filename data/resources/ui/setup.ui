@@ -11,65 +11,34 @@
         <child>
           <object class="GtkGrid">
             <property name="visible">True</property>
-            <property name="border-width">18</property>
-            <child>
-              <object class="GtkLabel">
-                <property name="label">User</property>
-                <property name="visible">True</property>
-                <property name="halign">GTK_ALIGN_END</property>
-                <property name="margin-right">12</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">0</property>
-              </packing>
-            </child>
+            <property name="border-width">48</property>
+            <property name="row-spacing">12</property>
             <child>
               <object class="GtkEntry" id="setup-identifier">
                 <property name="text"></property>
                 <property name="visible">True</property>
+                <property name="placeholder-text">Identifier</property>
+                <property name="primary-icon-name">avatar-default-symbolic</property>
                 <property name="hexpand">True</property>
-                <property name="margin-bottom">12</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="label">Password</property>
-                <property name="visible">True</property>
-                <property name="halign">GTK_ALIGN_END</property>
-                <property name="margin-right">12</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">1</property>
+                <property name="top-attach">0</property>
+                <property name="width">2</property>
               </packing>
             </child>
             <child>
               <object class="GtkEntry" id="setup-password">
                 <property name="visible">True</property>
                 <property name="visibility">False</property>
+                <property name="placeholder-text">Password</property>
+                <property name="primary-icon-name">dialog-password-symbolic</property>
                 <property name="hexpand">True</property>
-                <property name="margin-bottom">12</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="label">Server</property>
-                <property name="visible">True</property>
-                <property name="halign">GTK_ALIGN_END</property>
-                <property name="margin-right">12</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">2</property>
+                <property name="top-attach">1</property>
+                <property name="width">2</property>
               </packing>
             </child>
             <child>
@@ -82,7 +51,7 @@
                 </items>
               </object>
               <packing>
-                <property name="left-attach">1</property>
+                <property name="left-attach">0</property>
                 <property name="top-attach">2</property>
               </packing>
             </child>
@@ -91,11 +60,11 @@
                 <property name="visible">True</property>
                 <property name="hexpand">False</property>
                 <property name="halign">GTK_ALIGN_START</property>
+                <property name="valign">GTK_ALIGN_CENTER</property>
                 <property name="margin-left">12</property>
-                <property name="margin-bottom">12</property>
               </object>
               <packing>
-                <property name="left-attach">2</property>
+                <property name="left-attach">1</property>
                 <property name="top-attach">2</property>
               </packing>
             </child>
