@@ -70,7 +70,7 @@ fn encrypt(s: &str, ek: &Key, ak: &Key, uuid: &Uuid) -> Result<String> {
 }
 
 impl Crypto {
-    fn new(identifier: &str, cost: u32, nonce: &str, password: &str) -> Result<Self> {
+    pub fn new(identifier: &str, cost: u32, nonce: &str, password: &str) -> Result<Self> {
         let cost = std::num::NonZeroU32::new(cost).unwrap();
         let salt_input = std::format!("{}:SF:003:{}:{}", identifier, cost, nonce);
         let salt = digest::digest(&digest::SHA256, salt_input.as_bytes());

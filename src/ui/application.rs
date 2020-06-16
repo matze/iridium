@@ -2,7 +2,6 @@ use anyhow::Result;
 use gio::prelude::*;
 use gtk::prelude::*;
 use std::env;
-use secret_service::{EncryptionType, SecretService};
 
 use crate::config::{APP_ID, Config};
 use crate::models::Storage;
@@ -14,30 +13,23 @@ pub struct Application {
     app: gtk::Application,
 }
 
-pub fn get_password(email: &str) -> Result<String> {
-    let service = SecretService::new(EncryptionType::Dh).unwrap();
-
-    let items = service
-        .search_items(vec![
-            ("service", "standardnotes"),
-            ("email", email),
-            ("server", "https://app.standardnotes.org"),
-        ])
-        .unwrap();
-
-    let item = items.get(0).unwrap();
-    let pass = item.get_secret().unwrap();
-
-    Ok(String::from_utf8(pass)?)
-}
-
 impl Application {
     pub fn new() -> Result<Self> {
         let app = gtk::Application::new(Some(APP_ID), gio::ApplicationFlags::FLAGS_NONE)?;
 
         let (sender, receiver) = glib::MainContext::channel::<AppEvent>(glib::PRIORITY_DEFAULT);
         let window = Window::new(sender.clone());
-        let mut storage = Storage::new();
+
+        let config = Config::new_from_file()?;
+
+        let mut storage = match config {
+            Some(config) => { Storage::new_from_config(&config)? },
+            None => { Storage::new() },
+        };
+
+        for (uuid, note) in &storage.notes {
+            window.sender.send(WindowEvent::AddNote(*uuid, note.title.clone())).unwrap();
+        }
 
         app.connect_activate(
             clone!(@weak window.widget as window => move |app| {
