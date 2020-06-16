@@ -31,6 +31,15 @@ pub enum Decrypted {
     None,
 }
 
+fn data_path_from_identifier(identifier: &str) -> PathBuf {
+    let name = HEXLOWER.encode(digest::digest(&digest::SHA256, identifier.as_bytes()).as_ref());
+    let dirs = BaseDirs::new().unwrap();
+    let mut path = PathBuf::from(dirs.data_dir());
+    path.push("iridium");
+    path.push(name);
+    path
+}
+
 impl Storage {
     pub fn new() -> Storage {
         Self {
@@ -48,14 +57,7 @@ impl Storage {
         let items = service.search_items(query).unwrap();
         let item = items.get(0).unwrap();
         let password = String::from_utf8(item.get_secret().unwrap()).unwrap();
-
-        // TODO: refactor with reset
-        let name = HEXLOWER
-            .encode(digest::digest(&digest::SHA256, &config.identifier.as_bytes()).as_ref());
-        let dirs = BaseDirs::new().unwrap();
-        let mut path = PathBuf::from(dirs.data_dir());
-        path.push("iridium");
-        path.push(name);
+        let path = data_path_from_identifier(&config.identifier);
 
         let crypto = Crypto::new(
             config.identifier.as_str(),
@@ -82,14 +84,7 @@ impl Storage {
     }
 
     pub fn reset(&mut self, auth_params: &standardfile::ExportedAuthParams, password: &str) {
-        let name = HEXLOWER
-            .encode(digest::digest(&digest::SHA256, &auth_params.identifier.as_bytes()).as_ref());
-        let dirs = BaseDirs::new().unwrap();
-        let mut path = PathBuf::from(dirs.data_dir());
-        path.push("iridium");
-        path.push(name);
-
-        self.path = Some(path);
+        self.path = Some(data_path_from_identifier(&auth_params.identifier));
         self.crypto = Some(Crypto::new_from_exported(auth_params, password).unwrap());
     }
 
