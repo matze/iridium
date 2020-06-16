@@ -109,9 +109,11 @@ impl Application {
                 server_entry.set_input_purpose(gtk::InputPurpose::Url);
                 server_entry.set_icon_from_icon_name(gtk::EntryIconPosition::Primary, Some("network-server-symbolic"));
                 server_entry.set_placeholder_text(Some("Server address"));
+                sync_button.bind_property("active", &server_box, "sensitive").flags(glib::BindingFlags::SYNC_CREATE).build();
                 sync_button.bind_property("active", &server_entry, "sensitive").flags(glib::BindingFlags::SYNC_CREATE).build();
 
                 dialog.set_transient_for(Some(&window));
+                dialog.set_modal(true);
                 dialog.connect_response(|dialog, _| dialog.destroy());
                 dialog.show();
             })
