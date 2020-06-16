@@ -83,9 +83,9 @@ impl Storage {
         Ok(storage)
     }
 
-    pub fn reset(&mut self, auth_params: &standardfile::ExportedAuthParams, password: &str) {
-        self.path = Some(data_path_from_identifier(&auth_params.identifier));
-        self.crypto = Some(Crypto::new_from_exported(auth_params, password).unwrap());
+    pub fn reset(&mut self, params: &standardfile::ExportedAuthParams, password: &str) {
+        self.path = Some(data_path_from_identifier(&params.identifier));
+        self.crypto = Some(Crypto::new(&params.identifier, params.pw_cost, &params.pw_nonce, password).unwrap());
     }
 
     /// Decrypt item and add it to the storage.

@@ -96,16 +96,6 @@ impl Crypto {
         Ok(Crypto { pw: pw, mk: mk, ak: ak })
     }
 
-    /// Construct crypto manager from local, exported JSON.
-    pub fn new_from_exported(params: &ExportedAuthParams, password: &str) -> Result<Self> {
-        Self::new(params.identifier.as_str(), params.pw_cost, params.pw_nonce.as_str(), password)
-    }
-
-    /// Construct crypto manager from remote signin process.
-    pub fn new_from_remote(params: &RemoteAuthParams, identifier: &str, password: &str) -> Result<Self> {
-        Self::new(identifier, params.pw_cost, params.pw_nonce.as_str(), password)
-    }
-
     pub fn password(&self) -> String {
         HEXLOWER.encode(&self.pw)
     }

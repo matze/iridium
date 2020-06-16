@@ -10,7 +10,7 @@ pub fn sign_in(host: &str, email: &str, password: &str) -> Result<String> {
 
     let url = format!("{}/auth/params?email={}", host, email);
     let response = client.get(&url).send()?.json::<RemoteAuthParams>()?;
-    let crypto = Crypto::new_from_remote(&response, email, password)?;
+    let crypto = Crypto::new(email, response.pw_cost, &response.pw_nonce, password)?;
 
     let mut params = HashMap::new();
     let encoded_pw = crypto.password();
