@@ -4,7 +4,7 @@ use gtk::prelude::*;
 use std::env;
 use secret_service::{EncryptionType, SecretService};
 
-use crate::config::APP_ID;
+use crate::config::{APP_ID, Config};
 use crate::models::Storage;
 use crate::standardfile::Exported;
 use crate::ui::state::{AppEvent, WindowEvent};
@@ -144,6 +144,8 @@ impl Application {
                         if let Ok(contents) = std::fs::read_to_string(&path) {
                             if let Ok(exported) = serde_json::from_str::<Exported>(&contents) {
                                 storage.reset(&exported.auth_params, password.as_str());
+                                let config = Config::new(&exported.auth_params);
+                                config.write().unwrap();
 
                                 for note in exported.encrypted_notes() {
                                     if let Some(uuid) = storage.decrypt(note) {
