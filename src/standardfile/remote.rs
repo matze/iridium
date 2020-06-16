@@ -5,7 +5,7 @@ use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use std::collections::HashMap;
 
 /// Sign in and return JWT on success.
-pub fn sign_in(host: &str, email: &str, password: &str) -> Result<(String)> {
+pub fn sign_in(host: &str, email: &str, password: &str) -> Result<String> {
     let client = reqwest::blocking::Client::new();
 
     let url = format!("{}/auth/params?email={}", host, email);
