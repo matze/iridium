@@ -3,7 +3,7 @@ extern crate glib;
 extern crate secret_service;
 
 mod config;
-mod models;
+mod storage;
 mod standardfile;
 mod ui;
 

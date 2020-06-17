@@ -1,5 +1,5 @@
 use super::{ExportedAuthParams, RemoteAuthParams, Item, Note};
-use crate::models;
+use crate::storage;
 use crate::standardfile;
 use aes::Aes256;
 use anyhow::Result;
@@ -100,7 +100,7 @@ impl Crypto {
         HEXLOWER.encode(&self.pw)
     }
 
-    pub fn decrypt(&self, item: &Item) -> Result<models::Decrypted> {
+    pub fn decrypt(&self, item: &Item) -> Result<storage::Decrypted> {
         let item_key = decrypt(&item.enc_item_key, &self.mk, &self.ak, &item.uuid)?;
         let mut item_ek: Key = [0; 32];
         let mut item_ak: Key = [0; 32];
@@ -115,13 +115,13 @@ impl Crypto {
         let decrypted = decrypt(&item.content, &item_ek, &item_ak, &item.uuid)?;
 
         if item.content_type == "Note" {
-            Ok(models::Decrypted::Note(serde_json::from_str::<standardfile::Note>(&decrypted)?))
+            Ok(storage::Decrypted::Note(serde_json::from_str::<standardfile::Note>(&decrypted)?))
         } else {
-            Ok(models::Decrypted::None)
+            Ok(storage::Decrypted::None)
         }
     }
 
-    pub fn encrypt(&self, note: &models::Note, uuid: &Uuid) -> Result<Item> {
+    pub fn encrypt(&self, note: &storage::Note, uuid: &Uuid) -> Result<Item> {
         let json_note = Note {
             title: Some(note.title.clone()),
             text: note.text.clone(),
@@ -165,7 +165,7 @@ mod tests {
         let now = Utc::now();
         let uuid = Uuid::new_v4();
 
-        let note = models::Note {
+        let note = storage::Note {
             title: "Title".to_owned(),
             text: "Text".to_owned(),
             created_at: now,
@@ -184,11 +184,11 @@ mod tests {
         let encrypted = crypto.encrypt(&note, &uuid).unwrap();
 
         match crypto.decrypt(&encrypted).unwrap() {
-            models::Decrypted::Note(decrypted) => {
+            storage::Decrypted::Note(decrypted) => {
                 assert_eq!(decrypted.title.unwrap(), note.title);
                 assert_eq!(decrypted.text, note.text);
             },
-            models::Decrypted::None => {
+            storage::Decrypted::None => {
                 assert!(false);
             }
         }

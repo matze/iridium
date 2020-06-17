@@ -4,7 +4,7 @@ use gtk::prelude::*;
 use std::env;
 
 use crate::config::{APP_ID, APP_VERSION, Config};
-use crate::models::Storage;
+use crate::storage::Storage;
 use crate::standardfile::Exported;
 use crate::ui::state::{AppEvent, WindowEvent};
 use crate::ui::window::Window;
