@@ -1,5 +1,6 @@
 use anyhow::Result;
 use crate::config::Config;
+use crate::secret;
 use crate::standardfile;
 use crate::standardfile::crypto::Crypto;
 use chrono::{DateTime, Utc};
@@ -10,7 +11,6 @@ use std::collections::HashMap;
 use std::fs::{create_dir_all, write, read_dir, read_to_string};
 use std::path::PathBuf;
 use uuid::Uuid;
-use secret_service::{EncryptionType, SecretService};
 
 pub struct Note {
     pub title: String,
@@ -50,13 +50,7 @@ impl Storage {
     }
 
     pub fn new_from_config(config: &Config) -> Result<Self> {
-        let service = SecretService::new(EncryptionType::Dh).unwrap();
-        // TODO: rename email to identifier
-        // TODO: select by server as well
-        let query = vec![("service", "standardnotes"), ("email", &config.identifier)];
-        let items = service.search_items(query).unwrap();
-        let item = items.get(0).unwrap();
-        let password = String::from_utf8(item.get_secret().unwrap()).unwrap();
+        let password = secret::load(&config.identifier);
         let path = data_path_from_identifier(&config.identifier);
 
         let crypto = Crypto::new(

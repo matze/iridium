@@ -5,11 +5,11 @@ use std::env;
 use rand::prelude::*;
 use data_encoding::HEXLOWER;
 use crate::config::{APP_ID, APP_VERSION, Config};
+use crate::secret;
 use crate::storage::Storage;
 use crate::standardfile::Exported;
 use crate::ui::state::{AppEvent, WindowEvent};
 use crate::ui::window::Window;
-use secret_service::{EncryptionType, SecretService};
 
 pub struct Application {
     app: gtk::Application,
@@ -149,16 +149,7 @@ impl Application {
                         let config = Config::new(&identifier, cost, &nonce);
                         config.write().unwrap();
 
-                        let service = SecretService::new(EncryptionType::Dh).unwrap();
-                        let collection = service.get_default_collection().unwrap();
-
-                        collection.create_item(
-                            "test_label",
-                            vec![("service", "standardnotes"), ("email", &identifier)],
-                            password.as_bytes(),
-                            true,
-                            "text/plain"
-                        ).unwrap();
+                        secret::store(&identifier, &password);
                     }
                     AppEvent::Import(path, password) => {
                         let filename = path.file_name().unwrap().to_string_lossy();
