@@ -2,12 +2,10 @@ use anyhow::Result;
 use gio::prelude::*;
 use gtk::prelude::*;
 use std::env;
-use rand::prelude::*;
-use data_encoding::HEXLOWER;
 use crate::config::{APP_ID, APP_VERSION, Config};
 use crate::secret;
 use crate::storage::Storage;
-use crate::standardfile::Exported;
+use crate::standardfile::{crypto, Exported};
 use crate::ui::state::{AppEvent, WindowEvent};
 use crate::ui::window::Window;
 
@@ -138,10 +136,7 @@ impl Application {
             clone!(@strong window.sender as sender => move |event| {
                 match event {
                     AppEvent::CreateStorage(identifier, password, _) => {
-                        let mut rng = rand_chacha::ChaCha20Rng::from_entropy();
-                        let mut nonce = [0u8; 32];
-                        rng.fill_bytes(&mut nonce);
-                        let nonce = HEXLOWER.encode(nonce.as_ref());
+                        let nonce = crypto::make_nonce();
                         let cost = 110000;
 
                         storage.reset(&identifier, cost, &nonce, &password);

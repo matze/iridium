@@ -69,6 +69,14 @@ fn encrypt(s: &str, ek: &Key, ak: &Key, uuid: &Uuid) -> Result<String> {
     ))
 }
 
+/// Create random nonce.
+pub fn make_nonce() -> String {
+    let mut rng = rand_chacha::ChaCha20Rng::from_entropy();
+    let mut nonce = [0u8; 32];
+    rng.fill_bytes(&mut nonce);
+    HEXLOWER.encode(nonce.as_ref())
+}
+
 impl Crypto {
     pub fn new(identifier: &str, cost: u32, nonce: &str, password: &str) -> Result<Self> {
         let cost = std::num::NonZeroU32::new(cost).unwrap();
