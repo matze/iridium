@@ -173,14 +173,8 @@ mod tests {
             uuid: uuid,
         };
 
-        let auth_params = ExportedAuthParams {
-            identifier: "foo@bar.com".to_owned(),
-            pw_cost: 110000,
-            pw_nonce: "3f8ea1ffd8067c1550ca3ad78de71c9b6e68b5cb540e370c12065eca15d9a049".to_owned(),
-            version: "003".to_owned(),
-        };
-
-        let crypto = Crypto::new_from_exported(&auth_params, "foobar").unwrap();
+        let nonce = "3f8ea1ffd8067c1550ca3ad78de71c9b6e68b5cb540e370c12065eca15d9a049";
+        let crypto = Crypto::new("foo@bar.com", 110000, nonce, "secret").unwrap();
         let encrypted = crypto.encrypt(&note, &uuid).unwrap();
 
         match crypto.decrypt(&encrypted).unwrap() {
