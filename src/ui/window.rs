@@ -37,6 +37,9 @@ impl Window {
         let search_bar = builder.get_object::<gtk::SearchBar>("iridium-search-bar").unwrap();
         let search_entry = builder.get_object::<gtk::SearchEntry>("iridium-search-entry").unwrap();
         let text_view = builder.get_object::<gtk::TextView>("iridium-text-view").unwrap();
+        let stack = builder.get_object::<gtk::Stack>("iridium-main-stack").unwrap();
+        let start_button = builder.get_object::<gtk::Button>("iridium-initial-start").unwrap();
+        let main_box = builder.get_object::<gtk::Box>("iridium-main-content").unwrap();
         let text_buffer = text_view.get_buffer().unwrap();
 
         let (win_sender, win_receiver) = glib::MainContext::channel::<WindowEvent>(glib::PRIORITY_DEFAULT);
@@ -46,6 +49,10 @@ impl Window {
         let mut row_map: HashMap<gtk::ListBoxRow, (Uuid, gtk::Label)> = HashMap::new();
 
         search_bar.connect_entry(&search_entry);
+
+        start_button.connect_clicked(move |_| {
+            stack.set_visible_child(&main_box);
+        });
 
         search_entry.connect_search_changed(
             clone!(@weak search_entry, @strong win_sender => move |_| {

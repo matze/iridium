@@ -186,73 +186,161 @@
           </object>
         </child>
         <child>
-          <object class="GtkBox">
+          <object class="GtkStack" id="iridium-main-stack">
             <property name="visible">True</property>
-            <property name="orientation">GTK_ORIENTATION_VERTICAL</property>
+            <property name="transition-type">GTK_STACK_TRANSITION_TYPE_SLIDE_UP</property>
             <child>
-              <object class="GtkSearchBar" id="iridium-search-bar">
+              <!-- Initial page -->
+              <object class="GtkVBox">
                 <property name="visible">True</property>
+                <property name="halign">GTK_ALIGN_CENTER</property>
+                <property name="valign">GTK_ALIGN_CENTER</property>
                 <child>
-                  <object class="GtkBox">
+                  <object class="GtkGrid">
                     <property name="visible">True</property>
-                    <property name="margin">6</property>
+                    <property name="row-spacing">12</property>
                     <child>
-                      <object class="GtkSearchEntry" id="iridium-search-entry">
+                      <object class="GtkEntry" id="setup-identifier">
+                        <property name="text"></property>
+                        <property name="visible">True</property>
+                        <property name="placeholder-text">Identifier</property>
+                        <property name="primary-icon-name">avatar-default-symbolic</property>
+                        <property name="hexpand">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">0</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="setup-password">
+                        <property name="visible">True</property>
+                        <property name="visibility">False</property>
+                        <property name="placeholder-text">Password</property>
+                        <property name="primary-icon-name">dialog-password-symbolic</property>
+                        <property name="hexpand">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="setup-server">
                         <property name="visible">True</property>
                         <property name="hexpand">True</property>
-                        <signal name="search-changed" handler="on_search_changed" object="IridiumWindow"/>
+                        <property name="has-entry">True</property>
+                        <items>
+                          <item>https://sync.standardnotes.org</item>
+                        </items>
                       </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">2</property>
+                      </packing>
                     </child>
+                    <child>
+                      <object class="GtkSwitch" id="setup-sync">
+                        <property name="visible">True</property>
+                        <property name="hexpand">False</property>
+                        <property name="halign">GTK_ALIGN_START</property>
+                        <property name="valign">GTK_ALIGN_CENTER</property>
+                        <property name="margin-left">12</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="iridium-initial-start">
+                    <property name="visible">True</property>
+                    <property name="label">Start</property>
+                    <property name="halign">GTK_ALIGN_END</property>
+                    <property name="margin-top">24</property>
+                    <style>
+                      <class name="suggested-action"/>
+                    </style>
                   </object>
                 </child>
               </object>
+              <!-- Initial page end -->
             </child>
             <child>
-              <object class="GtkPaned" id="main_pane">
-                <property name="name">main-pane</property>
+              <!-- Main content -->
+              <object class="GtkBox" id="iridium-main-content">
                 <property name="visible">True</property>
+                <property name="orientation">GTK_ORIENTATION_VERTICAL</property>
                 <child>
-                  <object class="GtkScrolledWindow">
+                  <object class="GtkSearchBar" id="iridium-search-bar">
                     <property name="visible">True</property>
-                    <property name="hexpand">True</property>
                     <child>
-                      <object class="GtkListBox" id="iridium-note-list">
+                      <object class="GtkBox">
                         <property name="visible">True</property>
-                        <property name="name">iridium-note-list</property>
-                        <signal name="row-selected" handler="on_note_selected" object="IridiumWindow"/>
+                        <property name="margin">6</property>
+                        <child>
+                          <object class="GtkSearchEntry" id="iridium-search-entry">
+                            <property name="visible">True</property>
+                            <property name="hexpand">True</property>
+                            <signal name="search-changed" handler="on_search_changed" object="IridiumWindow"/>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>
                 </child>
                 <child>
-                  <object class="GtkBox">
-                    <property name="name">iridium-entry-box</property>
+                  <object class="GtkPaned" id="main_pane">
+                    <property name="name">main-pane</property>
                     <property name="visible">True</property>
-                    <property name="orientation">GTK_ORIENTATION_VERTICAL</property>
                     <child>
-                      <object class="GtkEntry" id="iridium-title-entry">
-                        <property name="name">iridium-title-entry</property>
+                      <object class="GtkScrolledWindow">
                         <property name="visible">True</property>
-                        <property name="placeholder-text">Add title …</property>
-                        <property name="margin-top">6</property>
-                        <property name="margin-left">6</property>
-                        <property name="margin-right">6</property>
-                        <property name="halign">GTK_ALIGN_FILL</property>
-                        <property name="hexpand">TRUE</property>
+                        <property name="hexpand">True</property>
+                        <child>
+                          <object class="GtkListBox" id="iridium-note-list">
+                            <property name="visible">True</property>
+                            <property name="name">iridium-note-list</property>
+                            <signal name="row-selected" handler="on_note_selected" object="IridiumWindow"/>
+                          </object>
+                        </child>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkPaned">
+                      <object class="GtkBox">
+                        <property name="name">iridium-entry-box</property>
                         <property name="visible">True</property>
+                        <property name="orientation">GTK_ORIENTATION_VERTICAL</property>
                         <child>
-                          <object class="GtkScrolledWindow">
+                          <object class="GtkEntry" id="iridium-title-entry">
+                            <property name="name">iridium-title-entry</property>
                             <property name="visible">True</property>
-                            <property name="margin">12</property>
+                            <property name="placeholder-text">Add title …</property>
+                            <property name="margin-top">6</property>
+                            <property name="margin-left">6</property>
+                            <property name="margin-right">6</property>
+                            <property name="halign">GTK_ALIGN_FILL</property>
+                            <property name="hexpand">TRUE</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkPaned">
+                            <property name="visible">True</property>
                             <child>
-                              <object class="GtkTextView" id="iridium-text-view">
-                                <property name="name">iridium-text-view</property>
+                              <object class="GtkScrolledWindow">
                                 <property name="visible">True</property>
-                                <property name="expand">True</property>
+                                <property name="margin">12</property>
+                                <child>
+                                  <object class="GtkTextView" id="iridium-text-view">
+                                    <property name="name">iridium-text-view</property>
+                                    <property name="visible">True</property>
+                                    <property name="expand">True</property>
+                                  </object>
+                                </child>
                               </object>
                             </child>
                           </object>
@@ -262,6 +350,7 @@
                   </object>
                 </child>
               </object>
+              <!-- Main content end -->
             </child>
           </object>
         </child>
