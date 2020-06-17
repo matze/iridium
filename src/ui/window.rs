@@ -37,6 +37,7 @@ impl Window {
         let search_bar = builder.get_object::<gtk::SearchBar>("iridium-search-bar").unwrap();
         let search_entry = builder.get_object::<gtk::SearchEntry>("iridium-search-entry").unwrap();
         let text_view = builder.get_object::<gtk::TextView>("iridium-text-view").unwrap();
+        let identifier_entry = builder.get_object::<gtk::Entry>("setup-identifier").unwrap();
         let start_button = builder.get_object::<gtk::Button>("iridium-initial-start").unwrap();
         let text_buffer = text_view.get_buffer().unwrap();
 
@@ -47,6 +48,10 @@ impl Window {
         let mut row_map: HashMap<gtk::ListBoxRow, (Uuid, gtk::Label)> = HashMap::new();
 
         search_bar.connect_entry(&search_entry);
+
+        identifier_entry.bind_property("text-length", &start_button, "sensitive")
+            .flags(glib::BindingFlags::SYNC_CREATE)
+            .build();
 
         start_button.connect_clicked(
             clone!(@strong builder => move |_| {
