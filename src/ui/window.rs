@@ -54,10 +54,16 @@ impl Window {
             .build();
 
         start_button.connect_clicked(
-            clone!(@strong builder => move |_| {
+            clone!(@strong builder, @strong app_sender as sender => move |_| {
                 let main_box = builder.get_object::<gtk::Box>("iridium-main-content").unwrap();
                 let stack = builder.get_object::<gtk::Stack>("iridium-main-stack").unwrap();
+                let password_entry = builder.get_object::<gtk::Entry>("setup-password").unwrap();
                 stack.set_visible_child(&main_box);
+                sender.send(AppEvent::CreateStorage(
+                    identifier_entry.get_text().unwrap().to_string(),
+                    password_entry.get_text().unwrap().to_string(),
+                    None)
+                ).unwrap();
             })
         );
 
@@ -97,6 +103,11 @@ impl Window {
         win_receiver.attach(None,
             clone!(@strong note_list_box, @strong text_buffer, @strong builder => move |event| {
                 match event {
+                    WindowEvent::ShowMainContent => {
+                        let stack = builder.get_object::<gtk::Stack>("iridium-main-stack").unwrap();
+                        let main_box = builder.get_object::<gtk::Box>("iridium-main-content").unwrap();
+                        stack.set_visible_child(&main_box);
+                    }
                     WindowEvent::AddNote(uuid, title) => {
                         let label = gtk::Label::new(None);
                         label.set_halign(gtk::Align::Start);

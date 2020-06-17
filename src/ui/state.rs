@@ -8,6 +8,7 @@ pub enum AppEvent {
     Import(PathBuf, String),
     UpdateTitle(Uuid, String),
     UpdateText(Uuid, String),
+    CreateStorage(String, String, Option<String>),
 }
 
 pub enum WindowEvent {
@@ -18,4 +19,5 @@ pub enum WindowEvent {
     UpdateText,
     UpdateFilter(Option<String>),
     ShowNotification(String),
+    ShowMainContent,
 }

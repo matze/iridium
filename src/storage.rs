@@ -83,9 +83,9 @@ impl Storage {
         Ok(storage)
     }
 
-    pub fn reset(&mut self, params: &standardfile::ExportedAuthParams, password: &str) {
-        self.path = Some(data_path_from_identifier(&params.identifier));
-        self.crypto = Some(Crypto::new(&params.identifier, params.pw_cost, &params.pw_nonce, password).unwrap());
+    pub fn reset(&mut self, identifier: &str, cost: u32, nonce: &str, password: &str) {
+        self.path = Some(data_path_from_identifier(identifier));
+        self.crypto = Some(Crypto::new(identifier, cost, nonce, password).unwrap());
     }
 
     /// Decrypt item and add it to the storage.
@@ -120,7 +120,7 @@ impl Storage {
 
             let encrypted = self.crypto.as_ref().unwrap().encrypt(item, uuid)?;
             let serialized = serde_json::to_string(&encrypted)?;
-            write(path, serialized)?;
+            write(&path, serialized)?;
         }
 
         Ok(())

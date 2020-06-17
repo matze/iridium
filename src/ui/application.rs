@@ -2,12 +2,14 @@ use anyhow::Result;
 use gio::prelude::*;
 use gtk::prelude::*;
 use std::env;
-
+use rand::prelude::*;
+use data_encoding::HEXLOWER;
 use crate::config::{APP_ID, APP_VERSION, Config};
 use crate::storage::Storage;
 use crate::standardfile::Exported;
 use crate::ui::state::{AppEvent, WindowEvent};
 use crate::ui::window::Window;
+use secret_service::{EncryptionType, SecretService};
 
 pub struct Application {
     app: gtk::Application,
@@ -23,7 +25,10 @@ impl Application {
         let config = Config::new_from_file()?;
 
         let mut storage = match config {
-            Some(config) => { Storage::new_from_config(&config)? },
+            Some(config) => {
+                window.sender.send(WindowEvent::ShowMainContent).unwrap();
+                Storage::new_from_config(&config)?
+            },
             None => { Storage::new() },
         };
 
@@ -132,13 +137,37 @@ impl Application {
         receiver.attach(None,
             clone!(@strong window.sender as sender => move |event| {
                 match event {
+                    AppEvent::CreateStorage(identifier, password, _) => {
+                        let mut rng = rand_chacha::ChaCha20Rng::from_entropy();
+                        let mut nonce = [0u8; 32];
+                        rng.fill_bytes(&mut nonce);
+                        let nonce = HEXLOWER.encode(nonce.as_ref());
+                        let cost = 110000;
+
+                        storage.reset(&identifier, cost, &nonce, &password);
+
+                        let config = Config::new(&identifier, cost, &nonce);
+                        config.write().unwrap();
+
+                        let service = SecretService::new(EncryptionType::Dh).unwrap();
+                        let collection = service.get_default_collection().unwrap();
+
+                        collection.create_item(
+                            "test_label",
+                            vec![("service", "standardnotes"), ("email", &identifier)],
+                            password.as_bytes(),
+                            true,
+                            "text/plain"
+                        ).unwrap();
+                    }
                     AppEvent::Import(path, password) => {
                         let filename = path.file_name().unwrap().to_string_lossy();
 
                         if let Ok(contents) = std::fs::read_to_string(&path) {
                             if let Ok(exported) = serde_json::from_str::<Exported>(&contents) {
-                                storage.reset(&exported.auth_params, &password);
-                                let config = Config::new(&exported.auth_params);
+                                let params = &exported.auth_params;
+                                storage.reset(&params.identifier, params.pw_cost, &params.pw_nonce, &password);
+                                let config = Config::new(&params.identifier, params.pw_cost, &params.pw_nonce);
                                 config.write().unwrap();
 
                                 for note in exported.encrypted_notes() {
@@ -173,9 +202,13 @@ impl Application {
                     },
                     AppEvent::UpdateTitle(uuid, text) => {
                         storage.update_title(&uuid, &text);
+                        // TODO: do not write on each keypress
+                        storage.flush(&uuid).unwrap();
                     },
                     AppEvent::UpdateText(uuid, text) => {
                         storage.update_text(&uuid, &text);
+                        // TODO: do not write on each keypress
+                        storage.flush(&uuid).unwrap();
                     },
                 }
 

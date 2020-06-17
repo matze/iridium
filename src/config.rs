@@ -1,7 +1,6 @@
 use anyhow::Result;
 use directories::BaseDirs;
 use serde::{Deserialize, Serialize};
-use crate::standardfile::ExportedAuthParams;
 use std::path::PathBuf;
 use std::fs::{create_dir_all, read_to_string, write};
 
@@ -24,11 +23,11 @@ fn get_path() -> PathBuf {
 }
 
 impl Config {
-    pub fn new(params: &ExportedAuthParams) -> Config {
+    pub fn new(identifier: &str, cost: u32, nonce: &str) -> Config {
         Self {
-            identifier: params.identifier.clone(),
-            nonce: params.pw_nonce.clone(),
-            cost: params.pw_cost,
+            identifier: identifier.to_string(),
+            nonce: nonce.to_string(),
+            cost: cost,
         }
     }
 
