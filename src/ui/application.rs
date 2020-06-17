@@ -3,7 +3,7 @@ use gio::prelude::*;
 use gtk::prelude::*;
 use std::env;
 
-use crate::config::{APP_ID, Config};
+use crate::config::{APP_ID, APP_VERSION, Config};
 use crate::models::Storage;
 use crate::standardfile::Exported;
 use crate::ui::state::{AppEvent, WindowEvent};
@@ -49,6 +49,8 @@ impl Application {
             clone!(@weak window.widget as window => move |_, _| {
                 let builder = gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/about.ui");
                 let dialog = builder.get_object::<gtk::AboutDialog>("about-dialog").unwrap();
+                dialog.set_version(Some(APP_VERSION));
+                dialog.set_logo_icon_name(Some(APP_ID));
                 dialog.set_transient_for(Some(&window));
                 dialog.connect_response(|dialog, _| dialog.destroy());
                 dialog.show();
