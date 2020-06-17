@@ -1,4 +1,4 @@
-use super::{ExportedAuthParams, RemoteAuthParams, Item, Note};
+use super::{Item, Note};
 use crate::storage;
 use crate::standardfile;
 use aes::Aes256;
