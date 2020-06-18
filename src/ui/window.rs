@@ -154,10 +154,9 @@ impl Window {
                     },
                     WindowEvent::UpdateTitle => {
                         if let Some(uuid) = current_uuid {
-                            // Should we actually get that from the model?
-                            let text = title_entry.get_text().unwrap();
-                            let text = text.as_str();
-                            app_sender.send(AppEvent::UpdateTitle(uuid.clone(), text.to_owned())).unwrap();
+                            let title = title_entry.get_text().unwrap();
+                            let title = title.as_str().to_string();
+                            app_sender.send(AppEvent::Update(uuid, Some(title), None)).unwrap();
                         }
                     },
                     WindowEvent::UpdateText => {
@@ -165,8 +164,8 @@ impl Window {
                             let start = text_buffer.get_start_iter();
                             let end = text_buffer.get_end_iter();
                             let text = text_buffer.get_text(&start, &end, false).unwrap();
-                            let text = text.as_str();
-                            app_sender.send(AppEvent::UpdateText(uuid.clone(), text.to_owned())).unwrap();
+                            let text = text.as_str().to_string();
+                            app_sender.send(AppEvent::Update(uuid, None, Some(text))).unwrap();
                         }
                     },
                     WindowEvent::ToggleSearchBar => {

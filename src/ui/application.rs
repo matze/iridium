@@ -2,12 +2,14 @@ use anyhow::Result;
 use gio::prelude::*;
 use gtk::prelude::*;
 use std::env;
+use std::collections::HashSet;
 use crate::config::{APP_ID, APP_VERSION, Config};
 use crate::secret;
 use crate::storage::Storage;
 use crate::standardfile::{crypto, Exported};
 use crate::ui::state::{AppEvent, WindowEvent};
 use crate::ui::window::Window;
+use uuid::Uuid;
 
 pub struct Application {
     app: gtk::Application,
@@ -132,8 +134,10 @@ impl Application {
         app.set_accels_for_action("app.quit", &["<primary>q"]);
         app.set_accels_for_action("app.search", &["<primary>f"]);
 
+        let mut to_flush: HashSet<Uuid> = HashSet::new();
+
         receiver.attach(None,
-            clone!(@strong window.sender as sender => move |event| {
+            clone!(@strong sender as app_sender, @strong window.sender as sender => move |event| {
                 match event {
                     AppEvent::CreateStorage(identifier, password, _) => {
                         let nonce = crypto::make_nonce();
@@ -186,16 +190,30 @@ impl Application {
                             window.load_note(&item.title, &item.text);
                         }
                     },
-                    AppEvent::UpdateTitle(uuid, text) => {
-                        storage.update_title(&uuid, &text);
-                        // TODO: do not write on each keypress
+                    AppEvent::Update(uuid, title, text) => {
+                        if let Some(title) = title {
+                            storage.update_title(&uuid, &title);
+                        }
+
+                        if let Some(text) = text {
+                            storage.update_text(&uuid, &text);
+                        }
+
+                        if !to_flush.contains(&uuid) {
+                            to_flush.insert(uuid);
+
+                            glib::source::timeout_add_seconds(5,
+                                clone!(@strong app_sender as sender => move ||{
+                                    sender.send(AppEvent::Flush(uuid)).unwrap();
+                                    glib::Continue(false)
+                                })
+                            );
+                        }
+                    }
+                    AppEvent::Flush(uuid) => {
                         storage.flush(&uuid).unwrap();
-                    },
-                    AppEvent::UpdateText(uuid, text) => {
-                        storage.update_text(&uuid, &text);
-                        // TODO: do not write on each keypress
-                        storage.flush(&uuid).unwrap();
-                    },
+                        to_flush.remove(&uuid);
+                    }
                 }
 
                 glib::Continue(true)

@@ -6,9 +6,9 @@ pub enum AppEvent {
     AddNote,
     SelectNote(Uuid),
     Import(PathBuf, String),
-    UpdateTitle(Uuid, String),
-    UpdateText(Uuid, String),
+    Update(Uuid, Option<String>, Option<String>),
     CreateStorage(String, String, Option<String>),
+    Flush(Uuid),
 }
 
 pub enum WindowEvent {
