@@ -1,8 +1,38 @@
-use super::crypto::Crypto;
-use super::{RemoteAuthParams, RemoteSignInResponse, RemoteSyncRequest, RemoteSyncResponse};
+use super::crypto::{make_nonce, Crypto};
+use super::{
+    RemoteAuthParams, RemoteRegistrationRequest, RemoteRegistrationResponse, RemoteSignInResponse,
+    RemoteSyncRequest, RemoteSyncResponse,
+};
 use anyhow::Result;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use std::collections::HashMap;
+
+/// Register a new user and return JWT on success.
+pub fn register(host: &str, email: &str, password: &str) -> Result<String> {
+    let nonce = make_nonce();
+    let cost = 110000;
+    let crypto = Crypto::new(email, cost, &nonce, password)?;
+    let encoded_pw = crypto.password();
+    let cost_str = cost.to_string();
+
+    let request = RemoteRegistrationRequest {
+        email: email.to_string(),
+        password: encoded_pw,
+        pw_cost: cost,
+        pw_nonce: nonce,
+        version: "003".to_string(),
+    };
+
+    let url = format!("{}/auth", host);
+    let client = reqwest::blocking::Client::new();
+    let response = client
+        .post(&url)
+        .json(&request)
+        .send()?
+        .json::<RemoteRegistrationResponse>()?;
+
+    Ok(response.token)
+}
 
 /// Sign in and return JWT on success.
 pub fn sign_in(host: &str, email: &str, password: &str) -> Result<String> {
@@ -15,7 +45,7 @@ pub fn sign_in(host: &str, email: &str, password: &str) -> Result<String> {
     let mut params = HashMap::new();
     let encoded_pw = crypto.password();
     params.insert("email", email);
-    params.insert("password", encoded_pw.as_str());
+    params.insert(password, &encoded_pw);
 
     let url = format!("{}/auth/sign_in", host);
     let response = client

@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use crate::config::{APP_ID, APP_VERSION, Config};
 use crate::secret;
 use crate::storage::Storage;
-use crate::standardfile::{crypto, Exported};
+use crate::standardfile::{crypto, remote, Exported};
 use crate::ui::state::{AppEvent, WindowEvent};
 use crate::ui::window::Window;
 use uuid::Uuid;
@@ -149,6 +149,10 @@ impl Application {
                         config.write().unwrap();
 
                         secret::store(&identifier, &password);
+                    }
+                    AppEvent::Register(server, identifier, password) => {
+                        let token = remote::register(&server, &identifier, &password).unwrap();
+                        println!("token={}", token);
                     }
                     AppEvent::Import(path, password) => {
                         let filename = path.file_name().unwrap().to_string_lossy();

@@ -242,7 +242,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkSwitch" id="setup-sync">
+                      <object class="GtkSwitch" id="setup-switch">
                         <property name="visible">True</property>
                         <property name="hexpand">False</property>
                         <property name="halign">GTK_ALIGN_START</property>
@@ -257,14 +257,27 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkButton" id="iridium-initial-start">
+                  <object class="GtkHBox">
                     <property name="visible">True</property>
-                    <property name="label">Start</property>
-                    <property name="halign">GTK_ALIGN_END</property>
-                    <property name="margin-top">24</property>
-                    <style>
-                      <class name="suggested-action"/>
-                    </style>
+                    <child>
+                      <object class="GtkButton" id="iridium-initial-register">
+                        <property name="visible">True</property>
+                        <property name="label">Register</property>
+                        <property name="halign">GTK_ALIGN_END</property>
+                        <property name="margin-top">24</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="iridium-initial-start">
+                        <property name="visible">True</property>
+                        <property name="label">Start</property>
+                        <property name="halign">GTK_ALIGN_END</property>
+                        <property name="margin-top">24</property>
+                        <style>
+                          <class name="suggested-action"/>
+                        </style>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>

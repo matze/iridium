@@ -28,6 +28,21 @@ struct RemoteUser {
     pub email: String,
 }
 
+#[derive(Serialize)]
+struct RemoteRegistrationRequest {
+    pub email: String,
+    pub password: String,
+    pub pw_cost: u32,
+    pub pw_nonce: String,
+    pub version: String,
+}
+
+#[derive(Deserialize)]
+struct RemoteRegistrationResponse {
+    pub user: RemoteUser,
+    pub token: String,
+}
+
 #[derive(Deserialize)]
 struct RemoteSignInResponse {
     pub user: RemoteUser,
