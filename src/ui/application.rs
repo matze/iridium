@@ -139,19 +139,19 @@ impl Application {
         receiver.attach(None,
             clone!(@strong sender as app_sender, @strong window.sender as sender => move |event| {
                 match event {
-                    AppEvent::CreateStorage(identifier, password, _) => {
+                    AppEvent::CreateStorage(user) => {
                         let nonce = crypto::make_nonce();
                         let cost = 110000;
 
-                        storage.reset(&identifier, cost, &nonce, &password);
+                        storage.reset(&user.identifier, cost, &nonce, &user.password);
 
-                        let config = Config::new(&identifier, cost, &nonce);
+                        let config = Config::new(&user.identifier, cost, &nonce);
                         config.write().unwrap();
 
-                        secret::store(&identifier, &password);
+                        secret::store(&user.identifier, &user.password);
                     }
-                    AppEvent::Register(server, identifier, password) => {
-                        let token = remote::register(&server, &identifier, &password);
+                    AppEvent::Register(auth) => {
+                        let token = remote::register(&auth.server, &auth.user.identifier, &auth.user.password);
 
                         match token {
                             Ok(token) => {

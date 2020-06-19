@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::ui::state::{AppEvent, WindowEvent};
+use crate::ui::state::{AppEvent, WindowEvent, User, RemoteAuth};
 use gio::prelude::*;
 use gtk::prelude::*;
 use uuid::Uuid;
@@ -14,6 +14,16 @@ pub struct Window {
 fn get_shortcuts_window() -> gtk::ShortcutsWindow {
     let builder = gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/shortcuts.ui");
     builder.get_object("shortcuts").unwrap()
+}
+
+fn get_user_details(builder: &gtk::Builder) -> User {
+    let identifier_entry = builder.get_object::<gtk::Entry>("identifier-entry").unwrap();
+    let password_entry = builder.get_object::<gtk::Entry>("password-entry").unwrap();
+
+    User {
+        identifier: identifier_entry.get_text().unwrap().to_string(),
+        password: password_entry.get_text().unwrap().to_string(),
+    }
 }
 
 impl Window {
@@ -67,27 +77,23 @@ impl Window {
             clone!(@strong builder, @strong app_sender as sender => move |_| {
                 let main_box = builder.get_object::<gtk::Box>("iridium-main-content").unwrap();
                 let stack = builder.get_object::<gtk::Stack>("iridium-main-stack").unwrap();
-                let password_entry = builder.get_object::<gtk::Entry>("password-entry").unwrap();
                 stack.set_visible_child(&main_box);
-                sender.send(AppEvent::CreateStorage(
-                    identifier_entry.get_text().unwrap().to_string(),
-                    password_entry.get_text().unwrap().to_string(),
-                    None)
-                ).unwrap();
+
+                let user = get_user_details(&builder);
+                sender.send(AppEvent::CreateStorage(user)).unwrap();
             })
         );
 
         signup_button.connect_clicked(
             clone!(@strong builder, @strong app_sender as sender => move |_| {
                 let server_combo_box = builder.get_object::<gtk::ComboBoxText>("server-combo").unwrap();
-                let identifier_entry = builder.get_object::<gtk::Entry>("identifier-entry").unwrap();
-                let password_entry = builder.get_object::<gtk::Entry>("password-entry").unwrap();
 
-                sender.send(AppEvent::Register(
-                    server_combo_box.get_active_text().unwrap().to_string(),
-                    identifier_entry.get_text().unwrap().to_string(),
-                    password_entry.get_text().unwrap().to_string())
-                ).unwrap();
+                let auth = RemoteAuth {
+                    server: server_combo_box.get_active_text().unwrap().to_string(),
+                    user: get_user_details(&builder),
+                };
+
+                sender.send(AppEvent::Register(auth)).unwrap();
             })
         );
 
