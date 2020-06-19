@@ -26,6 +26,15 @@ fn get_user_details(builder: &gtk::Builder) -> User {
     }
 }
 
+fn get_auth_details(builder: &gtk::Builder) -> RemoteAuth {
+    let server_combo_box = builder.get_object::<gtk::ComboBoxText>("server-combo").unwrap();
+
+    RemoteAuth {
+        server: server_combo_box.get_active_text().unwrap().to_string(),
+        user: get_user_details(&builder),
+    }
+}
+
 impl Window {
     pub fn new(app_sender: glib::Sender<AppEvent>) -> Self {
         let builder =
@@ -86,14 +95,13 @@ impl Window {
 
         signup_button.connect_clicked(
             clone!(@strong builder, @strong app_sender as sender => move |_| {
-                let server_combo_box = builder.get_object::<gtk::ComboBoxText>("server-combo").unwrap();
+                sender.send(AppEvent::Register(get_auth_details(&builder))).unwrap();
+            })
+        );
 
-                let auth = RemoteAuth {
-                    server: server_combo_box.get_active_text().unwrap().to_string(),
-                    user: get_user_details(&builder),
-                };
-
-                sender.send(AppEvent::Register(auth)).unwrap();
+        login_button.connect_clicked(
+            clone!(@strong builder, @strong app_sender as sender => move |_| {
+                sender.send(AppEvent::SignIn(get_auth_details(&builder))).unwrap();
             })
         );
 

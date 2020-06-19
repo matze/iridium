@@ -28,6 +28,11 @@ struct RemoteUser {
     pub email: String,
 }
 
+#[derive(Deserialize)]
+struct RemoteErrorResponse {
+    pub errors: Vec<String>,
+}
+
 #[derive(Serialize)]
 struct RemoteRegistrationRequest {
     pub email: String,
@@ -37,15 +42,10 @@ struct RemoteRegistrationRequest {
     pub version: String,
 }
 
-#[derive(Deserialize)]
-struct RemoteRegistrationResponse {
-    pub user: RemoteUser,
-    pub token: String,
-}
-
-#[derive(Deserialize)]
-struct RemoteErrorResponse {
-    pub errors: Vec<String>,
+#[derive(Serialize)]
+struct RemoteSignInRequest {
+    pub email: String,
+    pub password: String,
 }
 
 #[derive(Deserialize)]

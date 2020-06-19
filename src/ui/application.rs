@@ -163,6 +163,19 @@ impl Application {
                             }
                         }
                     }
+                    AppEvent::SignIn(auth) => {
+                        let token = remote::sign_in(&auth.server, &auth.user.identifier, &auth.user.password);
+
+                        match token {
+                            Ok(token) => {
+                                println!("token={}", token);
+                            }
+                            Err(message) => {
+                                let message = format!("Login failed: {}.", message);
+                                sender.send(WindowEvent::ShowNotification(message)).unwrap();
+                            }
+                        }
+                    }
                     AppEvent::Import(path, password) => {
                         let filename = path.file_name().unwrap().to_string_lossy();
 
