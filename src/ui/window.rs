@@ -37,10 +37,10 @@ impl Window {
         let search_bar = builder.get_object::<gtk::SearchBar>("iridium-search-bar").unwrap();
         let search_entry = builder.get_object::<gtk::SearchEntry>("iridium-search-entry").unwrap();
         let text_view = builder.get_object::<gtk::TextView>("iridium-text-view").unwrap();
-        let identifier_entry = builder.get_object::<gtk::Entry>("setup-identifier").unwrap();
-        let server_switch = builder.get_object::<gtk::Switch>("setup-switch").unwrap();
-        let register_button = builder.get_object::<gtk::Button>("iridium-initial-register").unwrap();
-        let start_button = builder.get_object::<gtk::Button>("iridium-initial-start").unwrap();
+        let identifier_entry = builder.get_object::<gtk::Entry>("identifier-entry").unwrap();
+        let local_button = builder.get_object::<gtk::Button>("create-local-button").unwrap();
+        let signup_button = builder.get_object::<gtk::Button>("signup-button").unwrap();
+        let login_button = builder.get_object::<gtk::Button>("login-button").unwrap();
         let text_buffer = text_view.get_buffer().unwrap();
 
         let (win_sender, win_receiver) = glib::MainContext::channel::<WindowEvent>(glib::PRIORITY_DEFAULT);
@@ -51,23 +51,19 @@ impl Window {
 
         search_bar.connect_entry(&search_entry);
 
-        identifier_entry.bind_property("text-length", &start_button, "sensitive")
+        identifier_entry.bind_property("text-length", &local_button, "sensitive")
             .flags(glib::BindingFlags::SYNC_CREATE)
             .build();
 
-        server_switch.bind_property("active", &register_button, "sensitive")
+        identifier_entry.bind_property("text-length", &login_button, "sensitive")
             .flags(glib::BindingFlags::SYNC_CREATE)
             .build();
 
-        server_switch.bind_property("active", &start_button, "sensitive")
-            .flags(glib::BindingFlags::SYNC_CREATE | glib::BindingFlags::INVERT_BOOLEAN)
-            .build();
-
-        server_switch.bind_property("active", &register_button, "sensitive")
+        identifier_entry.bind_property("text-length", &signup_button, "sensitive")
             .flags(glib::BindingFlags::SYNC_CREATE)
             .build();
 
-        start_button.connect_clicked(
+        login_button.connect_clicked(
             clone!(@strong builder, @strong app_sender as sender => move |_| {
                 let main_box = builder.get_object::<gtk::Box>("iridium-main-content").unwrap();
                 let stack = builder.get_object::<gtk::Stack>("iridium-main-stack").unwrap();
@@ -81,11 +77,11 @@ impl Window {
             })
         );
 
-        register_button.connect_clicked(
+        signup_button.connect_clicked(
             clone!(@strong builder, @strong app_sender as sender => move |_| {
-                let server_combo_box = builder.get_object::<gtk::ComboBoxText>("setup-server").unwrap();
-                let identifier_entry = builder.get_object::<gtk::Entry>("setup-identifier").unwrap();
-                let password_entry = builder.get_object::<gtk::Entry>("setup-password").unwrap();
+                let server_combo_box = builder.get_object::<gtk::ComboBoxText>("server-combo").unwrap();
+                let identifier_entry = builder.get_object::<gtk::Entry>("identifier-entry").unwrap();
+                let password_entry = builder.get_object::<gtk::Entry>("password-entry").unwrap();
 
                 sender.send(AppEvent::Register(
                     server_combo_box.get_active_text().unwrap().to_string(),

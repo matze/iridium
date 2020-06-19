@@ -191,91 +191,110 @@
             <property name="transition-type">GTK_STACK_TRANSITION_TYPE_SLIDE_UP</property>
             <child>
               <!-- Initial page -->
-              <object class="GtkVBox">
+              <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="halign">GTK_ALIGN_CENTER</property>
                 <property name="valign">GTK_ALIGN_CENTER</property>
+                <property name="orientation">GTK_ORIENTATION_VERTICAL</property>
+                <property name="margin">48</property>
+                <property name="width-request">280</property>
+                <property name="spacing">12</property>
                 <child>
-                  <object class="GtkGrid">
+                  <object class="GtkLabel">
                     <property name="visible">True</property>
-                    <property name="row-spacing">12</property>
-                    <child>
-                      <object class="GtkEntry" id="setup-identifier">
-                        <property name="text"></property>
-                        <property name="visible">True</property>
-                        <property name="placeholder-text">Identifier</property>
-                        <property name="primary-icon-name">avatar-default-symbolic</property>
-                        <property name="hexpand">True</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">0</property>
-                        <property name="width">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="setup-password">
-                        <property name="visible">True</property>
-                        <property name="visibility">False</property>
-                        <property name="placeholder-text">Password</property>
-                        <property name="primary-icon-name">dialog-password-symbolic</property>
-                        <property name="hexpand">True</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">1</property>
-                        <property name="width">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkComboBoxText" id="setup-server">
-                        <property name="visible">True</property>
-                        <property name="hexpand">True</property>
-                        <property name="has-entry">True</property>
-                        <items>
-                          <item>https://sync.standardnotes.org</item>
-                        </items>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSwitch" id="setup-switch">
-                        <property name="visible">True</property>
-                        <property name="hexpand">False</property>
-                        <property name="halign">GTK_ALIGN_START</property>
-                        <property name="valign">GTK_ALIGN_CENTER</property>
-                        <property name="margin-left">12</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">2</property>
-                      </packing>
-                    </child>
+                    <property name="label">Identification</property>
+                    <property name="halign">GTK_ALIGN_START</property>
+                    <attributes>
+                      <attribute name="weight" value="PANGO_WEIGHT_BOLD"/>
+                    </attributes>
                   </object>
                 </child>
                 <child>
-                  <object class="GtkHBox">
+                  <object class="GtkLabel">
                     <property name="visible">True</property>
+                    <property name="halign">GTK_ALIGN_START</property>
+                    <property name="margin-bottom">6</property>
+                    <property name="wrap">True</property>
+                    <property name="max-width-chars">50</property>
+                    <property name="xalign">0</property>
+                    <property name="label">Keep your password somewhere safe. If you do lose it, there is no way to recover it.</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="identifier-entry">
+                    <property name="visible">True</property>
+                    <property name="placeholder-text">Identifier</property>
+                    <property name="primary-icon-name">avatar-default-symbolic</property>
+                    <property name="hexpand">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="password-entry">
+                    <property name="visible">True</property>
+                    <property name="visibility">False</property>
+                    <property name="placeholder-text">Password</property>
+                    <property name="primary-icon-name">dialog-password-symbolic</property>
+                    <property name="hexpand">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="create-local-button">
+                    <property name="visible">True</property>
+                    <property name="label">Create</property>
+                    <property name="halign">GTK_ALIGN_START</property>
+                    <property name="margin-top">6</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="label">Synchronization</property>
+                    <property name="halign">GTK_ALIGN_START</property>
+                    <property name="margin-top">24</property>
+                    <attributes>
+                      <attribute name="weight" value="PANGO_WEIGHT_BOLD"/>
+                    </attributes>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="halign">GTK_ALIGN_START</property>
+                    <property name="margin-bottom">6</property>
+                    <property name="wrap">True</property>
+                    <property name="max-width-chars">50</property>
+                    <property name="xalign">0</property>
+                    <property name="label">Log in to or sign up with a Standard Notes server. Use the dropdown menu to choose one of the public servers.</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkComboBoxText" id="server-combo">
+                    <property name="visible">True</property>
+                    <property name="hexpand">True</property>
+                    <property name="has-entry">True</property>
+                    <items>
+                      <item>https://sync.standardnotes.org</item>
+                    </items>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="margin-top">6</property>
+                    <property name="spacing">6</property>
+                    <property name="orientation">GTK_ORIENTATION_HORIZONTAL</property>
                     <child>
-                      <object class="GtkButton" id="iridium-initial-register">
+                      <object class="GtkButton" id="signup-button">
                         <property name="visible">True</property>
-                        <property name="label">Register</property>
+                        <property name="label">Sign up</property>
                         <property name="halign">GTK_ALIGN_END</property>
-                        <property name="margin-top">24</property>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkButton" id="iridium-initial-start">
+                      <object class="GtkButton" id="login-button">
                         <property name="visible">True</property>
-                        <property name="label">Start</property>
+                        <property name="label">Log in</property>
                         <property name="halign">GTK_ALIGN_END</property>
-                        <property name="margin-top">24</property>
-                        <style>
-                          <class name="suggested-action"/>
-                        </style>
                       </object>
                     </child>
                   </object>
