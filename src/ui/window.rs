@@ -63,11 +63,11 @@ impl Window {
             .flags(glib::BindingFlags::SYNC_CREATE)
             .build();
 
-        login_button.connect_clicked(
+        local_button.connect_clicked(
             clone!(@strong builder, @strong app_sender as sender => move |_| {
                 let main_box = builder.get_object::<gtk::Box>("iridium-main-content").unwrap();
                 let stack = builder.get_object::<gtk::Stack>("iridium-main-stack").unwrap();
-                let password_entry = builder.get_object::<gtk::Entry>("setup-password").unwrap();
+                let password_entry = builder.get_object::<gtk::Entry>("password-entry").unwrap();
                 stack.set_visible_child(&main_box);
                 sender.send(AppEvent::CreateStorage(
                     identifier_entry.get_text().unwrap().to_string(),
