@@ -1,8 +1,9 @@
 use super::crypto::{make_nonce, Crypto};
 use super::Item;
 use anyhow::{anyhow, Result};
-use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use reqwest::StatusCode;
+use reqwest::blocking::Response;
+use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
@@ -60,13 +61,25 @@ struct SyncResponse {
     pub sync_token: String,
 }
 
+fn get_token_from_signin_response(response: Response) -> Result<String> {
+    match response.status() {
+        StatusCode::OK => {
+            let response = response.json::<SignInResponse>()?;
+            Ok(response.token)
+        }
+        _ => {
+            let response = response.json::<ErrorResponse>()?;
+            Err(anyhow!("{}", response.errors[0]))
+        }
+    }
+}
+
 /// Register a new user and return JWT on success.
 pub fn register(host: &str, email: &str, password: &str) -> Result<String> {
     let nonce = make_nonce();
     let cost = 110000;
     let crypto = Crypto::new(email, cost, &nonce, password)?;
     let encoded_pw = crypto.password();
-    let cost_str = cost.to_string();
 
     let request = RegistrationRequest {
         email: email.to_string(),
@@ -80,16 +93,7 @@ pub fn register(host: &str, email: &str, password: &str) -> Result<String> {
     let client = reqwest::blocking::Client::new();
     let response = client.post(&url).json(&request).send()?;
 
-    match response.status() {
-        StatusCode::OK => {
-            let response = response.json::<SignInResponse>()?;
-            Ok(response.token)
-        }
-        _ => {
-            let response = response.json::<ErrorResponse>()?;
-            Err(anyhow!("{}", response.errors[0]))
-        }
-    }
+    get_token_from_signin_response(response)
 }
 
 /// Sign in and return JWT on success.
@@ -109,16 +113,7 @@ pub fn sign_in(host: &str, email: &str, password: &str) -> Result<String> {
     let url = format!("{}/auth/sign_in", host);
     let response = client.post(&url).json(&request).send()?;
 
-    match response.status() {
-        StatusCode::OK => {
-            let response = response.json::<SignInResponse>()?;
-            Ok(response.token)
-        }
-        _ => {
-            let response = response.json::<ErrorResponse>()?;
-            Err(anyhow!("{}", response.errors[0]))
-        }
-    }
+    get_token_from_signin_response(response)
 }
 
 pub fn sync(host: &str, token: &str) -> Result<()> {
