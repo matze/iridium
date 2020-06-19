@@ -16,60 +16,6 @@ pub struct Item {
 }
 
 #[derive(Deserialize)]
-pub struct RemoteAuthParams {
-    pub pw_cost: u32,
-    pub pw_nonce: String,
-    pub version: String,
-}
-
-#[derive(Deserialize)]
-struct RemoteUser {
-    pub uuid: Uuid,
-    pub email: String,
-}
-
-#[derive(Deserialize)]
-struct RemoteErrorResponse {
-    pub errors: Vec<String>,
-}
-
-#[derive(Serialize)]
-struct RemoteRegistrationRequest {
-    pub email: String,
-    pub password: String,
-    pub pw_cost: u32,
-    pub pw_nonce: String,
-    pub version: String,
-}
-
-#[derive(Serialize)]
-struct RemoteSignInRequest {
-    pub email: String,
-    pub password: String,
-}
-
-#[derive(Deserialize)]
-struct RemoteSignInResponse {
-    pub user: RemoteUser,
-    pub token: String,
-}
-
-#[derive(Serialize)]
-struct RemoteSyncRequest {
-    pub items: Vec<Item>,
-    pub sync_token: Option<String>,
-    pub cursor_token: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct RemoteSyncResponse {
-    pub retrieved_items: Vec<Item>,
-    pub saved_items: Vec<Item>,
-    pub unsaved: Vec<Item>,
-    pub sync_token: String,
-}
-
-#[derive(Deserialize)]
 pub struct ExportedAuthParams {
     pub identifier: String,
     pub pw_cost: u32,
