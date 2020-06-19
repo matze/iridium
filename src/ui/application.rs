@@ -156,11 +156,16 @@ impl Application {
                         secret::store(&credentials);
                     }
                     AppEvent::Register(auth) => {
-                        let token = remote::register(&auth.server, &auth.user.identifier, &auth.user.password);
+                        let credentials = remote::register(&auth.server, &auth.user.identifier, &auth.user.password);
 
-                        match token {
-                            Ok(token) => {
-                                println!("token={}", token);
+                        match credentials {
+                            Ok(credentials) => {
+                                storage.reset(&credentials);
+
+                                let config = Config::new(&credentials);
+                                config.write().unwrap();
+
+                                sender.send(WindowEvent::ShowMainContent).unwrap();
                             }
                             Err(message) => {
                                 let message = format!("Registration failed: {}.", message);
@@ -175,6 +180,10 @@ impl Application {
                             Ok(credentials) => {
                                 let token = credentials.token.clone();
                                 let items = remote::sync(&auth.server, &token.unwrap()).unwrap();
+
+                                let config = Config::new(&credentials);
+                                config.write().unwrap();
+
                                 storage.reset(&credentials);
 
                                 for item in items {
@@ -188,6 +197,8 @@ impl Application {
                                         }
                                     }
                                 }
+
+                                sender.send(WindowEvent::ShowMainContent).unwrap();
                             }
                             Err(message) => {
                                 let message = format!("Login failed: {}.", message);

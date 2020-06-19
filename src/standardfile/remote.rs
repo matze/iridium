@@ -76,8 +76,8 @@ fn get_token_from_signin_response(response: Response) -> Result<String> {
 }
 
 /// Register a new user and return JWT on success.
-pub fn register(host: &str, email: &str, password: &str) -> Result<String> {
-    let credentials = Credentials {
+pub fn register(host: &str, email: &str, password: &str) -> Result<Credentials> {
+    let mut credentials = Credentials {
         identifier: email.to_string(),
         cost: 110000,
         nonce: make_nonce(),
@@ -92,15 +92,16 @@ pub fn register(host: &str, email: &str, password: &str) -> Result<String> {
         email: email.to_string(),
         password: encoded_pw,
         pw_cost: credentials.cost,
-        pw_nonce: credentials.nonce,
+        pw_nonce: credentials.nonce.clone(),
         version: "003".to_string(),
     };
 
     let url = format!("{}/auth", host);
     let client = reqwest::blocking::Client::new();
     let response = client.post(&url).json(&request).send()?;
+    credentials.token = Some(get_token_from_signin_response(response)?);
 
-    get_token_from_signin_response(response)
+    Ok(credentials)
 }
 
 /// Sign in and return JWT on success.
