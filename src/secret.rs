@@ -1,13 +1,14 @@
+use crate::standardfile::Credentials;
 use secret_service::{EncryptionType, SecretService};
 
 /// Store password for a given identifier.
-pub fn store(identifier: &str, password: &str) {
+pub fn store(params: &Credentials) {
     let service = SecretService::new(EncryptionType::Dh).unwrap();
     let collection = service.get_default_collection().unwrap();
-    let props = vec![("service", "standardnotes"), ("email", &identifier)];
+    let props = vec![("service", "standardnotes"), ("email", &params.identifier)];
 
     collection
-        .create_item("test_label", props, password.as_bytes(), true, "text/plain")
+        .create_item("test_label", props, params.password.as_bytes(), true, "text/plain")
         .unwrap();
 }
 

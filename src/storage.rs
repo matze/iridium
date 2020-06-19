@@ -50,14 +50,17 @@ impl Storage {
     }
 
     pub fn new_from_config(config: &Config) -> Result<Self> {
-        let password = secret::load(&config.identifier);
         let path = data_path_from_identifier(&config.identifier);
 
-        let crypto = Crypto::new(
-            &config.identifier,
-            config.cost,
-            &config.nonce,
-            &password)?;
+        let credentials = standardfile::Credentials {
+            identifier: config.identifier.clone(),
+            cost: config.cost,
+            nonce: config.nonce.clone(),
+            password: secret::load(&config.identifier),
+            token: None,
+        };
+
+        let crypto = Crypto::new(&credentials)?;
 
         let mut storage = Self {
             path: Some(path.clone()),
@@ -77,9 +80,9 @@ impl Storage {
         Ok(storage)
     }
 
-    pub fn reset(&mut self, identifier: &str, cost: u32, nonce: &str, password: &str) {
-        self.path = Some(data_path_from_identifier(identifier));
-        self.crypto = Some(Crypto::new(identifier, cost, nonce, password).unwrap());
+    pub fn reset(&mut self, credentials: &standardfile::Credentials) {
+        self.path = Some(data_path_from_identifier(&credentials.identifier));
+        self.crypto = Some(Crypto::new(&credentials).unwrap());
     }
 
     /// Decrypt item and add it to the storage.

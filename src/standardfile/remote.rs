@@ -1,5 +1,5 @@
 use super::crypto::{make_nonce, Crypto};
-use super::Item;
+use super::{Credentials, Item};
 use anyhow::{anyhow, Result};
 use reqwest::StatusCode;
 use reqwest::blocking::Response;
@@ -8,7 +8,7 @@ use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
 #[derive(Deserialize)]
-pub struct AuthParams {
+pub struct AuthParamsResponse {
     pub pw_cost: u32,
     pub pw_nonce: String,
     pub version: String,
@@ -53,12 +53,13 @@ struct SyncRequest {
     pub cursor_token: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct SyncResponse {
     pub retrieved_items: Vec<Item>,
     pub saved_items: Vec<Item>,
-    pub unsaved: Vec<Item>,
-    pub sync_token: String,
+    pub unsaved: Option<Vec<Item>>,
+    pub sync_token: Option<String>,
+    pub cursor_token: Option<String>,
 }
 
 fn get_token_from_signin_response(response: Response) -> Result<String> {
@@ -76,16 +77,22 @@ fn get_token_from_signin_response(response: Response) -> Result<String> {
 
 /// Register a new user and return JWT on success.
 pub fn register(host: &str, email: &str, password: &str) -> Result<String> {
-    let nonce = make_nonce();
-    let cost = 110000;
-    let crypto = Crypto::new(email, cost, &nonce, password)?;
+    let credentials = Credentials {
+        identifier: email.to_string(),
+        cost: 110000,
+        nonce: make_nonce(),
+        password: password.to_string(),
+        token: None,
+    };
+
+    let crypto = Crypto::new(&credentials)?;
     let encoded_pw = crypto.password();
 
     let request = RegistrationRequest {
         email: email.to_string(),
         password: encoded_pw,
-        pw_cost: cost,
-        pw_nonce: nonce,
+        pw_cost: credentials.cost,
+        pw_nonce: credentials.nonce,
         version: "003".to_string(),
     };
 
@@ -97,12 +104,21 @@ pub fn register(host: &str, email: &str, password: &str) -> Result<String> {
 }
 
 /// Sign in and return JWT on success.
-pub fn sign_in(host: &str, email: &str, password: &str) -> Result<String> {
+pub fn sign_in(host: &str, email: &str, password: &str) -> Result<Credentials> {
     let client = reqwest::blocking::Client::new();
 
     let url = format!("{}/auth/params?email={}", host, email);
-    let response = client.get(&url).send()?.json::<AuthParams>()?;
-    let crypto = Crypto::new(email, response.pw_cost, &response.pw_nonce, password)?;
+    let response = client.get(&url).send()?.json::<AuthParamsResponse>()?;
+
+    let mut credentials = Credentials {
+        identifier: email.to_string(),
+        cost: response.pw_cost,
+        nonce: response.pw_nonce,
+        password: password.to_string(),
+        token: None,
+    };
+
+    let crypto = Crypto::new(&credentials)?;
     let encoded_pw = crypto.password();
 
     let request = SignInRequest {
@@ -112,11 +128,12 @@ pub fn sign_in(host: &str, email: &str, password: &str) -> Result<String> {
 
     let url = format!("{}/auth/sign_in", host);
     let response = client.post(&url).json(&request).send()?;
+    credentials.token = Some(get_token_from_signin_response(response)?);
 
-    get_token_from_signin_response(response)
+    Ok(credentials)
 }
 
-pub fn sync(host: &str, token: &str) -> Result<()> {
+pub fn sync(host: &str, token: &str) -> Result<Vec<Item>> {
     let client = reqwest::blocking::Client::new();
 
     let url = format!("{}/items/sync", host);
@@ -137,5 +154,5 @@ pub fn sync(host: &str, token: &str) -> Result<()> {
         .send()?
         .json::<SyncResponse>()?;
 
-    Ok(())
+    Ok(response.retrieved_items)
 }

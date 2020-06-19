@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 pub mod crypto;
 pub mod remote;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Item {
     pub uuid: Uuid,
     pub content: String,
@@ -26,7 +26,7 @@ pub struct ExportedAuthParams {
 #[derive(Deserialize)]
 pub struct Exported {
     pub auth_params: ExportedAuthParams,
-    items: Vec<Item>,
+    pub items: Vec<Item>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -35,12 +35,20 @@ pub struct Note {
     pub text: String,
 }
 
-impl Exported {
-    pub fn encrypted_notes(&self) -> Vec<&Item> {
-        self
-            .items
-            .iter()
-            .filter(|x| x.content_type == "Note")
-            .collect::<Vec<&Item>>()
-    }
+/// Authentication parameters constructed locally, from a remote server or an imported file and
+/// passed to construct the crypto used in the storage.
+pub struct Credentials {
+    pub identifier: String,
+    pub cost: u32,
+    pub nonce: String,
+    pub token: Option<String>,
+    pub password: String,
+}
+
+/// Retrieve all items of content_type Note.
+pub fn encrypted_notes(items: &Vec<Item>) -> Vec<&Item> {
+    items
+    .iter()
+    .filter(|x| x.content_type == "Note")
+    .collect::<Vec<&Item>>()
 }

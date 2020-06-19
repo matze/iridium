@@ -1,4 +1,5 @@
 use anyhow::Result;
+use crate::standardfile::Credentials;
 use directories::BaseDirs;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -23,11 +24,11 @@ fn get_path() -> PathBuf {
 }
 
 impl Config {
-    pub fn new(identifier: &str, cost: u32, nonce: &str) -> Config {
+    pub fn new(credentials: &Credentials) -> Config {
         Self {
-            identifier: identifier.to_string(),
-            nonce: nonce.to_string(),
-            cost: cost,
+            identifier: credentials.identifier.clone(),
+            nonce: credentials.nonce.clone(),
+            cost: credentials.cost,
         }
     }
 

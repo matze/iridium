@@ -78,9 +78,9 @@ pub fn make_nonce() -> String {
 }
 
 impl Crypto {
-    pub fn new(identifier: &str, cost: u32, nonce: &str, password: &str) -> Result<Self> {
-        let cost = std::num::NonZeroU32::new(cost).unwrap();
-        let salt_input = std::format!("{}:SF:003:{}:{}", identifier, cost, nonce);
+    pub fn new(credentials: &standardfile::Credentials) -> Result<Self> {
+        let cost = std::num::NonZeroU32::new(credentials.cost).unwrap();
+        let salt_input = std::format!("{}:SF:003:{}:{}", credentials.identifier, credentials.cost, credentials.nonce);
         let salt = digest::digest(&digest::SHA256, salt_input.as_bytes());
         let hex_salt = HEXLOWER.encode(&salt.as_ref());
         let mut hashed = [0u8; 768 / 8];
@@ -89,7 +89,7 @@ impl Crypto {
             ring::pbkdf2::PBKDF2_HMAC_SHA512,
             cost,
             &hex_salt.as_bytes(),
-            password.as_bytes(),
+            credentials.password.as_bytes(),
             &mut hashed,
         );
 
@@ -182,7 +182,14 @@ mod tests {
         };
 
         let nonce = "3f8ea1ffd8067c1550ca3ad78de71c9b6e68b5cb540e370c12065eca15d9a049";
-        let crypto = Crypto::new("foo@bar.com", 110000, nonce, "secret").unwrap();
+        let credentials = standardfile::Credentials {
+            identifier: "foo@bar.com".to_string(),
+            cost: 110000,
+            nonce: nonce.to_string(),
+            password: "secret".to_string(),
+            token: None,
+        };
+        let crypto = Crypto::new(&credentials).unwrap();
         let encrypted = crypto.encrypt(&note, &uuid).unwrap();
 
         match crypto.decrypt(&encrypted).unwrap() {

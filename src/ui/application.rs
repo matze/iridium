@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use crate::config::{APP_ID, APP_VERSION, Config};
 use crate::secret;
 use crate::storage::Storage;
-use crate::standardfile::{crypto, remote, Exported};
+use crate::standardfile::{crypto, remote, Exported, Credentials, encrypted_notes};
 use crate::ui::state::{AppEvent, WindowEvent};
 use crate::ui::window::Window;
 use uuid::Uuid;
@@ -140,15 +140,20 @@ impl Application {
             clone!(@strong sender as app_sender, @strong window.sender as sender => move |event| {
                 match event {
                     AppEvent::CreateStorage(user) => {
-                        let nonce = crypto::make_nonce();
-                        let cost = 110000;
+                        let credentials = Credentials {
+                            identifier: user.identifier,
+                            cost: 110000,
+                            nonce: crypto::make_nonce(),
+                            password: user.password,
+                            token: None,
+                        };
 
-                        storage.reset(&user.identifier, cost, &nonce, &user.password);
+                        storage.reset(&credentials);
 
-                        let config = Config::new(&user.identifier, cost, &nonce);
+                        let config = Config::new(&credentials);
                         config.write().unwrap();
 
-                        secret::store(&user.identifier, &user.password);
+                        secret::store(&credentials);
                     }
                     AppEvent::Register(auth) => {
                         let token = remote::register(&auth.server, &auth.user.identifier, &auth.user.password);
@@ -164,11 +169,25 @@ impl Application {
                         }
                     }
                     AppEvent::SignIn(auth) => {
-                        let token = remote::sign_in(&auth.server, &auth.user.identifier, &auth.user.password);
+                        let credentials = remote::sign_in(&auth.server, &auth.user.identifier, &auth.user.password);
 
-                        match token {
-                            Ok(token) => {
-                                println!("token={}", token);
+                        match credentials {
+                            Ok(credentials) => {
+                                let token = credentials.token.clone();
+                                let items = remote::sync(&auth.server, &token.unwrap()).unwrap();
+                                storage.reset(&credentials);
+
+                                for item in items {
+                                    if item.content_type == "Note" {
+                                        if let Some(uuid) = storage.decrypt(&item) {
+                                            storage.flush(&uuid).unwrap();
+
+                                            if let Some(note) = storage.notes.get(&uuid) {
+                                                sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             Err(message) => {
                                 let message = format!("Login failed: {}.", message);
@@ -181,12 +200,20 @@ impl Application {
 
                         if let Ok(contents) = std::fs::read_to_string(&path) {
                             if let Ok(exported) = serde_json::from_str::<Exported>(&contents) {
-                                let params = &exported.auth_params;
-                                storage.reset(&params.identifier, params.pw_cost, &params.pw_nonce, &password);
-                                let config = Config::new(&params.identifier, params.pw_cost, &params.pw_nonce);
+                                let credentials = Credentials {
+                                    identifier: exported.auth_params.identifier,
+                                    cost: exported.auth_params.pw_cost,
+                                    nonce: exported.auth_params.pw_nonce,
+                                    password: password,
+                                    token: None,
+                                };
+
+                                storage.reset(&credentials);
+
+                                let config = Config::new(&credentials);
                                 config.write().unwrap();
 
-                                for note in exported.encrypted_notes() {
+                                for note in encrypted_notes(&exported.items) {
                                     if let Some(uuid) = storage.decrypt(note) {
                                         storage.flush(&uuid).unwrap();
 
