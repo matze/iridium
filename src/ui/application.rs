@@ -151,8 +151,17 @@ impl Application {
                         secret::store(&identifier, &password);
                     }
                     AppEvent::Register(server, identifier, password) => {
-                        let token = remote::register(&server, &identifier, &password).unwrap();
-                        println!("token={}", token);
+                        let token = remote::register(&server, &identifier, &password);
+
+                        match token {
+                            Ok(token) => {
+                                println!("token={}", token);
+                            }
+                            Err(message) => {
+                                let message = format!("Registration failed: {}.", message);
+                                sender.send(WindowEvent::ShowNotification(message)).unwrap();
+                            }
+                        }
                     }
                     AppEvent::Import(path, password) => {
                         let filename = path.file_name().unwrap().to_string_lossy();

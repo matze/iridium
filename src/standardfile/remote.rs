@@ -1,9 +1,10 @@
 use super::crypto::{make_nonce, Crypto};
 use super::{
-    RemoteAuthParams, RemoteRegistrationRequest, RemoteRegistrationResponse, RemoteSignInResponse,
+    RemoteAuthParams, RemoteErrorResponse, RemoteRegistrationRequest, RemoteRegistrationResponse, RemoteSignInResponse,
     RemoteSyncRequest, RemoteSyncResponse,
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use reqwest::StatusCode;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use std::collections::HashMap;
 
@@ -28,10 +29,18 @@ pub fn register(host: &str, email: &str, password: &str) -> Result<String> {
     let response = client
         .post(&url)
         .json(&request)
-        .send()?
-        .json::<RemoteRegistrationResponse>()?;
+        .send()?;
 
-    Ok(response.token)
+    match response.status() {
+        StatusCode::OK => {
+            let response = response.json::<RemoteRegistrationResponse>()?;
+            Ok(response.token)
+        }
+        _ => {
+            let response = response.json::<RemoteErrorResponse>()?;
+            Err(anyhow!("{}", response.errors[0]))
+        }
+    }
 }
 
 /// Sign in and return JWT on success.

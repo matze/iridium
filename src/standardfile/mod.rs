@@ -44,6 +44,11 @@ struct RemoteRegistrationResponse {
 }
 
 #[derive(Deserialize)]
+struct RemoteErrorResponse {
+    pub errors: Vec<String>,
+}
+
+#[derive(Deserialize)]
 struct RemoteSignInResponse {
     pub user: RemoteUser,
     pub token: String,
