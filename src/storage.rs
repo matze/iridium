@@ -68,16 +68,18 @@ impl Storage {
             crypto: Some(crypto),
         };
 
-        for entry in read_dir(&path)? {
-            let file_path = entry?.path();
-            let uuid = Uuid::parse_str(file_path.file_name().unwrap().to_string_lossy().as_ref())?;
-            let contents = read_to_string(file_path)?;
-            let encrypted_item = serde_json::from_str::<standardfile::Item>(&contents)?;
-            assert_eq!(uuid, encrypted_item.uuid);
-            storage.decrypt(&encrypted_item);
-        }
+        if path.exists() {
+            for entry in read_dir(&path)? {
+                let file_path = entry?.path();
+                let uuid = Uuid::parse_str(file_path.file_name().unwrap().to_string_lossy().as_ref())?;
+                let contents = read_to_string(file_path)?;
+                let encrypted_item = serde_json::from_str::<standardfile::Item>(&contents)?;
+                assert_eq!(uuid, encrypted_item.uuid);
+                storage.decrypt(&encrypted_item);
+            }
 
-        storage.read_from_disk(&path)?;
+            storage.read_from_disk(&path)?;
+        }
         Ok(storage)
     }
 

@@ -27,6 +27,7 @@ impl Application {
         let mut storage = match config {
             Some(config) => {
                 window.sender.send(WindowEvent::ShowMainContent).unwrap();
+
                 Storage::new_from_config(&config)?
             }
             None => { Storage::new() },
