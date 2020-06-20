@@ -153,7 +153,7 @@ impl Application {
                         let config = Config::new(&credentials);
                         config.write().unwrap();
 
-                        secret::store(&credentials);
+                        secret::store(&credentials, None);
                     }
                     AppEvent::Register(auth) => {
                         let credentials = remote::register(&auth.server, &auth.user.identifier, &auth.user.password);
@@ -165,6 +165,7 @@ impl Application {
                                 let config = Config::new(&credentials);
                                 config.write().unwrap();
 
+                                secret::store(&credentials, Some(&auth.server));
                                 sender.send(WindowEvent::ShowMainContent).unwrap();
                             }
                             Err(message) => {
@@ -203,6 +204,7 @@ impl Application {
                                     }
                                 }
 
+                                secret::store(&credentials, Some(&auth.server));
                                 sender.send(WindowEvent::ShowMainContent).unwrap();
                             }
                             Err(message) => {

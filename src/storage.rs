@@ -56,7 +56,7 @@ impl Storage {
             identifier: config.identifier.clone(),
             cost: config.cost,
             nonce: config.nonce.clone(),
-            password: secret::load(&config.identifier),
+            password: secret::load(&config.identifier, None)?,
             token: None,
         };
 
