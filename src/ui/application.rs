@@ -28,7 +28,7 @@ impl Application {
             Some(config) => {
                 window.sender.send(WindowEvent::ShowMainContent).unwrap();
                 Storage::new_from_config(&config)?
-            },
+            }
             None => { Storage::new() },
         };
 
@@ -108,7 +108,7 @@ impl Application {
                                 sender.send(AppEvent::Import(filename, password.as_str().to_string())).unwrap();
                             }
                         }
-                    },
+                    }
                     _ => {}
                 }
 
@@ -263,17 +263,17 @@ impl Application {
                             let message = format!("{} does not contain UTF-8 data.", filename);
                             sender.send(WindowEvent::ShowNotification(message)).unwrap();
                         }
-                    },
+                    }
                     AppEvent::AddNote => {
                         let uuid = storage.create_note();
                         let note = storage.notes.get(&uuid).unwrap();
                         sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
-                    },
+                    }
                     AppEvent::SelectNote(uuid) => {
                         if let Some(item) = storage.notes.get(&uuid) {
                             window.load_note(&item.title, &item.text);
                         }
-                    },
+                    }
                     AppEvent::Update(uuid, title, text) => {
                         if let Some(title) = title {
                             storage.update_title(&uuid, &title);

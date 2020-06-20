@@ -196,7 +196,7 @@ mod tests {
             storage::Decrypted::Note(decrypted) => {
                 assert_eq!(decrypted.title.unwrap(), note.title);
                 assert_eq!(decrypted.text, note.text);
-            },
+            }
             storage::Decrypted::None => {
                 assert!(false);
             }

@@ -171,7 +171,7 @@ impl Window {
                         title_entry.grab_focus();
                         row_map.insert(row, (uuid, label));
                         current_uuid = Some(uuid);
-                    },
+                    }
                     WindowEvent::SelectNote(row) => {
                         if let Some(binding) = &current_binding {
                             binding.unbind();
@@ -182,26 +182,26 @@ impl Window {
                             current_binding = Some(title_entry.bind_property("text", label, "label").build().unwrap());
                             current_uuid = Some(*uuid);
                         }
-                    },
+                    }
                     WindowEvent::UpdateFilter(text) => {
                         match text {
                             Some(_) => {
                                 note_list_box.set_filter_func(Some(Box::new(|_| -> bool {
                                     true
                                 })));
-                            },
+                            }
                             None => {
                                 note_list_box.set_filter_func(None);
                             }
                         }
-                    },
+                    }
                     WindowEvent::UpdateTitle => {
                         if let Some(uuid) = current_uuid {
                             let title = title_entry.get_text().unwrap();
                             let title = title.as_str().to_string();
                             app_sender.send(AppEvent::Update(uuid, Some(title), None)).unwrap();
                         }
-                    },
+                    }
                     WindowEvent::UpdateText => {
                         if let Some(uuid) = current_uuid {
                             let start = text_buffer.get_start_iter();
@@ -210,10 +210,10 @@ impl Window {
                             let text = text.as_str().to_string();
                             app_sender.send(AppEvent::Update(uuid, None, Some(text))).unwrap();
                         }
-                    },
+                    }
                     WindowEvent::ToggleSearchBar => {
                         search_bar.set_search_mode(!search_bar.get_search_mode());
-                    },
+                    }
                     WindowEvent::ShowNotification(message) => {
                         let revealer = builder.get_object::<gtk::Revealer>("iridium-notification-revealer").unwrap();
                         let label = builder.get_object::<gtk::Label>("iridium-notification-label").unwrap();
@@ -225,7 +225,7 @@ impl Window {
                         close_button.connect_clicked(move |_| {
                             revealer.set_reveal_child(false);
                         });
-                    },
+                    }
                 }
 
                 glib::Continue(true)
