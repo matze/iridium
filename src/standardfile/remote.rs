@@ -134,7 +134,7 @@ pub fn sign_in(host: &str, email: &str, password: &str) -> Result<Credentials> {
     Ok(credentials)
 }
 
-pub fn sync(host: &str, token: &str) -> Result<Vec<Item>> {
+pub fn sync(host: &str, items: Vec<Item>, token: &str) -> Result<Vec<Item>> {
     let client = reqwest::blocking::Client::new();
 
     let url = format!("{}/items/sync", host);
@@ -142,7 +142,7 @@ pub fn sync(host: &str, token: &str) -> Result<Vec<Item>> {
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
     let sync_request = SyncRequest {
-        items: vec![],
+        items: items,
         sync_token: None,
         cursor_token: None,
     };

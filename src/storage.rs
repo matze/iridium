@@ -107,6 +107,18 @@ impl Storage {
         }
     }
 
+    /// Encrypt an item and return it.
+    pub fn encrypt(&self, uuid: &Uuid) -> Result<standardfile::Item> {
+        let note = self.notes.get(&uuid);
+
+        assert!(note.is_some());
+        assert!(self.crypto.is_some());
+
+        let note = note.unwrap();
+        let crypto = self.crypto.as_ref().unwrap();
+        Ok(crypto.encrypt(&note, &uuid)?)
+    }
+
     /// Encrypts item and writes it to disk.
     pub fn flush(&self, uuid: &Uuid) -> Result<()> {
         if let Some(item) = self.notes.get(uuid) {

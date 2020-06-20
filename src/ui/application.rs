@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use crate::config::{APP_ID, APP_VERSION, Config};
 use crate::secret;
 use crate::storage::Storage;
-use crate::standardfile::{crypto, remote, Exported, Credentials, encrypted_notes};
+use crate::standardfile::{crypto, remote, Item, Exported, Credentials, encrypted_notes};
 use crate::ui::state::{AppEvent, WindowEvent};
 use crate::ui::window::Window;
 use uuid::Uuid;
@@ -192,14 +192,20 @@ impl Application {
 
                         match credentials {
                             Ok(credentials) => {
+                                // Switch storage and read local files.
+                                storage.reset(&credentials);
+
+                                let mut unsynced_items: Vec<Item> = Vec::new();
+
+                                for (uuid, _) in &storage.notes {
+                                    unsynced_items.push(storage.encrypt(&uuid).unwrap());
+                                }
+
                                 let token = credentials.token.clone();
-                                let items = remote::sync(&auth.server, &token.unwrap()).unwrap();
+                                let items = remote::sync(&auth.server, unsynced_items, &token.unwrap()).unwrap();
 
                                 let config = Config::new(&credentials);
                                 config.write().unwrap();
-
-                                // Read local files first
-                                storage.reset(&credentials);
 
                                 for (uuid, note) in &storage.notes {
                                     sender.send(WindowEvent::AddNote(uuid.clone(), note.title.clone())).unwrap();
