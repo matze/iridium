@@ -77,12 +77,15 @@ impl Storage {
             storage.decrypt(&encrypted_item);
         }
 
+        storage.read_from_disk(&path)?;
         Ok(storage)
     }
 
     pub fn reset(&mut self, credentials: &standardfile::Credentials) {
-        self.path = Some(data_path_from_identifier(&credentials.identifier));
+        let path = data_path_from_identifier(&credentials.identifier);
+        self.path = Some(path.clone());
         self.crypto = Some(Crypto::new(&credentials).unwrap());
+        self.read_from_disk(&path).unwrap();
     }
 
     /// Decrypt item and add it to the storage.
@@ -159,5 +162,22 @@ impl Storage {
         }
 
         // Returning an error?
+    }
+
+    fn read_from_disk(&mut self, path: &PathBuf) -> Result<()> {
+        if !path.exists() {
+            return Ok(())
+        }
+
+        for entry in read_dir(&path)? {
+            let file_path = entry?.path();
+            let uuid = Uuid::parse_str(file_path.file_name().unwrap().to_string_lossy().as_ref())?;
+            let contents = read_to_string(file_path)?;
+            let encrypted_item = serde_json::from_str::<standardfile::Item>(&contents)?;
+            assert_eq!(uuid, encrypted_item.uuid);
+            self.decrypt(&encrypted_item);
+        }
+
+        Ok(())
     }
 }

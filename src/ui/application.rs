@@ -184,7 +184,12 @@ impl Application {
                                 let config = Config::new(&credentials);
                                 config.write().unwrap();
 
+                                // Read local files first
                                 storage.reset(&credentials);
+
+                                for (uuid, note) in &storage.notes {
+                                    sender.send(WindowEvent::AddNote(uuid.clone(), note.title.clone())).unwrap();
+                                }
 
                                 for item in items {
                                     if item.content_type == "Note" {
