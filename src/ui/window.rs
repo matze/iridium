@@ -35,6 +35,23 @@ fn get_auth_details(builder: &gtk::Builder) -> RemoteAuth {
     }
 }
 
+fn new_note_row(title: &str) -> (gtk::ListBoxRow, gtk::Label) {
+    let label = gtk::Label::new(None);
+    label.set_halign(gtk::Align::Start);
+    label.set_margin_start(9);
+    label.set_margin_end(9);
+    label.set_margin_top(9);
+    label.set_margin_bottom(9);
+    label.set_widget_name("iridium-note-row-label");
+    label.set_text(&title);
+
+    let row_widget = gtk::ListBoxRow::new();
+    row_widget.add(&label);
+    row_widget.set_widget_name("iridium-note-row");
+    row_widget.show_all();
+    (row_widget, label)
+}
+
 impl Window {
     pub fn new(app_sender: glib::Sender<AppEvent>) -> Self {
         let builder =
@@ -147,24 +164,12 @@ impl Window {
                         stack.set_visible_child(&main_box);
                     }
                     WindowEvent::AddNote(uuid, title) => {
-                        let label = gtk::Label::new(None);
-                        label.set_halign(gtk::Align::Start);
-                        label.set_margin_start(9);
-                        label.set_margin_end(9);
-                        label.set_margin_top(9);
-                        label.set_margin_bottom(9);
-                        label.set_widget_name("iridium-note-row-label");
-                        label.set_text(&title);
+                        let (row, label) = new_note_row(&title);
+                        note_list_box.add(&row);
 
-                        let row_widget = gtk::ListBoxRow::new();
-                        row_widget.add(&label);
-                        row_widget.set_widget_name("iridium-note-row");
-                        row_widget.show_all();
-                        note_list_box.add(&row_widget);
-
-                        note_list_box.select_row(Some(&row_widget));
+                        note_list_box.select_row(Some(&row));
                         title_entry.grab_focus();
-                        row_map.insert(row_widget, (uuid, label));
+                        row_map.insert(row, (uuid, label));
                         current_uuid = Some(uuid);
                     },
                     WindowEvent::SelectNote(row) => {
