@@ -44,9 +44,15 @@ impl Application {
             })
         );
 
+        window.widget.connect_destroy(
+            clone!(@strong sender as sender => move |_| {
+                sender.send(AppEvent::Quit).unwrap();
+            })
+        );
+
         action!(app, "quit",
-            clone!(@strong app => move |_, _| {
-                app.quit();
+            clone!(@strong sender as sender => move |_, _| {
+                sender.send(AppEvent::Quit).unwrap();
             })
         );
 
@@ -137,8 +143,15 @@ impl Application {
         let mut to_flush: HashSet<Uuid> = HashSet::new();
 
         receiver.attach(None,
-            clone!(@strong sender as app_sender, @strong window.sender as sender => move |event| {
+            clone!(@strong sender as app_sender, @strong window.sender as sender, @strong app => move |event| {
                 match event {
+                    AppEvent::Quit => {
+                        for uuid in &to_flush {
+                            storage.flush(&uuid).unwrap();
+                        }
+
+                        app.quit();
+                    }
                     AppEvent::CreateStorage(user) => {
                         let credentials = Credentials {
                             identifier: user.identifier,

@@ -21,6 +21,7 @@ pub enum AppEvent {
     Update(Uuid, Option<String>, Option<String>),
     CreateStorage(User),
     Flush(Uuid),
+    Quit,
 }
 
 pub enum WindowEvent {
