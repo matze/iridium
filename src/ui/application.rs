@@ -190,6 +190,7 @@ impl Application {
                             Err(message) => {
                                 let message = format!("Registration failed: {}.", message);
                                 sender.send(WindowEvent::ShowNotification(message)).unwrap();
+                                client = None;
                             }
                         };
                     }
@@ -210,39 +211,45 @@ impl Application {
                                     sender.send(WindowEvent::AddNote(uuid.clone(), note.title.clone())).unwrap();
                                 }
 
-                                // Find all items we haven't synced yet. For now pretend we have
-                                // never synced an item.
-                                let mut unsynced_items: Vec<Item> = Vec::new();
-
-                                for (uuid, _) in &storage.notes {
-                                    unsynced_items.push(storage.encrypt(&uuid).unwrap());
-                                }
-
-                                // Decrypt, flush and show notes we have retrieved from the initial
-                                // sync.
-                                let items = new_client.sync(unsynced_items).unwrap();
-
-                                for item in items {
-                                    if item.content_type == "Note" {
-                                        if let Some(uuid) = storage.decrypt(&item) {
-                                            storage.flush(&uuid).unwrap();
-
-                                            if let Some(note) = storage.notes.get(&uuid) {
-                                                sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
-                                            }
-                                        }
-                                    }
-                                }
-
                                 // Store the encryption password and auth token in the keyring.
                                 secret::store_password(&credentials, Some(&auth.server));
                                 secret::store_token(&credentials, &new_client.auth_token, &auth.server);
 
                                 sender.send(WindowEvent::ShowMainContent).unwrap();
+
+                                // Replace the shared client.
+                                client = Some(new_client);
                             }
                             Err(message) => {
                                 let message = format!("Login failed: {}.", message);
                                 sender.send(WindowEvent::ShowNotification(message)).unwrap();
+                                client = None;
+                            }
+                        }
+
+                        if let Some(client) = &mut client {
+                            // Find all items we haven't synced yet. For now pretend we have
+                            // never synced an item.
+                            let mut unsynced_items: Vec<Item> = Vec::new();
+
+                            for (uuid, _) in &storage.notes {
+                                unsynced_items.push(storage.encrypt(&uuid).unwrap());
+                            }
+
+                            // Decrypt, flush and show notes we have retrieved from the initial
+                            // sync.
+                            let items = client.sync(unsynced_items).unwrap();
+
+                            for item in items {
+                                if item.content_type == "Note" {
+                                    if let Some(uuid) = storage.decrypt(&item) {
+                                        storage.flush(&uuid).unwrap();
+
+                                        if let Some(note) = storage.notes.get(&uuid) {
+                                            sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

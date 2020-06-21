@@ -68,6 +68,7 @@ pub struct Client {
     pub crypto: Crypto,
     client: reqwest::blocking::Client,
     pub auth_token: String,
+    sync_token: Option<String>,
 }
 
 fn get_token_from_signin_response(response: Response) -> Result<String> {
@@ -114,6 +115,7 @@ impl Client {
             crypto: crypto,
             client: client,
             auth_token: get_token_from_signin_response(response)?,
+            sync_token: None,
         })
     }
 
@@ -148,17 +150,18 @@ impl Client {
             crypto: crypto,
             client: client,
             auth_token: get_token_from_signin_response(response)?,
+            sync_token: None,
         })
     }
 
-    pub fn sync(&self, items: Vec<Item>) -> Result<Vec<Item>> {
+    pub fn sync(&mut self, items: Vec<Item>) -> Result<Vec<Item>> {
         let url = format!("{}/items/sync", &self.host);
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
         let sync_request = SyncRequest {
             items: items,
-            sync_token: None,
+            sync_token: self.sync_token.clone(),
             cursor_token: None,
         };
 
@@ -170,6 +173,7 @@ impl Client {
             .send()?
             .json::<SyncResponse>()?;
 
+        self.sync_token = response.sync_token;
         Ok(response.retrieved_items)
     }
 }
