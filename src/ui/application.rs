@@ -160,7 +160,6 @@ impl Application {
                             cost: 110000,
                             nonce: crypto::make_nonce(),
                             password: user.password,
-                            token: None,
                         };
 
                         storage.reset(&credentials);
@@ -257,7 +256,6 @@ impl Application {
                                     cost: exported.auth_params.pw_cost,
                                     nonce: exported.auth_params.pw_nonce,
                                     password: password,
-                                    token: None,
                                 };
 
                                 storage.reset(&credentials);

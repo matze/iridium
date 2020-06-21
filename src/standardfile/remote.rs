@@ -86,12 +86,11 @@ fn get_token_from_signin_response(response: Response) -> Result<String> {
 impl Client {
     /// Create client by registering a new user
     pub fn new_register(host: &str, email: &str, password: &str) -> Result<Client> {
-        let mut credentials = Credentials {
+        let credentials = Credentials {
             identifier: email.to_string(),
             cost: 110000,
             nonce: make_nonce(),
             password: password.to_string(),
-            token: None,
         };
 
         let crypto = Crypto::new(&credentials)?;
@@ -108,15 +107,13 @@ impl Client {
         let url = format!("{}/auth", host);
         let client = reqwest::blocking::Client::new();
         let response = client.post(&url).json(&request).send()?;
-        let token = get_token_from_signin_response(response)?;
-        credentials.token = Some(token.clone());
 
         Ok(Self {
             host: host.to_string(),
             credentials: credentials,
             crypto: crypto,
             client: client,
-            auth_token: token,
+            auth_token: get_token_from_signin_response(response)?,
         })
     }
 
@@ -127,12 +124,11 @@ impl Client {
         let url = format!("{}/auth/params?email={}", host, email);
         let response = client.get(&url).send()?.json::<AuthParamsResponse>()?;
 
-        let mut credentials = Credentials {
+        let credentials = Credentials {
             identifier: email.to_string(),
             cost: response.pw_cost,
             nonce: response.pw_nonce,
             password: password.to_string(),
-            token: None,
         };
 
         let crypto = Crypto::new(&credentials)?;
@@ -145,15 +141,13 @@ impl Client {
 
         let url = format!("{}/auth/sign_in", host);
         let response = client.post(&url).json(&request).send()?;
-        let token = get_token_from_signin_response(response)?;
-        credentials.token = Some(token.clone());
 
         Ok(Self {
             host: host.to_string(),
             credentials: credentials,
             crypto: crypto,
             client: client,
-            auth_token: token,
+            auth_token: get_token_from_signin_response(response)?,
         })
     }
 

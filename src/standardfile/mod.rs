@@ -41,7 +41,6 @@ pub struct Credentials {
     pub identifier: String,
     pub cost: u32,
     pub nonce: String,
-    pub token: Option<String>,
     pub password: String,
 }
 

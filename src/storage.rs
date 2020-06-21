@@ -57,7 +57,6 @@ impl Storage {
             cost: config.cost,
             nonce: config.nonce.clone(),
             password: secret::load(&config.identifier, None)?,
-            token: None,
         };
 
         let crypto = Crypto::new(&credentials)?;
