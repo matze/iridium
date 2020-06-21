@@ -13,6 +13,7 @@ pub struct Config {
     pub identifier: String,
     pub nonce: String,
     pub cost: u32,
+    pub server: Option<String>,
 }
 
 fn get_path() -> PathBuf {
@@ -29,6 +30,7 @@ impl Config {
             identifier: credentials.identifier.clone(),
             nonce: credentials.nonce.clone(),
             cost: credentials.cost,
+            server: None,
         }
     }
 

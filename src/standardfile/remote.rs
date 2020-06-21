@@ -62,6 +62,14 @@ struct SyncResponse {
     pub cursor_token: Option<String>,
 }
 
+pub struct Client {
+    host: String,
+    pub credentials: Credentials,
+    pub crypto: Crypto,
+    client: reqwest::blocking::Client,
+    auth_token: String,
+}
+
 fn get_token_from_signin_response(response: Response) -> Result<String> {
     match response.status() {
         StatusCode::OK => {
@@ -75,85 +83,99 @@ fn get_token_from_signin_response(response: Response) -> Result<String> {
     }
 }
 
-/// Register a new user and return JWT on success.
-pub fn register(host: &str, email: &str, password: &str) -> Result<Credentials> {
-    let mut credentials = Credentials {
-        identifier: email.to_string(),
-        cost: 110000,
-        nonce: make_nonce(),
-        password: password.to_string(),
-        token: None,
-    };
+impl Client {
+    /// Create client by registering a new user
+    pub fn new_register(host: &str, email: &str, password: &str) -> Result<Client> {
+        let mut credentials = Credentials {
+            identifier: email.to_string(),
+            cost: 110000,
+            nonce: make_nonce(),
+            password: password.to_string(),
+            token: None,
+        };
 
-    let crypto = Crypto::new(&credentials)?;
-    let encoded_pw = crypto.password();
+        let crypto = Crypto::new(&credentials)?;
+        let encoded_pw = crypto.password();
 
-    let request = RegistrationRequest {
-        email: email.to_string(),
-        password: encoded_pw,
-        pw_cost: credentials.cost,
-        pw_nonce: credentials.nonce.clone(),
-        version: "003".to_string(),
-    };
+        let request = RegistrationRequest {
+            email: email.to_string(),
+            password: encoded_pw,
+            pw_cost: credentials.cost,
+            pw_nonce: credentials.nonce.clone(),
+            version: "003".to_string(),
+        };
 
-    let url = format!("{}/auth", host);
-    let client = reqwest::blocking::Client::new();
-    let response = client.post(&url).json(&request).send()?;
-    credentials.token = Some(get_token_from_signin_response(response)?);
+        let url = format!("{}/auth", host);
+        let client = reqwest::blocking::Client::new();
+        let response = client.post(&url).json(&request).send()?;
+        let token = get_token_from_signin_response(response)?;
+        credentials.token = Some(token.clone());
 
-    Ok(credentials)
-}
+        Ok(Self {
+            host: host.to_string(),
+            credentials: credentials,
+            crypto: crypto,
+            client: client,
+            auth_token: token,
+        })
+    }
 
-/// Sign in and return JWT on success.
-pub fn sign_in(host: &str, email: &str, password: &str) -> Result<Credentials> {
-    let client = reqwest::blocking::Client::new();
+    /// Create client by signing in.
+    pub fn new_sign_in(host: &str, email: &str, password: &str) -> Result<Client> {
+        let client = reqwest::blocking::Client::new();
 
-    let url = format!("{}/auth/params?email={}", host, email);
-    let response = client.get(&url).send()?.json::<AuthParamsResponse>()?;
+        let url = format!("{}/auth/params?email={}", host, email);
+        let response = client.get(&url).send()?.json::<AuthParamsResponse>()?;
 
-    let mut credentials = Credentials {
-        identifier: email.to_string(),
-        cost: response.pw_cost,
-        nonce: response.pw_nonce,
-        password: password.to_string(),
-        token: None,
-    };
+        let mut credentials = Credentials {
+            identifier: email.to_string(),
+            cost: response.pw_cost,
+            nonce: response.pw_nonce,
+            password: password.to_string(),
+            token: None,
+        };
 
-    let crypto = Crypto::new(&credentials)?;
-    let encoded_pw = crypto.password();
+        let crypto = Crypto::new(&credentials)?;
+        let encoded_pw = crypto.password();
 
-    let request = SignInRequest {
-        email: email.to_string(),
-        password: encoded_pw,
-    };
+        let request = SignInRequest {
+            email: email.to_string(),
+            password: encoded_pw,
+        };
 
-    let url = format!("{}/auth/sign_in", host);
-    let response = client.post(&url).json(&request).send()?;
-    credentials.token = Some(get_token_from_signin_response(response)?);
+        let url = format!("{}/auth/sign_in", host);
+        let response = client.post(&url).json(&request).send()?;
+        let token = get_token_from_signin_response(response)?;
+        credentials.token = Some(token.clone());
 
-    Ok(credentials)
-}
+        Ok(Self {
+            host: host.to_string(),
+            credentials: credentials,
+            crypto: crypto,
+            client: client,
+            auth_token: token,
+        })
+    }
 
-pub fn sync(host: &str, items: Vec<Item>, token: &str) -> Result<Vec<Item>> {
-    let client = reqwest::blocking::Client::new();
+    pub fn sync(&self, items: Vec<Item>) -> Result<Vec<Item>> {
+        let url = format!("{}/items/sync", &self.host);
+        let mut headers = HeaderMap::new();
+        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
-    let url = format!("{}/items/sync", host);
-    let mut headers = HeaderMap::new();
-    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+        let sync_request = SyncRequest {
+            items: items,
+            sync_token: None,
+            cursor_token: None,
+        };
 
-    let sync_request = SyncRequest {
-        items: items,
-        sync_token: None,
-        cursor_token: None,
-    };
+        let response = self.client
+            .post(&url)
+            .headers(headers)
+            .bearer_auth(&self.auth_token)
+            .body(serde_json::to_string(&sync_request)?)
+            .send()?
+            .json::<SyncResponse>()?;
 
-    let response = client
-        .post(&url)
-        .headers(headers)
-        .bearer_auth(token)
-        .body(serde_json::to_string(&sync_request)?)
-        .send()?
-        .json::<SyncResponse>()?;
-
-    Ok(response.retrieved_items)
+        Ok(response.retrieved_items)
+    }
 }

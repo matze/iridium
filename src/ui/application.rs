@@ -142,6 +142,7 @@ impl Application {
         app.set_accels_for_action("app.search", &["<primary>f"]);
 
         let mut to_flush: HashSet<Uuid> = HashSet::new();
+        let mut client: Option<remote::Client> = None;
 
         receiver.attach(None,
             clone!(@strong sender as app_sender, @strong window.sender as sender, @strong app => move |event| {
@@ -170,10 +171,11 @@ impl Application {
                         secret::store(&credentials, None);
                     }
                     AppEvent::Register(auth) => {
-                        let credentials = remote::register(&auth.server, &auth.user.identifier, &auth.user.password);
+                        let new_client = remote::Client::new_register(&auth.server, &auth.user.identifier, &auth.user.password);
 
-                        match credentials {
-                            Ok(credentials) => {
+                        match new_client {
+                            Ok(new_client) => {
+                                let credentials = &new_client.credentials;
                                 storage.reset(&credentials);
 
                                 let config = Config::new(&credentials);
@@ -181,29 +183,25 @@ impl Application {
 
                                 secret::store(&credentials, Some(&auth.server));
                                 sender.send(WindowEvent::ShowMainContent).unwrap();
+
+                                // Replace the shared client.
+                                client = Some(new_client);
                             }
                             Err(message) => {
                                 let message = format!("Registration failed: {}.", message);
                                 sender.send(WindowEvent::ShowNotification(message)).unwrap();
                             }
-                        }
+                        };
                     }
                     AppEvent::SignIn(auth) => {
-                        let credentials = remote::sign_in(&auth.server, &auth.user.identifier, &auth.user.password);
+                        let new_client = remote::Client::new_sign_in(&auth.server, &auth.user.identifier, &auth.user.password);
 
-                        match credentials {
-                            Ok(credentials) => {
-                                // Switch storage and read local files.
+                        match new_client {
+                            Ok(new_client) => {
+                                let credentials = &new_client.credentials;
+
+                                // Switch storage, read local files and show them in the UI.
                                 storage.reset(&credentials);
-
-                                let mut unsynced_items: Vec<Item> = Vec::new();
-
-                                for (uuid, _) in &storage.notes {
-                                    unsynced_items.push(storage.encrypt(&uuid).unwrap());
-                                }
-
-                                let token = credentials.token.clone();
-                                let items = remote::sync(&auth.server, unsynced_items, &token.unwrap()).unwrap();
 
                                 let config = Config::new(&credentials);
                                 config.write().unwrap();
@@ -211,6 +209,18 @@ impl Application {
                                 for (uuid, note) in &storage.notes {
                                     sender.send(WindowEvent::AddNote(uuid.clone(), note.title.clone())).unwrap();
                                 }
+
+                                // Find all items we haven't synced yet. For now pretend we have
+                                // never synced an item.
+                                let mut unsynced_items: Vec<Item> = Vec::new();
+
+                                for (uuid, _) in &storage.notes {
+                                    unsynced_items.push(storage.encrypt(&uuid).unwrap());
+                                }
+
+                                // Decrypt, flush and show notes we have retrieved from the initial
+                                // sync.
+                                let items = new_client.sync(unsynced_items).unwrap();
 
                                 for item in items {
                                     if item.content_type == "Note" {
@@ -224,7 +234,9 @@ impl Application {
                                     }
                                 }
 
+                                // Store the encryption password and auth token in the keyring.
                                 secret::store(&credentials, Some(&auth.server));
+
                                 sender.send(WindowEvent::ShowMainContent).unwrap();
                             }
                             Err(message) => {
