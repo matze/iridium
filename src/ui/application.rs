@@ -168,7 +168,7 @@ impl Application {
                         let config = Config::new(&credentials);
                         config.write().unwrap();
 
-                        secret::store(&credentials, None);
+                        secret::store_password(&credentials, None);
                     }
                     AppEvent::Register(auth) => {
                         let new_client = remote::Client::new_register(&auth.server, &auth.user.identifier, &auth.user.password);
@@ -181,7 +181,8 @@ impl Application {
                                 let config = Config::new(&credentials);
                                 config.write().unwrap();
 
-                                secret::store(&credentials, Some(&auth.server));
+                                secret::store_password(&credentials, Some(&auth.server));
+                                secret::store_token(&credentials, &new_client.auth_token, &auth.server);
                                 sender.send(WindowEvent::ShowMainContent).unwrap();
 
                                 // Replace the shared client.
@@ -235,7 +236,8 @@ impl Application {
                                 }
 
                                 // Store the encryption password and auth token in the keyring.
-                                secret::store(&credentials, Some(&auth.server));
+                                secret::store_password(&credentials, Some(&auth.server));
+                                secret::store_token(&credentials, &new_client.auth_token, &auth.server);
 
                                 sender.send(WindowEvent::ShowMainContent).unwrap();
                             }

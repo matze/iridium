@@ -67,7 +67,7 @@ pub struct Client {
     pub credentials: Credentials,
     pub crypto: Crypto,
     client: reqwest::blocking::Client,
-    auth_token: String,
+    pub auth_token: String,
 }
 
 fn get_token_from_signin_response(response: Response) -> Result<String> {
