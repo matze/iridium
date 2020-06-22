@@ -81,6 +81,8 @@ impl Window {
 
         let (win_sender, win_receiver) = glib::MainContext::channel::<WindowEvent>(glib::PRIORITY_DEFAULT);
 
+        // This auxiliary variable helps us break the binding between the title entry widget and
+        // the selected listbox row.
         let mut current_binding: Option<glib::Binding> = None;
         let mut current_uuid: Option<Uuid> = None;
         let mut known_uuids: HashSet<Uuid> = HashSet::new();
@@ -125,13 +127,13 @@ impl Window {
 
         search_entry.connect_search_changed(
             clone!(@weak search_entry, @strong win_sender => move |_| {
-                let text = search_entry.get_text().unwrap();
-
-                if text != "" {
-                    win_sender.send(WindowEvent::UpdateFilter(Some(text.as_str().to_string()))).unwrap();
-                }
-                else {
-                    win_sender.send(WindowEvent::UpdateFilter(None)).unwrap();
+                if let Some(text) = search_entry.get_text() {
+                    if text.len() > 2 {
+                        win_sender.send(WindowEvent::UpdateFilter(Some(text.as_str().to_string()))).unwrap();
+                    }
+                    else {
+                        win_sender.send(WindowEvent::UpdateFilter(None)).unwrap();
+                    }
                 }
             })
         );
@@ -188,14 +190,23 @@ impl Window {
                         }
                     }
                     WindowEvent::UpdateFilter(text) => {
-                        match text {
-                            Some(_) => {
-                                note_list_box.set_filter_func(Some(Box::new(|_| -> bool {
-                                    true
-                                })));
-                            }
-                            None => {
-                                note_list_box.set_filter_func(None);
+                        if let Some(text) = text {
+                            let count = row_map.len();
+                            let text = text.to_lowercase();
+
+                            for index in 0..count as i32 {
+                                let row = note_list_box.get_row_at_index(index).unwrap();
+
+                                if let Some((_, label)) = row_map.get(&row) {
+                                    let label_text = label.get_text().unwrap().to_string().to_lowercase();
+
+                                    if text.find(&label_text).is_some() {
+                                        row.show();
+                                    }
+                                    else {
+                                        row.hide();
+                                    }
+                                }
                             }
                         }
                     }
