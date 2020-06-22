@@ -67,7 +67,7 @@ pub struct Client {
     pub credentials: Credentials,
     pub crypto: Crypto,
     client: reqwest::blocking::Client,
-    pub auth_token: String,
+    auth_token: String,
     sync_token: Option<String>,
 }
 

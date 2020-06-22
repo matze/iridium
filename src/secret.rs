@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use secret_service::{EncryptionType, SecretService};
 
 /// Store password in the keyring.
-pub fn store_password(credentials: &Credentials, server: Option<&str>) {
+pub fn store(credentials: &Credentials, server: Option<&str>) {
     let service = SecretService::new(EncryptionType::Dh).unwrap();
     let collection = service.get_default_collection().unwrap();
     let mut props = vec![
@@ -21,28 +21,6 @@ pub fn store_password(credentials: &Credentials, server: Option<&str>) {
             &format!("Iridium password for {}", credentials.identifier),
             props,
             credentials.password.as_bytes(),
-            true,
-            "text/plain",
-        )
-        .unwrap();
-}
-
-/// Store token in the keyring.
-pub fn store_token(credentials: &Credentials, token: &str, server: &str) {
-    let service = SecretService::new(EncryptionType::Dh).unwrap();
-    let collection = service.get_default_collection().unwrap();
-    let props = vec![
-        ("service", "iridium"),
-        ("identifier", &credentials.identifier),
-        ("type", "token"),
-        ("server", server),
-    ];
-
-    collection
-        .create_item(
-            &format!("Iridium token for {}", credentials.identifier),
-            props,
-            token.as_bytes(),
             true,
             "text/plain",
         )
