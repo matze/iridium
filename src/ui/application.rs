@@ -321,6 +321,12 @@ impl Application {
                         }
                     }
                     AppEvent::Flush(uuid) => {
+                        if let Some(client) = &mut client {
+                            // Ideally we use this to store on the server and the local storage.
+                            let encrypted = storage.encrypt(&uuid).unwrap();
+                            client.sync(vec![encrypted]).unwrap();
+                        };
+
                         storage.flush(&uuid).unwrap();
                         to_flush.remove(&uuid);
                     }
