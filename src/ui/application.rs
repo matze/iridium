@@ -116,9 +116,11 @@ impl Application {
 
                         if let Some(filename) = file_chooser.get_filename() {
                             let password_entry = builder.get_object::<gtk::Entry>("import-password").unwrap();
+                            let server_entry = builder.get_object::<gtk::Entry>("import-server").unwrap();
+                            let server = server_entry.get_text().as_deref().unwrap().to_string();
 
                             if let Some(password) = password_entry.get_text() {
-                                sender.send(AppEvent::Import(filename, password.as_str().to_string())).unwrap();
+                                sender.send(AppEvent::Import(filename, password.as_str().to_string(), Some(server))).unwrap();
                             }
                         }
                     }
@@ -264,7 +266,7 @@ impl Application {
                             }
                         }
                     }
-                    AppEvent::Import(path, password) => {
+                    AppEvent::Import(path, password, server) => {
                         let filename = path.file_name().unwrap().to_string_lossy();
 
                         if let Ok(contents) = std::fs::read_to_string(&path) {
@@ -276,6 +278,7 @@ impl Application {
                                     password: password,
                                 };
 
+                                secret::store(&credentials, server.as_deref());
                                 storage.reset(&credentials);
 
                                 let config = Config::new(&credentials);

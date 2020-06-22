@@ -17,7 +17,7 @@ pub enum AppEvent {
     SelectNote(Uuid),
     Register(RemoteAuth),
     SignIn(RemoteAuth),
-    Import(PathBuf, String),
+    Import(PathBuf, String, Option<String>),
     Update(Uuid, Option<String>, Option<String>),
     CreateStorage(User),
     Flush(Uuid),
