@@ -187,7 +187,6 @@ mod tests {
             cost: 110000,
             nonce: nonce.to_string(),
             password: "secret".to_string(),
-            token: None,
         };
         let crypto = Crypto::new(&credentials).unwrap();
         let encrypted = crypto.encrypt(&note, &uuid).unwrap();
