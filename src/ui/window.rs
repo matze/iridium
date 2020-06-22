@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use crate::ui::state::{AppEvent, WindowEvent, User, RemoteAuth};
 use gio::prelude::*;
 use gtk::prelude::*;
@@ -83,6 +83,7 @@ impl Window {
 
         let mut current_binding: Option<glib::Binding> = None;
         let mut current_uuid: Option<Uuid> = None;
+        let mut known_uuids: HashSet<Uuid> = HashSet::new();
         let mut row_map: HashMap<gtk::ListBoxRow, (Uuid, gtk::Label)> = HashMap::new();
 
         search_bar.connect_entry(&search_entry);
@@ -164,13 +165,16 @@ impl Window {
                         stack.set_visible_child(&main_box);
                     }
                     WindowEvent::AddNote(uuid, title) => {
-                        let (row, label) = new_note_row(&title);
-                        note_list_box.add(&row);
+                        if !known_uuids.contains(&uuid) {
+                            let (row, label) = new_note_row(&title);
+                            note_list_box.add(&row);
 
-                        note_list_box.select_row(Some(&row));
-                        title_entry.grab_focus();
-                        row_map.insert(row, (uuid, label));
-                        current_uuid = Some(uuid);
+                            note_list_box.select_row(Some(&row));
+                            title_entry.grab_focus();
+                            row_map.insert(row, (uuid, label));
+                            current_uuid = Some(uuid);
+                            known_uuids.insert(uuid);
+                        }
                     }
                     WindowEvent::SelectNote(row) => {
                         if let Some(binding) = &current_binding {

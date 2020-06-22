@@ -7,7 +7,7 @@ use crate::config::{APP_ID, APP_VERSION, Config};
 use crate::secret;
 use crate::storage::Storage;
 use crate::standardfile::{crypto, remote, Item, Exported, Credentials, encrypted_notes};
-use crate::ui::state::{AppEvent, WindowEvent};
+use crate::ui::state::{User, RemoteAuth, AppEvent, WindowEvent};
 use crate::ui::window::Window;
 use uuid::Uuid;
 
@@ -26,6 +26,18 @@ impl Application {
 
         let mut storage = match config {
             Some(config) => {
+                let user = User {
+                    password: secret::load(&config.identifier, config.server.as_deref()).unwrap(),
+                    identifier: config.identifier.clone(),
+                };
+
+                if let Some(server) = &config.server {
+                    let auth = RemoteAuth {
+                        user: user,
+                        server: server.clone(),
+                    };
+                    sender.send(AppEvent::SignIn(auth)).unwrap();
+                }
                 window.sender.send(WindowEvent::ShowMainContent).unwrap();
 
                 Storage::new_from_config(&config)?
@@ -204,7 +216,8 @@ impl Application {
                                 // Switch storage, read local files and show them in the UI.
                                 storage.reset(&credentials);
 
-                                let config = Config::new(&credentials);
+                                let mut config = Config::new(&credentials);
+                                config.server = Some(auth.server.clone());
                                 config.write().unwrap();
 
                                 for (uuid, note) in &storage.notes {
