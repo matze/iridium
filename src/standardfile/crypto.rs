@@ -2,7 +2,7 @@ use super::{Item, Note};
 use crate::storage;
 use crate::standardfile;
 use aes::Aes256;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use block_modes::block_padding::Pkcs7;
 use block_modes::{BlockMode, Cbc};
 use data_encoding::{BASE64, HEXLOWER};
@@ -69,6 +69,19 @@ fn encrypt(s: &str, ek: &Key, ak: &Key, uuid: &Uuid) -> Result<String> {
     ))
 }
 
+fn get_nonzero_cost(credentials: &standardfile::Credentials) -> Result<std::num::NonZeroU32> {
+    let cost = std::num::NonZeroU32::new(credentials.cost);
+
+    match cost {
+        Some(cost) => {
+            Ok(cost)
+        },
+        None => {
+            Err(anyhow!("Cost must be larger than zero"))
+        }
+    }
+}
+
 /// Create random nonce.
 pub fn make_nonce() -> String {
     let mut rng = rand_chacha::ChaCha20Rng::from_entropy();
@@ -79,10 +92,10 @@ pub fn make_nonce() -> String {
 
 impl Crypto {
     pub fn new(credentials: &standardfile::Credentials) -> Result<Self> {
-        let cost = std::num::NonZeroU32::new(credentials.cost).unwrap();
+        let cost = get_nonzero_cost(&credentials)?;
         let salt_input = std::format!("{}:SF:003:{}:{}", credentials.identifier, credentials.cost, credentials.nonce);
         let salt = digest::digest(&digest::SHA256, salt_input.as_bytes());
-        let hex_salt = HEXLOWER.encode(&salt.as_ref());
+        let hex_salt = HEXLOWER.encode(salt.as_ref());
         let mut hashed = [0u8; 768 / 8];
 
         ring::pbkdf2::derive(
