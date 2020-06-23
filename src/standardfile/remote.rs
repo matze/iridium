@@ -65,7 +65,6 @@ struct SyncResponse {
 pub struct Client {
     host: String,
     pub credentials: Credentials,
-    pub crypto: Crypto,
     client: reqwest::blocking::Client,
     auth_token: String,
     sync_token: Option<String>,
@@ -112,7 +111,6 @@ impl Client {
         Ok(Self {
             host: host.to_string(),
             credentials: credentials,
-            crypto: crypto,
             client: client,
             auth_token: get_token_from_signin_response(response)?,
             sync_token: None,
@@ -147,7 +145,6 @@ impl Client {
         Ok(Self {
             host: host.to_string(),
             credentials: credentials,
-            crypto: crypto,
             client: client,
             auth_token: get_token_from_signin_response(response)?,
             sync_token: None,
