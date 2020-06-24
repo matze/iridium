@@ -5,9 +5,6 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::fs::{create_dir_all, read_to_string, write};
 
-pub static APP_ID: &str = "net.bloerg.Iridium";
-pub static APP_VERSION: &str = env!("CARGO_PKG_VERSION");
-
 #[derive(Serialize, Deserialize)]
 pub struct Config {
     pub identifier: String,

@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use crate::consts::{SHORTCUTS_UI, WINDOW_UI};
 use crate::ui::state::{AppEvent, WindowEvent, User, RemoteAuth};
 use gio::prelude::*;
 use gtk::prelude::*;
@@ -12,7 +13,7 @@ pub struct Window {
 }
 
 fn get_shortcuts_window() -> gtk::ShortcutsWindow {
-    let builder = gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/shortcuts.ui");
+    let builder = gtk::Builder::new_from_resource(SHORTCUTS_UI);
     builder.get_object("shortcuts").unwrap()
 }
 
@@ -55,7 +56,7 @@ fn new_note_row(title: &str) -> (gtk::ListBoxRow, gtk::Label) {
 impl Window {
     pub fn new(app_sender: glib::Sender<AppEvent>) -> Self {
         let builder =
-            gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/window.ui");
+            gtk::Builder::new_from_resource(WINDOW_UI);
         let window: gtk::ApplicationWindow = builder.get_object("window").unwrap();
 
         window.set_help_overlay(Some(&get_shortcuts_window()));

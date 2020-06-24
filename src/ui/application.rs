@@ -3,7 +3,9 @@ use gio::prelude::*;
 use gtk::prelude::*;
 use std::env;
 use std::collections::HashSet;
-use crate::config::{APP_ID, APP_VERSION, Config};
+use crate::config::Config;
+use crate::consts::{ABOUT_UI, IMPORT_UI, SETUP_UI};
+use crate::consts::{APP_ID, APP_VERSION};
 use crate::secret;
 use crate::storage::Storage;
 use crate::standardfile::{crypto, remote, Item, Exported, Credentials, encrypted_notes};
@@ -83,7 +85,7 @@ impl Application {
 
         action!(app, "about",
             clone!(@weak window.widget as window => move |_, _| {
-                let builder = gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/about.ui");
+                let builder = gtk::Builder::new_from_resource(ABOUT_UI);
                 let dialog = get_widget!(builder, gtk::AboutDialog, "about-dialog");
                 dialog.set_version(Some(APP_VERSION));
                 dialog.set_logo_icon_name(Some(APP_ID));
@@ -107,7 +109,7 @@ impl Application {
 
         action!(app, "import",
             clone!(@weak window.widget as window, @strong sender as sender => move |_, _| {
-                let builder = gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/import.ui");
+                let builder = gtk::Builder::new_from_resource(IMPORT_UI);
                 let dialog = get_widget!(builder, gtk::Dialog, "import-dialog");
 
                 setup_server_dialog(&builder);
@@ -138,7 +140,7 @@ impl Application {
 
         action!(app, "setup",
             clone!(@weak window.widget as window => move |_, _| {
-                let builder = gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/setup.ui");
+                let builder = gtk::Builder::new_from_resource(SETUP_UI);
                 let dialog = get_widget!(builder, gtk::Dialog, "setup-dialog");
 
                 setup_server_dialog(&builder);
