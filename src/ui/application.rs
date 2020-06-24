@@ -327,7 +327,7 @@ impl Application {
                             to_flush.insert(uuid);
 
                             glib::source::timeout_add_seconds(5,
-                                clone!(@strong app_sender as sender => move ||{
+                                clone!(@strong app_sender as sender => move || {
                                     sender.send(AppEvent::Flush(uuid)).unwrap();
                                     glib::Continue(false)
                                 })

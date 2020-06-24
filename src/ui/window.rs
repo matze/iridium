@@ -139,13 +139,13 @@ impl Window {
         );
 
         title_entry.connect_changed(
-            clone!(@strong win_sender as sender => move|_| {
+            clone!(@strong win_sender as sender => move |_| {
                 sender.send(WindowEvent::UpdateTitle).unwrap();
             })
         );
 
         text_buffer.connect_changed(
-            clone!(@strong win_sender as sender => move|_| {
+            clone!(@strong win_sender as sender => move |_| {
                 sender.send(WindowEvent::UpdateText).unwrap();
             })
         );
