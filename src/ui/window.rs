@@ -17,8 +17,8 @@ fn get_shortcuts_window() -> gtk::ShortcutsWindow {
 }
 
 fn get_user_details(builder: &gtk::Builder) -> User {
-    let identifier_entry = builder.get_object::<gtk::Entry>("identifier-entry").unwrap();
-    let password_entry = builder.get_object::<gtk::Entry>("password-entry").unwrap();
+    let identifier_entry = get_widget!(builder, gtk::Entry, "identifier-entry");
+    let password_entry = get_widget!(builder, gtk::Entry, "password-entry");
 
     User {
         identifier: identifier_entry.get_text().unwrap().to_string(),
@@ -27,7 +27,7 @@ fn get_user_details(builder: &gtk::Builder) -> User {
 }
 
 fn get_auth_details(builder: &gtk::Builder) -> RemoteAuth {
-    let server_combo_box = builder.get_object::<gtk::ComboBoxText>("server-combo").unwrap();
+    let server_combo_box = get_widget!(builder, gtk::ComboBoxText, "server-combo");
 
     RemoteAuth {
         server: server_combo_box.get_active_text().unwrap().to_string(),
@@ -68,15 +68,15 @@ impl Window {
             gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
 
-        let note_list_box = builder.get_object::<gtk::ListBox>("iridium-note-list").unwrap();
-        let title_entry = builder.get_object::<gtk::Entry>("iridium-title-entry").unwrap();
-        let search_bar = builder.get_object::<gtk::SearchBar>("iridium-search-bar").unwrap();
-        let search_entry = builder.get_object::<gtk::SearchEntry>("iridium-search-entry").unwrap();
-        let text_view = builder.get_object::<gtk::TextView>("iridium-text-view").unwrap();
-        let identifier_entry = builder.get_object::<gtk::Entry>("identifier-entry").unwrap();
-        let local_button = builder.get_object::<gtk::Button>("create-local-button").unwrap();
-        let signup_button = builder.get_object::<gtk::Button>("signup-button").unwrap();
-        let login_button = builder.get_object::<gtk::Button>("login-button").unwrap();
+        let note_list_box = get_widget!(builder, gtk::ListBox, "iridium-note-list");
+        let title_entry = get_widget!(builder, gtk::Entry, "iridium-title-entry");
+        let search_bar = get_widget!(builder, gtk::SearchBar, "iridium-search-bar");
+        let search_entry = get_widget!(builder, gtk::SearchEntry, "iridium-search-entry");
+        let text_view = get_widget!(builder, gtk::TextView, "iridium-text-view");
+        let identifier_entry = get_widget!(builder, gtk::Entry, "identifier-entry");
+        let local_button = get_widget!(builder, gtk::Button, "create-local-button");
+        let signup_button = get_widget!(builder, gtk::Button, "signup-button");
+        let login_button = get_widget!(builder, gtk::Button, "login-button");
         let text_buffer = text_view.get_buffer().unwrap();
 
         let (win_sender, win_receiver) = glib::MainContext::channel::<WindowEvent>(glib::PRIORITY_DEFAULT);
@@ -104,8 +104,8 @@ impl Window {
 
         local_button.connect_clicked(
             clone!(@strong builder, @strong app_sender as sender => move |_| {
-                let main_box = builder.get_object::<gtk::Box>("iridium-main-content").unwrap();
-                let stack = builder.get_object::<gtk::Stack>("iridium-main-stack").unwrap();
+                let main_box = get_widget!(builder, gtk::Box, "iridium-main-content");
+                let stack = get_widget!(builder, gtk::Stack, "iridium-main-stack");
                 stack.set_visible_child(&main_box);
 
                 let user = get_user_details(&builder);
@@ -162,8 +162,8 @@ impl Window {
             clone!(@strong note_list_box, @strong text_buffer, @strong builder => move |event| {
                 match event {
                     WindowEvent::ShowMainContent => {
-                        let stack = builder.get_object::<gtk::Stack>("iridium-main-stack").unwrap();
-                        let main_box = builder.get_object::<gtk::Box>("iridium-main-content").unwrap();
+                        let stack = get_widget!(builder, gtk::Stack, "iridium-main-stack");
+                        let main_box = get_widget!(builder, gtk::Box, "iridium-main-content");
                         stack.set_visible_child(&main_box);
                     }
                     WindowEvent::AddNote(uuid, title) => {
@@ -237,9 +237,9 @@ impl Window {
                         search_bar.set_search_mode(!search_bar.get_search_mode());
                     }
                     WindowEvent::ShowNotification(message) => {
-                        let revealer = builder.get_object::<gtk::Revealer>("iridium-notification-revealer").unwrap();
-                        let label = builder.get_object::<gtk::Label>("iridium-notification-label").unwrap();
-                        let close_button = builder.get_object::<gtk::Button>("iridium-notification-button").unwrap();
+                        let revealer = get_widget!(builder, gtk::Revealer, "iridium-notification-revealer");
+                        let label = get_widget!(builder, gtk::Label, "iridium-notification-label");
+                        let close_button = get_widget!(builder, gtk::Button, "iridium-notification-button");
 
                         label.set_text(&message);
                         revealer.set_reveal_child(true);

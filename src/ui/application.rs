@@ -16,9 +16,9 @@ pub struct Application {
 }
 
 fn setup_server_dialog(builder: &gtk::Builder) {
-    let server_box = builder.get_object::<gtk::ComboBoxText>("server-box").unwrap();
+    let server_box = get_widget!(builder, gtk::ComboBoxText, "server-box");
     let server_entry = server_box.get_child().unwrap().downcast::<gtk::Entry>().unwrap();
-    let sync_button = builder.get_object::<gtk::Switch>("sync-switch").unwrap();
+    let sync_button = get_widget!(builder, gtk::Switch, "sync-switch");
 
     server_entry.set_input_purpose(gtk::InputPurpose::Url);
     server_entry.set_icon_from_icon_name(gtk::EntryIconPosition::Primary, Some("network-server-symbolic"));
@@ -84,7 +84,7 @@ impl Application {
         action!(app, "about",
             clone!(@weak window.widget as window => move |_, _| {
                 let builder = gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/about.ui");
-                let dialog = builder.get_object::<gtk::AboutDialog>("about-dialog").unwrap();
+                let dialog = get_widget!(builder, gtk::AboutDialog, "about-dialog");
                 dialog.set_version(Some(APP_VERSION));
                 dialog.set_logo_icon_name(Some(APP_ID));
                 dialog.set_transient_for(Some(&window));
@@ -108,7 +108,7 @@ impl Application {
         action!(app, "import",
             clone!(@weak window.widget as window, @strong sender as sender => move |_, _| {
                 let builder = gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/import.ui");
-                let dialog = builder.get_object::<gtk::Dialog>("import-dialog").unwrap();
+                let dialog = get_widget!(builder, gtk::Dialog, "import-dialog");
 
                 setup_server_dialog(&builder);
                 dialog.set_transient_for(Some(&window));
@@ -116,11 +116,11 @@ impl Application {
 
                 match dialog.run() {
                     gtk::ResponseType::Ok => {
-                        let file_chooser = builder.get_object::<gtk::FileChooserButton>("import-file-button").unwrap();
+                        let file_chooser = get_widget!(builder, gtk::FileChooserButton, "import-file-button");
 
                         if let Some(filename) = file_chooser.get_filename() {
-                            let password_entry = builder.get_object::<gtk::Entry>("import-password").unwrap();
-                            let server_box = builder.get_object::<gtk::ComboBoxText>("server-box").unwrap();
+                            let password_entry = get_widget!(builder, gtk::Entry, "import-password");
+                            let server_box = get_widget!(builder, gtk::ComboBoxText, "server-box");
                             let server_entry = server_box.get_child().unwrap().downcast::<gtk::Entry>().unwrap();
                             let server = server_entry.get_text().as_deref().unwrap().to_string();
 
@@ -139,7 +139,7 @@ impl Application {
         action!(app, "setup",
             clone!(@weak window.widget as window => move |_, _| {
                 let builder = gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/setup.ui");
-                let dialog = builder.get_object::<gtk::Dialog>("setup-dialog").unwrap();
+                let dialog = get_widget!(builder, gtk::Dialog, "setup-dialog");
 
                 setup_server_dialog(&builder);
                 dialog.set_transient_for(Some(&window));

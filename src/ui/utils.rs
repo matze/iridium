@@ -5,3 +5,9 @@ macro_rules! action {
         $actions_group.add_action(&simple_action);
     };
 }
+
+macro_rules! get_widget {
+    ($builder:expr, $widget_type:ty, $name:expr) => {{
+        $builder.get_object::<$widget_type>($name).unwrap()
+    }};
+}
