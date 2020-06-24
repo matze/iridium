@@ -1,5 +1,7 @@
 # Iridium
 
+[![Build Status](https://travis-ci.com/matze/iridium.svg?branch=master)](https://travis-ci.com/matze/iridium)
+
 Iridium is a [Standard Notes](https://standardnotes.org) client written in Rust
 and GTK. It synchronizes with any compliant Standard Notes server but can work
 entirely offline as well.
