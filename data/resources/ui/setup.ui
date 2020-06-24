@@ -42,7 +42,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkComboBoxText" id="setup-server">
+              <object class="GtkComboBoxText" id="server-box">
                 <property name="visible">True</property>
                 <property name="hexpand">True</property>
                 <property name="has-entry">True</property>
@@ -56,7 +56,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkSwitch" id="setup-sync">
+              <object class="GtkSwitch" id="sync-button">
                 <property name="visible">True</property>
                 <property name="hexpand">False</property>
                 <property name="halign">GTK_ALIGN_START</property>

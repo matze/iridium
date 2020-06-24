@@ -39,7 +39,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkComboBoxText" id="import-server">
+              <object class="GtkComboBoxText" id="server-box">
                 <property name="visible">True</property>
                 <property name="hexpand">True</property>
                 <property name="has-entry">True</property>
@@ -53,7 +53,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkSwitch" id="import-sync">
+              <object class="GtkSwitch" id="sync-switch">
                 <property name="visible">True</property>
                 <property name="hexpand">False</property>
                 <property name="halign">GTK_ALIGN_START</property>

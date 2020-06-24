@@ -15,6 +15,18 @@ pub struct Application {
     app: gtk::Application,
 }
 
+fn setup_server_dialog(builder: &gtk::Builder) {
+    let server_box = builder.get_object::<gtk::ComboBoxText>("server-box").unwrap();
+    let server_entry = server_box.get_child().unwrap().downcast::<gtk::Entry>().unwrap();
+    let sync_button = builder.get_object::<gtk::Switch>("sync-switch").unwrap();
+
+    server_entry.set_input_purpose(gtk::InputPurpose::Url);
+    server_entry.set_icon_from_icon_name(gtk::EntryIconPosition::Primary, Some("network-server-symbolic"));
+    server_entry.set_placeholder_text(Some("Server address"));
+    sync_button.bind_property("active", &server_box, "sensitive").flags(glib::BindingFlags::SYNC_CREATE).build();
+    sync_button.bind_property("active", &server_entry, "sensitive").flags(glib::BindingFlags::SYNC_CREATE).build();
+}
+
 impl Application {
     pub fn new() -> Result<Self> {
         let app = gtk::Application::new(Some(APP_ID), gio::ApplicationFlags::FLAGS_NONE)?;
@@ -97,16 +109,8 @@ impl Application {
             clone!(@weak window.widget as window, @strong sender as sender => move |_, _| {
                 let builder = gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/import.ui");
                 let dialog = builder.get_object::<gtk::Dialog>("import-dialog").unwrap();
-                let server_box = builder.get_object::<gtk::ComboBoxText>("import-server").unwrap();
-                let server_entry = server_box.get_child().unwrap().downcast::<gtk::Entry>().unwrap();
-                let sync_button = builder.get_object::<gtk::Switch>("import-sync").unwrap();
 
-                server_entry.set_input_purpose(gtk::InputPurpose::Url);
-                server_entry.set_icon_from_icon_name(gtk::EntryIconPosition::Primary, Some("network-server-symbolic"));
-                server_entry.set_placeholder_text(Some("Server address"));
-                sync_button.bind_property("active", &server_box, "sensitive").flags(glib::BindingFlags::SYNC_CREATE).build();
-                sync_button.bind_property("active", &server_entry, "sensitive").flags(glib::BindingFlags::SYNC_CREATE).build();
-
+                setup_server_dialog(&builder);
                 dialog.set_transient_for(Some(&window));
                 dialog.set_modal(true);
 
@@ -116,7 +120,8 @@ impl Application {
 
                         if let Some(filename) = file_chooser.get_filename() {
                             let password_entry = builder.get_object::<gtk::Entry>("import-password").unwrap();
-                            let server_entry = builder.get_object::<gtk::Entry>("import-server").unwrap();
+                            let server_box = builder.get_object::<gtk::ComboBoxText>("server-box").unwrap();
+                            let server_entry = server_box.get_child().unwrap().downcast::<gtk::Entry>().unwrap();
                             let server = server_entry.get_text().as_deref().unwrap().to_string();
 
                             if let Some(password) = password_entry.get_text() {
@@ -135,16 +140,8 @@ impl Application {
             clone!(@weak window.widget as window => move |_, _| {
                 let builder = gtk::Builder::new_from_resource("/net/bloerg/Iridium/data/resources/ui/setup.ui");
                 let dialog = builder.get_object::<gtk::Dialog>("setup-dialog").unwrap();
-                let server_box = builder.get_object::<gtk::ComboBoxText>("setup-server").unwrap();
-                let server_entry = server_box.get_child().unwrap().downcast::<gtk::Entry>().unwrap();
-                let sync_button = builder.get_object::<gtk::Switch>("setup-sync").unwrap();
 
-                server_entry.set_input_purpose(gtk::InputPurpose::Url);
-                server_entry.set_icon_from_icon_name(gtk::EntryIconPosition::Primary, Some("network-server-symbolic"));
-                server_entry.set_placeholder_text(Some("Server address"));
-                sync_button.bind_property("active", &server_box, "sensitive").flags(glib::BindingFlags::SYNC_CREATE).build();
-                sync_button.bind_property("active", &server_entry, "sensitive").flags(glib::BindingFlags::SYNC_CREATE).build();
-
+                setup_server_dialog(&builder);
                 dialog.set_transient_for(Some(&window));
                 dialog.set_modal(true);
                 dialog.connect_response(|dialog, _| dialog.destroy());
