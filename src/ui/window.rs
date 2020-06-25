@@ -1,3 +1,4 @@
+use anyhow::Result;
 use std::collections::{HashMap, HashSet};
 use crate::consts::{SHORTCUTS_UI, WINDOW_UI};
 use crate::ui::state::{AppEvent, WindowEvent, User, RemoteAuth};
@@ -11,6 +12,8 @@ pub struct Window {
     text_buffer: gtk::TextBuffer,
     title_entry: gtk::Entry,
 }
+
+type RowMap = HashMap<gtk::ListBoxRow, (Uuid, gtk::Label)>;
 
 fn get_shortcuts_window() -> gtk::ShortcutsWindow {
     let builder = gtk::Builder::new_from_resource(SHORTCUTS_UI);
@@ -53,6 +56,34 @@ fn new_note_row(title: &str) -> (gtk::ListBoxRow, gtk::Label) {
     (row_widget, label)
 }
 
+fn show_matching_rows(row_map: &RowMap, note_list_box: &gtk::ListBox, term: &str) {
+    let count = row_map.len();
+
+    for index in 0..count as i32 {
+        let row = note_list_box.get_row_at_index(index).unwrap();
+
+        if let Some((_, label)) = row_map.get(&row) {
+            let label_text = label.get_text().unwrap().to_string().to_lowercase();
+
+            if label_text.contains(&term) {
+                row.show();
+            }
+            else {
+                row.hide();
+            }
+        }
+    }
+}
+
+fn show_all_rows(row_map: &RowMap, note_list_box: &gtk::ListBox) {
+    let count = row_map.len();
+
+    for index in 0..count as i32 {
+        let row = note_list_box.get_row_at_index(index).unwrap();
+        row.show();
+    }
+}
+
 impl Window {
     pub fn new(app_sender: glib::Sender<AppEvent>) -> Self {
         let builder =
@@ -87,7 +118,7 @@ impl Window {
         let mut current_binding: Option<glib::Binding> = None;
         let mut current_uuid: Option<Uuid> = None;
         let mut known_uuids: HashSet<Uuid> = HashSet::new();
-        let mut row_map: HashMap<gtk::ListBoxRow, (Uuid, gtk::Label)> = HashMap::new();
+        let mut row_map: RowMap = HashMap::new();
 
         search_bar.connect_entry(&search_entry);
 
@@ -191,31 +222,12 @@ impl Window {
                         }
                     }
                     WindowEvent::UpdateFilter(term) => {
-                        let count = row_map.len();
-
                         if let Some(term) = term {
                             let term = term.to_lowercase();
-
-                            for index in 0..count as i32 {
-                                let row = note_list_box.get_row_at_index(index).unwrap();
-
-                                if let Some((_, label)) = row_map.get(&row) {
-                                    let label_text = label.get_text().unwrap().to_string().to_lowercase();
-
-                                    if label_text.contains(&term) {
-                                        row.show();
-                                    }
-                                    else {
-                                        row.hide();
-                                    }
-                                }
-                            }
+                            show_matching_rows(&row_map, &note_list_box, &term);
                         }
                         else {
-                            for index in 0..count as i32 {
-                                let row = note_list_box.get_row_at_index(index).unwrap();
-                                row.show();
-                            }
+                            show_all_rows(&row_map, &note_list_box);
                         }
                     }
                     WindowEvent::UpdateTitle => {
