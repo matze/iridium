@@ -29,6 +29,17 @@ fn setup_server_dialog(builder: &gtk::Builder) {
     sync_button.bind_property("active", &server_entry, "sensitive").flags(glib::BindingFlags::SYNC_CREATE).build();
 }
 
+fn decrypt_and_store(storage: &mut Storage, item: &Item, sender: &glib::Sender<WindowEvent>) -> Result<()> {
+    if let Some(uuid) = storage.decrypt(&item) {
+        storage.flush(&uuid).unwrap();
+
+        if let Some(note) = storage.notes.get(&uuid) {
+            sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
+        }
+    }
+    Ok(())
+}
+
 impl Application {
     pub fn new() -> Result<Self> {
         let app = gtk::Application::new(Some(APP_ID), gio::ApplicationFlags::FLAGS_NONE)?;
@@ -252,16 +263,8 @@ impl Application {
                             // sync.
                             let items = client.sync(unsynced_items).unwrap();
 
-                            for item in items {
-                                if item.content_type == "Note" {
-                                    if let Some(uuid) = storage.decrypt(&item) {
-                                        storage.flush(&uuid).unwrap();
-
-                                        if let Some(note) = storage.notes.get(&uuid) {
-                                            sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
-                                        }
-                                    }
-                                }
+                            for item in encrypted_notes(&items) {
+                                decrypt_and_store(&mut storage, &item, &sender).unwrap();
                             }
                         }
                     }
@@ -283,14 +286,8 @@ impl Application {
                                 let config = Config::new(&credentials);
                                 config.write().unwrap();
 
-                                for note in encrypted_notes(&exported.items) {
-                                    if let Some(uuid) = storage.decrypt(note) {
-                                        storage.flush(&uuid).unwrap();
-
-                                        if let Some(note) = storage.notes.get(&uuid) {
-                                            sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
-                                        }
-                                    }
+                                for item in encrypted_notes(&exported.items) {
+                                    decrypt_and_store(&mut storage, &item, &sender).unwrap();
                                 }
                             }
                             else {
