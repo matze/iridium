@@ -3,7 +3,8 @@ use crate::standardfile::Credentials;
 use directories::BaseDirs;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::fs::{create_dir_all, read_to_string, write};
+use std::fs;
+use std::fs::{create_dir_all, read_to_string};
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
@@ -19,6 +20,19 @@ fn get_path() -> PathBuf {
     path.push("iridium");
     path.push("config.toml");
     path
+}
+
+/// Write configuration with the given credentials.
+pub fn write(credentials: &Credentials) -> Result<()> {
+    let config = Config::new(credentials);
+    Ok(config.write()?)
+}
+
+/// Write configuration with given credentials and server.
+pub fn write_with_server(credentials: &Credentials, server: &str) -> Result<()> {
+    let mut config = Config::new(credentials);
+    config.server = Some(server.to_string());
+    Ok(config.write()?)
 }
 
 impl Config {
@@ -50,8 +64,7 @@ impl Config {
             create_dir_all(path.parent().unwrap())?;
         }
 
-        write(path, toml::to_string(self)?)?;
-
+        fs::write(path, toml::to_string(self)?)?;
         Ok(())
     }
 }

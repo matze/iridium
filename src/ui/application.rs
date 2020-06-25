@@ -3,7 +3,7 @@ use gio::prelude::*;
 use gtk::prelude::*;
 use std::env;
 use std::collections::HashSet;
-use crate::config::Config;
+use crate::config;
 use crate::consts::{ABOUT_UI, IMPORT_UI, SETUP_UI};
 use crate::consts::{APP_ID, APP_VERSION};
 use crate::secret;
@@ -47,7 +47,7 @@ impl Application {
         let (sender, receiver) = glib::MainContext::channel::<AppEvent>(glib::PRIORITY_DEFAULT);
         let window = Window::new(sender.clone());
 
-        let config = Config::new_from_file()?;
+        let config = config::Config::new_from_file()?;
 
         let mut storage = match config {
             Some(config) => {
@@ -187,10 +187,7 @@ impl Application {
                         };
 
                         storage.reset(&credentials);
-
-                        let config = Config::new(&credentials);
-                        config.write().unwrap();
-
+                        config::write(&credentials).unwrap();
                         secret::store(&credentials, None);
                     }
                     AppEvent::Register(auth) => {
@@ -200,10 +197,7 @@ impl Application {
                             Ok(new_client) => {
                                 let credentials = &new_client.credentials;
                                 storage.reset(&credentials);
-
-                                let config = Config::new(&credentials);
-                                config.write().unwrap();
-
+                                config::write(&credentials).unwrap();
                                 secret::store(&credentials, Some(&auth.server));
                                 sender.send(WindowEvent::ShowMainContent).unwrap();
 
@@ -226,10 +220,7 @@ impl Application {
 
                                 // Switch storage, read local files and show them in the UI.
                                 storage.reset(&credentials);
-
-                                let mut config = Config::new(&credentials);
-                                config.server = Some(auth.server.clone());
-                                config.write().unwrap();
+                                config::write_with_server(&credentials, &auth.server).unwrap();
 
                                 for (uuid, note) in &storage.notes {
                                     sender.send(WindowEvent::AddNote(uuid.clone(), note.title.clone())).unwrap();
@@ -280,11 +271,9 @@ impl Application {
                                     password: password,
                                 };
 
-                                secret::store(&credentials, server.as_deref());
                                 storage.reset(&credentials);
-
-                                let config = Config::new(&credentials);
-                                config.write().unwrap();
+                                config::write(&credentials).unwrap();
+                                secret::store(&credentials, server.as_deref());
 
                                 for item in encrypted_notes(&exported.items) {
                                     decrypt_and_store(&mut storage, &item, &sender).unwrap();
