@@ -84,6 +84,7 @@ impl Storage {
 
     pub fn reset(&mut self, credentials: &standardfile::Credentials) {
         let path = data_path_from_identifier(&credentials.identifier);
+        log::info!("reset path to {:?}", path);
         self.path = Some(path.clone());
         self.crypto = Some(Crypto::new(&credentials).unwrap());
         self.read_from_disk(&path).unwrap();

@@ -191,6 +191,7 @@ impl Application {
                         secret::store(&credentials, None);
                     }
                     AppEvent::Register(auth) => {
+                        log::info!("Registering with {}", auth.server);
                         let new_client = remote::Client::new_register(&auth.server, &auth.user.identifier, &auth.user.password);
 
                         match new_client {
@@ -212,6 +213,8 @@ impl Application {
                         };
                     }
                     AppEvent::SignIn(auth) => {
+                        log::info!("Signing in to {}", auth.server);
+
                         let new_client = remote::Client::new_sign_in(&auth.server, &auth.user.identifier, &auth.user.password);
 
                         match new_client {
