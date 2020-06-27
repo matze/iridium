@@ -125,13 +125,10 @@ impl Storage {
     /// Encrypts item and writes it to disk.
     pub fn flush(&self, uuid: &Uuid) -> Result<()> {
         if let Some(item) = self.notes.get(uuid) {
-            self.ensure_path_exists()?;
-
-            let mut path = PathBuf::from(&self.path);
-            path.push(uuid.to_hyphenated().to_string());
-
             let encrypted = self.crypto.as_ref().unwrap().encrypt(item, uuid)?;
             let serialized = serde_json::to_string(&encrypted)?;
+            let path = self.path_from_uuid(&uuid);
+            self.ensure_path_exists()?;
             write(&path, serialized)?;
         }
 
@@ -144,6 +141,12 @@ impl Storage {
         }
 
         Ok(())
+    }
+
+    fn path_from_uuid(&self, uuid: &Uuid) -> PathBuf {
+        let mut path = PathBuf::from(&self.path);
+        path.push(uuid.to_hyphenated().to_string());
+        path
     }
 
     /// Create a new note and return its new uuid.
