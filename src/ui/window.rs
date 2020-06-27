@@ -220,6 +220,16 @@ impl Window {
                             known_uuids.insert(uuid);
                         }
                     }
+                    WindowEvent::DeleteNote(uuid) => {
+                        known_uuids.remove(&uuid);
+
+                        // Disgusting but works for now ...
+                        for (row, (row_uuid, _)) in &row_map {
+                            if uuid == *row_uuid {
+                                note_list_box.remove(row);
+                            }
+                        }
+                    }
                     WindowEvent::SelectNote(row) => {
                         if let Some(binding) = &current_binding {
                             binding.unbind();

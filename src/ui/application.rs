@@ -173,6 +173,7 @@ impl Application {
 
         let mut to_flush: HashSet<Uuid> = HashSet::new();
         let mut client: Option<remote::Client> = None;
+        let mut selected: Option<Uuid> = None;
 
         receiver.attach(None,
             clone!(@strong sender as app_sender, @strong window.sender as sender, @strong app => move |event| {
@@ -304,10 +305,21 @@ impl Application {
                         sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
                     }
                     AppEvent::DeleteNote => {
+                        if let Some(uuid) = selected {
+                            log::info!("Deleting {}", uuid);
+
+                            if to_flush.contains(&uuid) {
+                                to_flush.remove(&uuid);
+                            }
+
+                            sender.send(WindowEvent::DeleteNote(uuid)).unwrap();
+                            storage.delete(&uuid).unwrap();
+                        }
                     }
                     AppEvent::SelectNote(uuid) => {
                         if let Some(item) = storage.notes.get(&uuid) {
                             window.load_note(&item.title, &item.text);
+                            selected = Some(uuid);
                         }
                     }
                     AppEvent::Update(uuid, title, text) => {

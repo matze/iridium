@@ -8,7 +8,7 @@ use data_encoding::HEXLOWER;
 use directories::BaseDirs;
 use ring::digest;
 use std::collections::HashMap;
-use std::fs::{create_dir_all, write, read_dir, read_to_string};
+use std::fs::{create_dir_all, write, read_dir, read_to_string, remove_file};
 use std::path::PathBuf;
 use uuid::Uuid;
 
@@ -140,6 +140,15 @@ impl Storage {
             create_dir_all(&self.path)?;
         }
 
+        Ok(())
+    }
+
+    /// Delete note from storage.
+    pub fn delete(&mut self, uuid: &Uuid) -> Result<()> {
+        let path = self.path_from_uuid(&uuid);
+        log::info!("Deleting {:?}", path);
+        remove_file(path)?;
+        self.notes.remove(&uuid);
         Ok(())
     }
 
