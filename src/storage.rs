@@ -21,7 +21,7 @@ pub struct Note {
 }
 
 pub struct Storage {
-    path: Option<PathBuf>,
+    path: PathBuf,
     pub notes: HashMap<Uuid, Note>,
     crypto: Option<Crypto>,
 }
@@ -43,7 +43,8 @@ fn data_path_from_identifier(identifier: &str) -> PathBuf {
 impl Storage {
     pub fn new() -> Storage {
         Self {
-            path: None,
+            // FIXME: find a better solution, Option<PathBuf> is not ...
+            path: PathBuf::from("/tmp"),
             notes: HashMap::new(),
             crypto: None,
         }
@@ -62,7 +63,7 @@ impl Storage {
         let crypto = Crypto::new(&credentials)?;
 
         let mut storage = Self {
-            path: Some(path.clone()),
+            path: path.clone(),
             notes: HashMap::new(),
             crypto: Some(crypto),
         };
@@ -85,9 +86,9 @@ impl Storage {
     pub fn reset(&mut self, credentials: &standardfile::Credentials) {
         let path = data_path_from_identifier(&credentials.identifier);
         log::info!("reset path to {:?}", path);
-        self.path = Some(path.clone());
         self.crypto = Some(Crypto::new(&credentials).unwrap());
         self.read_from_disk(&path).unwrap();
+        self.path = path;
     }
 
     /// Decrypt item and add it to the storage.
@@ -124,7 +125,7 @@ impl Storage {
     /// Encrypts item and writes it to disk.
     pub fn flush(&self, uuid: &Uuid) -> Result<()> {
         if let Some(item) = self.notes.get(uuid) {
-            let mut path = PathBuf::from(&self.path.as_ref().unwrap());
+            let mut path = PathBuf::from(&self.path);
 
             if !path.exists() {
                 create_dir_all(&path)?;
