@@ -122,7 +122,13 @@ impl Crypto {
     }
 
     pub fn decrypt(&self, item: &Item) -> Result<storage::Decrypted> {
-        let item_key = decrypt(&item.enc_item_key, &self.mk, &self.ak, &item.uuid)?;
+        if item.enc_item_key.is_none() || item.content.is_none() {
+            return Err(anyhow!("Cannot decrypt without key"));
+        }
+
+        let enc_item_key = item.enc_item_key.as_ref().unwrap();
+        let content = item.content.as_ref().unwrap();
+        let item_key = decrypt(&enc_item_key, &self.mk, &self.ak, &item.uuid)?;
         let mut item_ek: Key = [0; 32];
         let mut item_ak: Key = [0; 32];
 
@@ -133,7 +139,7 @@ impl Crypto {
             .decode_mut(item_key[64..].as_bytes(), &mut item_ak)
             .expect("foo");
 
-        let decrypted = decrypt(&item.content, &item_ek, &item_ak, &item.uuid)?;
+        let decrypted = decrypt(&content, &item_ek, &item_ak, &item.uuid)?;
 
         if item.content_type == "Note" {
             Ok(storage::Decrypted::Note(serde_json::from_str::<standardfile::Note>(&decrypted)?))
@@ -167,11 +173,12 @@ impl Crypto {
 
         Ok(Item {
             uuid: uuid.clone(),
-            content: encrypt(to_encrypt.as_ref(), &item_ek, &item_ak, &uuid)?,
+            content: Some(encrypt(to_encrypt.as_ref(), &item_ek, &item_ak, &uuid)?),
             content_type: "Note".to_owned(),
-            enc_item_key: encrypt(item_key_encoded.as_ref(), &self.mk, &self.ak, &uuid)?,
+            enc_item_key: Some(encrypt(item_key_encoded.as_ref(), &self.mk, &self.ak, &uuid)?),
             created_at: note.created_at,
             updated_at: note.updated_at,
+            deleted: Some(false),
         })
     }
 }

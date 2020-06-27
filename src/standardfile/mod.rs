@@ -8,11 +8,12 @@ pub mod remote;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Item {
     pub uuid: Uuid,
-    pub content: String,
+    pub content: Option<String>,
     pub content_type: String,
-    pub enc_item_key: String,
+    pub enc_item_key: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted: Option<bool>,
 }
 
 #[derive(Deserialize)]

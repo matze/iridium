@@ -265,7 +265,9 @@ impl Application {
                             let items = client.sync(unsynced_items).unwrap();
 
                             for item in encrypted_notes(&items) {
-                                decrypt_and_store(&mut storage, &item, &sender).unwrap();
+                                if !item.deleted.unwrap_or(false) {
+                                    decrypt_and_store(&mut storage, &item, &sender).unwrap();
+                                }
                             }
                         }
                     }
@@ -312,8 +314,21 @@ impl Application {
                                 to_flush.remove(&uuid);
                             }
 
-                            sender.send(WindowEvent::DeleteNote(uuid)).unwrap();
-                            storage.delete(&uuid).unwrap();
+                            let delete = true;
+
+                            if let Some(client) = &mut client {
+                                let mut encrypted = storage.encrypt(&uuid).unwrap();
+                                encrypted.deleted = Some(true);
+
+                                // Apparently, we do not receive the item back as marked deleted
+                                // but on subsequent syncs only.
+                                client.sync(vec![encrypted]).unwrap();
+                            }
+
+                            if delete {
+                                sender.send(WindowEvent::DeleteNote(uuid)).unwrap();
+                                storage.delete(&uuid).unwrap();
+                            }
                         }
                     }
                     AppEvent::SelectNote(uuid) => {
