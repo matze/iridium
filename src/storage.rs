@@ -125,17 +125,22 @@ impl Storage {
     /// Encrypts item and writes it to disk.
     pub fn flush(&self, uuid: &Uuid) -> Result<()> {
         if let Some(item) = self.notes.get(uuid) {
+            self.ensure_path_exists()?;
+
             let mut path = PathBuf::from(&self.path);
-
-            if !path.exists() {
-                create_dir_all(&path)?;
-            }
-
             path.push(uuid.to_hyphenated().to_string());
 
             let encrypted = self.crypto.as_ref().unwrap().encrypt(item, uuid)?;
             let serialized = serde_json::to_string(&encrypted)?;
             write(&path, serialized)?;
+        }
+
+        Ok(())
+    }
+
+    fn ensure_path_exists(&self) -> Result<()> {
+        if !self.path.exists() {
+            create_dir_all(&self.path)?;
         }
 
         Ok(())
