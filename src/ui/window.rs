@@ -1,4 +1,3 @@
-use anyhow::Result;
 use std::collections::{HashMap, HashSet};
 use crate::consts::{SHORTCUTS_UI, WINDOW_UI};
 use crate::ui::state::{AppEvent, WindowEvent, User, RemoteAuth};
@@ -110,6 +109,7 @@ impl Window {
         let signup_button = get_widget!(builder, gtk::Button, "signup-button");
         let login_button = get_widget!(builder, gtk::Button, "login-button");
         let text_buffer = text_view.get_buffer().unwrap();
+        let note_popover = get_widget!(builder, gtk::PopoverMenu, "note_menu");
 
         let (win_sender, win_receiver) = glib::MainContext::channel::<WindowEvent>(glib::PRIORITY_DEFAULT);
 
@@ -183,10 +183,20 @@ impl Window {
         );
 
         note_list_box.connect_row_selected(
-            clone!(@strong win_sender as sender => move |_, row| {
+            clone!(@strong win_sender as sender, @strong note_popover => move |_, row| {
                 if let Some(row) = row {
+                    note_popover.set_relative_to(Some(row));
                     sender.send(WindowEvent::SelectNote(row.clone())).unwrap();
                 }
+            })
+        );
+
+        note_list_box.connect_button_press_event(
+            clone!(@strong note_popover => move |_, event_button| {
+                if event_button.get_button() == 3 {
+                    note_popover.popup();
+                }
+                glib::signal::Inhibit(false)
             })
         );
 

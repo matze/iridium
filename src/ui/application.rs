@@ -112,6 +112,12 @@ impl Application {
             })
         );
 
+        action!(app, "delete",
+            clone!(@strong sender as sender => move |_, _| {
+                sender.send(AppEvent::DeleteNote).unwrap();
+            })
+        );
+
         action!(app, "search",
             clone!(@strong window.sender as sender => move |_, _| {
                 sender.send(WindowEvent::ToggleSearchBar).unwrap();
@@ -296,6 +302,8 @@ impl Application {
                         let uuid = storage.create_note();
                         let note = storage.notes.get(&uuid).unwrap();
                         sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
+                    }
+                    AppEvent::DeleteNote => {
                     }
                     AppEvent::SelectNote(uuid) => {
                         if let Some(item) = storage.notes.get(&uuid) {

@@ -14,6 +14,7 @@ pub struct RemoteAuth {
 
 pub enum AppEvent {
     AddNote,
+    DeleteNote,
     SelectNote(Uuid),
     Register(RemoteAuth),
     SignIn(RemoteAuth),
