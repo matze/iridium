@@ -1,0 +1,6 @@
+[book]
+authors = ["Matthias Vogelgesang"]
+language = "en"
+multilingual = false
+src = "docs"
+title = "Iridium Documentation"
