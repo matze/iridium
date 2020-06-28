@@ -1,28 +1,5 @@
-[package]
-name = "iridium"
-version = "0.1.0"
-authors = ["Matthias Vogelgesang"]
-edition = "2018"
-
-[dependencies]
-anyhow = "1.0"
-aes = "0.3.2"
-block-modes = "0.3.3"
-chrono = { version = "0.4", features = ["serde"] }
-data-encoding = "2.2.0"
-directories = "2.0"
-env_logger = "0"
-log = "0"
-gtk = { version = "0.8", features = ["v3_22"] }
-glib = "0.9"
-gio = { version = "0.8", features = ["v2_46"] }
-gdk = "0.12"
-rand = "0.7"
-rand_chacha = "0.2"
-ring = "0.16"
-reqwest = { version = "0.10", features = ["json", "blocking", "gzip"] }
-secret-service = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-toml = "0.5"
-uuid = { version = "0.8", features = ["serde", "v4"] }
+[workspace]
+members = [
+  "libs/standardfile",
+  "shell",
+]

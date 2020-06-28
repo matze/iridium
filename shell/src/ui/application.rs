@@ -8,9 +8,9 @@ use crate::consts::{ABOUT_UI, IMPORT_UI, SETUP_UI};
 use crate::consts::{APP_ID, APP_VERSION};
 use crate::secret;
 use crate::storage::Storage;
-use crate::standardfile::{crypto, remote, Item, Exported, Credentials, encrypted_notes};
 use crate::ui::state::{User, RemoteAuth, AppEvent, WindowEvent};
 use crate::ui::window::Window;
+use standardfile::{crypto, remote, Item, Exported, Credentials, encrypted_notes};
 use uuid::Uuid;
 
 pub struct Application {

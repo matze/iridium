@@ -31,9 +31,17 @@ pub struct Exported {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Note {
+pub struct NoteContent {
     pub title: Option<String>,
     pub text: String,
+}
+
+pub struct Note {
+    pub title: String,
+    pub text: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub uuid: Uuid,
 }
 
 /// Authentication parameters constructed locally, from a remote server or an imported file and

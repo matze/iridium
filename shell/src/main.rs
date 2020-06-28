@@ -6,7 +6,6 @@ mod config;
 mod consts;
 mod secret;
 mod storage;
-mod standardfile;
 mod ui;
 
 use anyhow::Result;

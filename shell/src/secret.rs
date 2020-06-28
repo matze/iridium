@@ -1,6 +1,6 @@
-use crate::standardfile::Credentials;
 use anyhow::{anyhow, Result};
 use secret_service::{EncryptionType, SecretService};
+use standardfile::Credentials;
 
 /// Store password in the keyring.
 pub fn store(credentials: &Credentials, server: Option<&str>) {

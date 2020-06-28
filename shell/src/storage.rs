@@ -1,9 +1,9 @@
 use anyhow::Result;
 use crate::config::Config;
 use crate::secret;
-use crate::standardfile;
-use crate::standardfile::crypto::Crypto;
-use chrono::{DateTime, Utc};
+use standardfile::Note;
+use standardfile::crypto::Crypto;
+use chrono::Utc;
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
 use ring::digest;
@@ -12,23 +12,10 @@ use std::fs::{create_dir_all, write, read_dir, read_to_string, remove_file};
 use std::path::PathBuf;
 use uuid::Uuid;
 
-pub struct Note {
-    pub title: String,
-    pub text: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub uuid: Uuid,
-}
-
 pub struct Storage {
     path: PathBuf,
     pub notes: HashMap<Uuid, Note>,
     crypto: Option<Crypto>,
-}
-
-pub enum Decrypted {
-    Note(standardfile::Note),
-    None,
 }
 
 fn data_path_from_identifier(identifier: &str) -> PathBuf {
@@ -93,21 +80,9 @@ impl Storage {
 
     /// Decrypt item and add it to the storage.
     pub fn decrypt(&mut self, item: &standardfile::Item) -> Option<Uuid> {
-        if let Decrypted::Note(decrypted) = self.crypto.as_ref().unwrap().decrypt(item).unwrap() {
-            let note = Note {
-                title: decrypted.title.unwrap_or("".to_owned()),
-                text: decrypted.text,
-                created_at: item.created_at,
-                updated_at: item.updated_at,
-                uuid: item.uuid,
-            };
-
-            self.notes.insert(item.uuid, note);
-            Some(item.uuid)
-        }
-        else {
-            None
-        }
+        let note = self.crypto.as_ref().unwrap().decrypt(item).unwrap();
+        self.notes.insert(item.uuid, note);
+        Some(item.uuid)
     }
 
     /// Encrypt an item and return it.

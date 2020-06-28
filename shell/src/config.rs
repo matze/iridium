@@ -1,7 +1,7 @@
 use anyhow::Result;
-use crate::standardfile::Credentials;
 use directories::BaseDirs;
 use serde::{Deserialize, Serialize};
+use standardfile::Credentials;
 use std::path::PathBuf;
 use std::fs;
 use std::fs::{create_dir_all, read_to_string};

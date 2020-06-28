@@ -1,6 +1,4 @@
-use super::{Item, Note};
-use crate::storage;
-use crate::standardfile;
+use crate::{Item, NoteContent, Note, Credentials};
 use aes::Aes256;
 use anyhow::{anyhow, Result};
 use block_modes::block_padding::Pkcs7;
@@ -69,7 +67,7 @@ fn encrypt(s: &str, ek: &Key, ak: &Key, uuid: &Uuid) -> Result<String> {
     ))
 }
 
-fn get_nonzero_cost(credentials: &standardfile::Credentials) -> Result<std::num::NonZeroU32> {
+fn get_nonzero_cost(credentials: &Credentials) -> Result<std::num::NonZeroU32> {
     let cost = std::num::NonZeroU32::new(credentials.cost);
 
     match cost {
@@ -91,7 +89,7 @@ pub fn make_nonce() -> String {
 }
 
 impl Crypto {
-    pub fn new(credentials: &standardfile::Credentials) -> Result<Self> {
+    pub fn new(credentials: &Credentials) -> Result<Self> {
         let cost = get_nonzero_cost(&credentials)?;
         let salt_input = std::format!("{}:SF:003:{}:{}", credentials.identifier, credentials.cost, credentials.nonce);
         let salt = digest::digest(&digest::SHA256, salt_input.as_bytes());
@@ -121,7 +119,7 @@ impl Crypto {
         HEXLOWER.encode(&self.pw)
     }
 
-    pub fn decrypt(&self, item: &Item) -> Result<storage::Decrypted> {
+    pub fn decrypt(&self, item: &Item) -> Result<Note> {
         if item.enc_item_key.is_none() || item.content.is_none() {
             return Err(anyhow!("Cannot decrypt without key"));
         }
@@ -142,14 +140,22 @@ impl Crypto {
         let decrypted = decrypt(&content, &item_ek, &item_ak, &item.uuid)?;
 
         if item.content_type == "Note" {
-            Ok(storage::Decrypted::Note(serde_json::from_str::<standardfile::Note>(&decrypted)?))
+            let content = serde_json::from_str::<NoteContent>(&decrypted)?;
+
+            Ok(Note {
+                title: content.title.unwrap_or("".to_string()),
+                text: content.text,
+                created_at: item.created_at,
+                updated_at: item.updated_at,
+                uuid: item.uuid,
+            })
         } else {
-            Ok(storage::Decrypted::None)
+            Err(anyhow!("Not a note"))
         }
     }
 
-    pub fn encrypt(&self, note: &storage::Note, uuid: &Uuid) -> Result<Item> {
-        let json_note = Note {
+    pub fn encrypt(&self, note: &Note, uuid: &Uuid) -> Result<Item> {
+        let content = NoteContent {
             title: Some(note.title.clone()),
             text: note.text.clone(),
         };
@@ -164,7 +170,7 @@ impl Crypto {
         item_ek.clone_from_slice(&item_key[..32]);
         item_ak.clone_from_slice(&item_key[32..]);
 
-        let to_encrypt = serde_json::to_string(&json_note)?;
+        let to_encrypt = serde_json::to_string(&content)?;
 
         let mut iv_bytes = [0u8; 16];
         rng.fill_bytes(&mut iv_bytes);
@@ -193,7 +199,7 @@ mod tests {
         let now = Utc::now();
         let uuid = Uuid::new_v4();
 
-        let note = storage::Note {
+        let note = Note {
             title: "Title".to_owned(),
             text: "Text".to_owned(),
             created_at: now,
@@ -202,7 +208,7 @@ mod tests {
         };
 
         let nonce = "3f8ea1ffd8067c1550ca3ad78de71c9b6e68b5cb540e370c12065eca15d9a049";
-        let credentials = standardfile::Credentials {
+        let credentials = Credentials {
             identifier: "foo@bar.com".to_string(),
             cost: 110000,
             nonce: nonce.to_string(),
@@ -210,15 +216,9 @@ mod tests {
         };
         let crypto = Crypto::new(&credentials).unwrap();
         let encrypted = crypto.encrypt(&note, &uuid).unwrap();
+        let decrypted = crypto.decrypt(&encrypted).unwrap();
 
-        match crypto.decrypt(&encrypted).unwrap() {
-            storage::Decrypted::Note(decrypted) => {
-                assert_eq!(decrypted.title.unwrap(), note.title);
-                assert_eq!(decrypted.text, note.text);
-            }
-            storage::Decrypted::None => {
-                assert!(false);
-            }
-        }
+        assert_eq!(decrypted.title, note.title);
+        assert_eq!(decrypted.text, note.text);
     }
 }
