@@ -314,8 +314,6 @@ impl Application {
                                 to_flush.remove(&uuid);
                             }
 
-                            let delete = true;
-
                             if let Some(client) = &mut client {
                                 let mut encrypted = storage.encrypt(&uuid).unwrap();
                                 encrypted.deleted = Some(true);
@@ -325,10 +323,8 @@ impl Application {
                                 client.sync(vec![encrypted]).unwrap();
                             }
 
-                            if delete {
-                                sender.send(WindowEvent::DeleteNote(uuid)).unwrap();
-                                storage.delete(&uuid).unwrap();
-                            }
+                            sender.send(WindowEvent::DeleteNote(uuid)).unwrap();
+                            storage.delete(&uuid).unwrap();
                         }
                     }
                     AppEvent::SelectNote(uuid) => {
