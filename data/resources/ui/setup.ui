@@ -56,7 +56,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkSwitch" id="sync-button">
+              <object class="GtkSwitch" id="sync-switch">
                 <property name="visible">True</property>
                 <property name="hexpand">False</property>
                 <property name="halign">GTK_ALIGN_START</property>
