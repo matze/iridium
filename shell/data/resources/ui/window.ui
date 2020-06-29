@@ -372,7 +372,7 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkBox">
+                      <object class="GtkBox" id="iridium-entry-box">
                         <property name="name">iridium-entry-box</property>
                         <property name="visible">True</property>
                         <property name="orientation">GTK_ORIENTATION_VERTICAL</property>

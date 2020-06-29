@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use gtk::ListBoxRow;
+use std::path::PathBuf;
 use uuid::Uuid;
 
 pub struct User {

@@ -100,6 +100,7 @@ impl Window {
         );
 
         let note_list_box = get_widget!(builder, gtk::ListBox, "iridium-note-list");
+        let note_pane_box = get_widget!(builder, gtk::Box, "iridium-entry-box");
         let title_entry = get_widget!(builder, gtk::Entry, "iridium-title-entry");
         let search_bar = get_widget!(builder, gtk::SearchBar, "iridium-search-bar");
         let search_entry = get_widget!(builder, gtk::SearchEntry, "iridium-search-entry");
@@ -207,8 +208,16 @@ impl Window {
                         let stack = get_widget!(builder, gtk::Stack, "iridium-main-stack");
                         let main_box = get_widget!(builder, gtk::Box, "iridium-main-content");
                         stack.set_visible_child(&main_box);
+
+                        // Do not show the right hand pane until we have a note to show.
+                        if known_uuids.len() == 0 {
+                            note_pane_box.hide();
+                        }
                     }
                     WindowEvent::AddNote(uuid, title) => {
+                        // FIXME: make this a bit smarter ...
+                        note_pane_box.show();
+
                         if !known_uuids.contains(&uuid) {
                             let (row, label) = new_note_row(&title);
                             note_list_box.add(&row);
@@ -228,6 +237,10 @@ impl Window {
                             if uuid == *row_uuid {
                                 note_list_box.remove(row);
                             }
+                        }
+
+                        if known_uuids.len() == 0 {
+                            note_pane_box.hide();
                         }
                     }
                     WindowEvent::SelectNote(row) => {
