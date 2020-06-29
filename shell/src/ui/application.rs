@@ -360,8 +360,10 @@ impl Application {
                             client.sync(vec![encrypted]).unwrap();
                         };
 
-                        storage.flush(&uuid).unwrap();
-                        to_flush.remove(&uuid);
+                        if to_flush.contains(&uuid) {
+                            storage.flush(&uuid).unwrap();
+                            to_flush.remove(&uuid);
+                        }
                     }
                 }
 
