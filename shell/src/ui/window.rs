@@ -1,8 +1,9 @@
-use std::collections::{HashMap, HashSet};
 use crate::consts::{SHORTCUTS_UI, WINDOW_UI};
 use crate::ui::state::{AppEvent, WindowEvent, User, RemoteAuth};
 use gio::prelude::*;
 use gtk::prelude::*;
+use std::cmp;
+use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
 pub struct Window {
@@ -234,15 +235,25 @@ impl Window {
                     WindowEvent::DeleteNote(uuid) => {
                         known_uuids.remove(&uuid);
 
+                        // Feels dirty to get the index of the previous row but okay ...
+                        let mut index = 0;
+
                         // Disgusting but works for now ...
                         for (row, (row_uuid, _)) in &row_map {
                             if uuid == *row_uuid {
+                                index = cmp::max(0, row.get_index() - 1);
                                 note_list_box.remove(row);
                             }
                         }
 
+                        // If we have no more notes, hide the note entry part otherwise switch to
+                        // the previous note.
                         if known_uuids.len() == 0 {
                             right_hand_stack.set_visible_child(&right_hand_info);
+                        }
+                        else {
+                            let new_row = note_list_box.get_row_at_index(index).unwrap();
+                            note_list_box.select_row(Some(&new_row));
                         }
                     }
                     WindowEvent::SelectNote(row) => {
