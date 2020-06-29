@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use crate::config::Config;
 use crate::secret;
 use standardfile::Note;
@@ -87,14 +87,15 @@ impl Storage {
 
     /// Encrypt an item and return it.
     pub fn encrypt(&self, uuid: &Uuid) -> Result<standardfile::Item> {
-        let note = self.notes.get(&uuid);
+        if let Some(note) = self.notes.get(&uuid) {
+            assert!(self.crypto.is_some());
 
-        assert!(note.is_some());
-        assert!(self.crypto.is_some());
-
-        let note = note.unwrap();
-        let crypto = self.crypto.as_ref().unwrap();
-        Ok(crypto.encrypt(&note, &uuid)?)
+            let crypto = self.crypto.as_ref().unwrap();
+            Ok(crypto.encrypt(&note, &uuid)?)
+        }
+        else {
+            Err(anyhow!("Note {} does not exist", uuid))
+        }
     }
 
     /// Encrypts item and writes it to disk.
