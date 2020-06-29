@@ -4,3 +4,7 @@ language = "en"
 multilingual = false
 src = "docs"
 title = "Iridium Documentation"
+
+[output.html]
+additional-css = ["docs/custom.css"]
+default-theme = "Rust"
