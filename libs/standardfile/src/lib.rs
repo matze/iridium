@@ -1,3 +1,4 @@
+use anyhow::Result;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
@@ -59,4 +60,23 @@ pub fn encrypted_notes(items: &Vec<Item>) -> Vec<&Item> {
     .iter()
     .filter(|x| x.content_type == "Note")
     .collect::<Vec<&Item>>()
+}
+
+impl Item {
+    /// Deserialize Item from JSON string.
+    pub fn from_str(s: &str) -> Result<Self> {
+        Ok(serde_json::from_str(s)?)
+    }
+
+    /// Serialize Item as JSON string.
+    pub fn to_string(&self) -> Result<String> {
+        Ok(serde_json::to_string(&self)?)
+    }
+}
+
+impl Exported {
+    /// Deserialize Exported from JSON string.
+    pub fn from_str(s: &str) -> Result<Self> {
+        Ok(serde_json::from_str(s)?)
+    }
 }

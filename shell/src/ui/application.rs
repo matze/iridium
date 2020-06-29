@@ -275,7 +275,7 @@ impl Application {
                         let filename = path.file_name().unwrap().to_string_lossy();
 
                         if let Ok(contents) = std::fs::read_to_string(&path) {
-                            if let Ok(exported) = serde_json::from_str::<Exported>(&contents) {
+                            if let Ok(exported) = Exported::from_str(&contents) {
                                 let credentials = Credentials {
                                     identifier: exported.auth_params.identifier,
                                     cost: exported.auth_params.pw_cost,

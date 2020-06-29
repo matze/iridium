@@ -60,7 +60,7 @@ impl Storage {
                 let file_path = entry?.path();
                 let uuid = Uuid::parse_str(file_path.file_name().unwrap().to_string_lossy().as_ref())?;
                 let contents = read_to_string(file_path)?;
-                let encrypted_item = serde_json::from_str::<standardfile::Item>(&contents)?;
+                let encrypted_item = standardfile::Item::from_str(&contents)?;
                 assert_eq!(uuid, encrypted_item.uuid);
                 storage.decrypt(&encrypted_item);
             }
@@ -102,10 +102,9 @@ impl Storage {
     pub fn flush(&self, uuid: &Uuid) -> Result<()> {
         if let Some(item) = self.notes.get(uuid) {
             let encrypted = self.crypto.as_ref().unwrap().encrypt(item, uuid)?;
-            let serialized = serde_json::to_string(&encrypted)?;
             let path = self.path_from_uuid(&uuid);
             self.ensure_path_exists()?;
-            write(&path, serialized)?;
+            write(&path, encrypted.to_string()?)?;
         }
 
         Ok(())
@@ -181,7 +180,7 @@ impl Storage {
             let file_path = entry?.path();
             let uuid = Uuid::parse_str(file_path.file_name().unwrap().to_string_lossy().as_ref())?;
             let contents = read_to_string(file_path)?;
-            let encrypted_item = serde_json::from_str::<standardfile::Item>(&contents)?;
+            let encrypted_item = standardfile::Item::from_str(&contents)?;
             assert_eq!(uuid, encrypted_item.uuid);
             self.decrypt(&encrypted_item);
         }

@@ -923,7 +923,6 @@ dependencies = [
  "ring",
  "secret-service",
  "serde",
- "serde_json",
  "standardfile",
  "toml",
  "uuid",
