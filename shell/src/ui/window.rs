@@ -100,7 +100,6 @@ impl Window {
         );
 
         let note_list_box = get_widget!(builder, gtk::ListBox, "iridium-note-list");
-        let note_pane_box = get_widget!(builder, gtk::Box, "iridium-entry-box");
         let title_entry = get_widget!(builder, gtk::Entry, "iridium-title-entry");
         let search_bar = get_widget!(builder, gtk::SearchBar, "iridium-search-bar");
         let search_entry = get_widget!(builder, gtk::SearchEntry, "iridium-search-entry");
@@ -111,6 +110,10 @@ impl Window {
         let login_button = get_widget!(builder, gtk::Button, "login-button");
         let text_buffer = text_view.get_buffer().unwrap();
         let note_popover = get_widget!(builder, gtk::PopoverMenu, "note_menu");
+
+        let right_hand_stack = get_widget!(builder, gtk::Stack, "right-hand-stack");
+        let right_hand_info = get_widget!(builder, gtk::Label, "right-hand-info-label");
+        let note_pane_box = get_widget!(builder, gtk::Box, "iridium-entry-box");
 
         let (win_sender, win_receiver) = glib::MainContext::channel::<WindowEvent>(glib::PRIORITY_DEFAULT);
 
@@ -211,12 +214,11 @@ impl Window {
 
                         // Do not show the right hand pane until we have a note to show.
                         if known_uuids.len() == 0 {
-                            note_pane_box.hide();
+                            right_hand_stack.set_visible_child(&right_hand_info);
                         }
                     }
                     WindowEvent::AddNote(uuid, title) => {
-                        // FIXME: make this a bit smarter ...
-                        note_pane_box.show();
+                        right_hand_stack.set_visible_child(&note_pane_box);
 
                         if !known_uuids.contains(&uuid) {
                             let (row, label) = new_note_row(&title);
@@ -240,7 +242,7 @@ impl Window {
                         }
 
                         if known_uuids.len() == 0 {
-                            note_pane_box.hide();
+                            right_hand_stack.set_visible_child(&right_hand_info);
                         }
                     }
                     WindowEvent::SelectNote(row) => {

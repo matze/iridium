@@ -114,7 +114,7 @@
   </object>
   <object class="GtkApplicationWindow" id="window">
     <property name="can_focus">False</property>
-    <property name="default_width">600</property>
+    <property name="default_width">800</property>
     <property name="default_height">400</property>
     <child type="titlebar">
       <object class="GtkHeaderBar" id="headerbar">
@@ -372,34 +372,56 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkBox" id="iridium-entry-box">
-                        <property name="name">iridium-entry-box</property>
+                      <!-- Right hand side container stack that houses an information label if there are no notes or the entry itself.  -->
+                      <object class="GtkStack" id="right-hand-stack">
                         <property name="visible">True</property>
-                        <property name="orientation">GTK_ORIENTATION_VERTICAL</property>
+                        <property name="transition-type">GTK_STACK_TRANSITION_TYPE_SLIDE_UP</property>
                         <child>
-                          <object class="GtkEntry" id="iridium-title-entry">
-                            <property name="name">iridium-title-entry</property>
+                          <!-- Shown when the note list is empty -->
+                          <object class="GtkLabel" id="right-hand-info-label">
+                            <property name="name">iridium-entry-info</property>
                             <property name="visible">True</property>
-                            <property name="placeholder-text">Add title …</property>
-                            <property name="margin-top">6</property>
-                            <property name="margin-left">6</property>
-                            <property name="margin-right">6</property>
-                            <property name="halign">GTK_ALIGN_FILL</property>
-                            <property name="hexpand">TRUE</property>
+                            <property name="expand">True</property>
+                            <property name="label">Press + to add a new note.</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                              <!-- 18pt scaled by Pango scale -->
+                              <attribute name="size" value="18432"/>
+                            </attributes>
                           </object>
                         </child>
                         <child>
-                          <object class="GtkPaned">
+                          <!-- Right hand side input -->
+                          <object class="GtkBox" id="iridium-entry-box">
+                            <property name="name">iridium-entry-box</property>
                             <property name="visible">True</property>
+                            <property name="orientation">GTK_ORIENTATION_VERTICAL</property>
                             <child>
-                              <object class="GtkScrolledWindow">
+                              <object class="GtkEntry" id="iridium-title-entry">
+                                <property name="name">iridium-title-entry</property>
                                 <property name="visible">True</property>
-                                <property name="margin">12</property>
+                                <property name="placeholder-text">Add title …</property>
+                                <property name="margin-top">6</property>
+                                <property name="margin-left">6</property>
+                                <property name="margin-right">6</property>
+                                <property name="halign">GTK_ALIGN_FILL</property>
+                                <property name="hexpand">TRUE</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkPaned">
+                                <property name="visible">True</property>
                                 <child>
-                                  <object class="GtkTextView" id="iridium-text-view">
-                                    <property name="name">iridium-text-view</property>
+                                  <object class="GtkScrolledWindow">
                                     <property name="visible">True</property>
-                                    <property name="expand">True</property>
+                                    <property name="margin">12</property>
+                                    <child>
+                                      <object class="GtkTextView" id="iridium-text-view">
+                                        <property name="name">iridium-text-view</property>
+                                        <property name="visible">True</property>
+                                        <property name="expand">True</property>
+                                      </object>
+                                    </child>
                                   </object>
                                 </child>
                               </object>
