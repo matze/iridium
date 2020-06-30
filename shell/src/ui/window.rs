@@ -239,11 +239,11 @@ impl Window {
                         let mut index = 0;
 
                         // Disgusting but works for now ...
-                        for (row, (row_uuid, _)) in &row_map {
-                            if uuid == *row_uuid {
+                        for row in row_map.iter()
+                            .filter(|&(_, (row_uuid, _))| uuid == *row_uuid)
+                            .map(|(row, _)| row) {
                                 index = cmp::max(0, row.get_index() - 1);
                                 note_list_box.remove(row);
-                            }
                         }
 
                         // If we have no more notes, hide the note entry part otherwise switch to
