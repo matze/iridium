@@ -246,6 +246,8 @@ impl Window {
                                 note_list_box.remove(row);
                         }
 
+                        row_map.retain(|_, (row_uuid, _)| uuid != *row_uuid);
+
                         // If we have no more notes, hide the note entry part otherwise switch to
                         // the previous note.
                         if known_uuids.len() == 0 {
