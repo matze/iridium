@@ -70,12 +70,13 @@ impl Storage {
         Ok(storage)
     }
 
-    pub fn reset(&mut self, credentials: &standardfile::Credentials) {
+    pub fn reset(&mut self, credentials: &standardfile::Credentials) -> Result<()> {
         let path = data_path_from_identifier(&credentials.identifier);
         log::info!("reset path to {:?}", path);
-        self.crypto = Some(Crypto::new(&credentials).unwrap());
-        self.read_from_disk(&path).unwrap();
+        self.crypto = Some(Crypto::new(&credentials)?);
+        self.read_from_disk(&path)?;
         self.path = path;
+        Ok(())
     }
 
     /// Decrypt item and add it to the storage.

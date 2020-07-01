@@ -86,8 +86,7 @@ fn show_all_rows(row_map: &RowMap, note_list_box: &gtk::ListBox) {
 
 impl Window {
     pub fn new(app_sender: glib::Sender<AppEvent>) -> Self {
-        let builder =
-            gtk::Builder::new_from_resource(WINDOW_UI);
+        let builder = gtk::Builder::new_from_resource(WINDOW_UI);
         let window: gtk::ApplicationWindow = builder.get_object("window").unwrap();
 
         window.set_help_overlay(Some(&get_shortcuts_window()));

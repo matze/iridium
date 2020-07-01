@@ -31,7 +31,7 @@ fn setup_server_dialog(builder: &gtk::Builder) {
 
 fn decrypt_and_store(storage: &mut Storage, item: &Item, sender: &glib::Sender<WindowEvent>) -> Result<()> {
     if let Some(uuid) = storage.decrypt(&item) {
-        storage.flush(&uuid).unwrap();
+        storage.flush(&uuid)?;
 
         if let Some(note) = storage.notes.get(&uuid) {
             sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
@@ -52,7 +52,7 @@ impl Application {
         let mut storage = match config {
             Some(config) => {
                 let user = User {
-                    password: secret::load(&config.identifier, config.server.as_deref()).unwrap(),
+                    password: secret::load(&config.identifier, config.server.as_deref())?,
                     identifier: config.identifier.clone(),
                 };
 
@@ -61,7 +61,7 @@ impl Application {
                         user: user,
                         server: server.clone(),
                     };
-                    sender.send(AppEvent::SignIn(auth)).unwrap();
+                    sender.send(AppEvent::SignIn(auth))?;
                 }
                 window.sender.send(WindowEvent::ShowMainContent).unwrap();
 
@@ -193,7 +193,7 @@ impl Application {
                             password: user.password,
                         };
 
-                        storage.reset(&credentials);
+                        storage.reset(&credentials).unwrap();
                         config::write(&credentials).unwrap();
                         secret::store(&credentials, None);
                     }
@@ -204,7 +204,7 @@ impl Application {
                         match new_client {
                             Ok(new_client) => {
                                 let credentials = &new_client.credentials;
-                                storage.reset(&credentials);
+                                storage.reset(&credentials).unwrap();
                                 config::write(&credentials).unwrap();
                                 secret::store(&credentials, Some(&auth.server));
                                 sender.send(WindowEvent::ShowMainContent).unwrap();
@@ -229,7 +229,7 @@ impl Application {
                                 let credentials = &new_client.credentials;
 
                                 // Switch storage, read local files and show them in the UI.
-                                storage.reset(&credentials);
+                                storage.reset(&credentials).unwrap();
                                 config::write_with_server(&credentials, &auth.server).unwrap();
 
                                 for (uuid, note) in &storage.notes {
@@ -283,7 +283,7 @@ impl Application {
                                     password: password,
                                 };
 
-                                storage.reset(&credentials);
+                                storage.reset(&credentials).unwrap();
                                 config::write(&credentials).unwrap();
                                 secret::store(&credentials, server.as_deref());
 
