@@ -1,6 +1,4 @@
 use anyhow::{anyhow, Result};
-use crate::config::Config;
-use crate::secret;
 use standardfile::Note;
 use standardfile::crypto::Crypto;
 use chrono::Utc;
@@ -28,18 +26,7 @@ fn data_path_from_identifier(identifier: &str) -> PathBuf {
 }
 
 impl Storage {
-    pub fn new_from_config(config: &Config) -> Result<Self> {
-        let credentials = standardfile::Credentials {
-            identifier: config.identifier.clone(),
-            cost: config.cost,
-            nonce: config.nonce.clone(),
-            password: secret::load(&config.identifier, None)?,
-        };
-
-        Ok(Storage::new_from_credentials(&credentials)?)
-    }
-
-    pub fn new_from_credentials(credentials: &standardfile::Credentials) -> Result<Self> {
+    pub fn new(credentials: &standardfile::Credentials) -> Result<Self> {
         let mut storage = Self {
             path: data_path_from_identifier(&credentials.identifier),
             notes: HashMap::new(),

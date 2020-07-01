@@ -65,7 +65,8 @@ impl Application {
                 }
                 window.sender.send(WindowEvent::ShowMainContent).unwrap();
 
-                let storage = Storage::new_from_config(&config)?;
+                let credentials = config.to_credentials()?;
+                let storage = Storage::new(&credentials)?;
 
                 for (uuid, note) in &storage.notes {
                     window.sender.send(WindowEvent::AddNote(*uuid, note.title.clone())).unwrap();
@@ -197,7 +198,7 @@ impl Application {
                             password: user.password,
                         };
 
-                        storage = Some(Storage::new_from_credentials(&credentials).unwrap());
+                        storage = Some(Storage::new(&credentials).unwrap());
                         config::write(&credentials).unwrap();
                         secret::store(&credentials, None);
                     }
@@ -208,7 +209,7 @@ impl Application {
                         match new_client {
                             Ok(new_client) => {
                                 let credentials = &new_client.credentials;
-                                storage = Some(Storage::new_from_credentials(&credentials).unwrap());
+                                storage = Some(Storage::new(&credentials).unwrap());
                                 config::write(&credentials).unwrap();
                                 secret::store(&credentials, Some(&auth.server));
                                 sender.send(WindowEvent::ShowMainContent).unwrap();
@@ -233,7 +234,7 @@ impl Application {
                                 let credentials = &new_client.credentials;
 
                                 // Switch storage, read local files and show them in the UI.
-                                storage = Some(Storage::new_from_credentials(&credentials).unwrap());
+                                storage = Some(Storage::new(&credentials).unwrap());
                                 config::write_with_server(&credentials, &auth.server).unwrap();
 
                                 for (uuid, note) in &storage.as_ref().unwrap().notes {
@@ -289,7 +290,7 @@ impl Application {
                                     password: password,
                                 };
 
-                                storage = Some(Storage::new_from_credentials(&credentials).unwrap());
+                                storage = Some(Storage::new(&credentials).unwrap());
                                 config::write(&credentials).unwrap();
                                 secret::store(&credentials, server.as_deref());
 

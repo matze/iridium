@@ -1,4 +1,5 @@
 use anyhow::Result;
+use crate::secret;
 use directories::BaseDirs;
 use serde::{Deserialize, Serialize};
 use standardfile::Credentials;
@@ -55,6 +56,15 @@ impl Config {
         else {
             Ok(None)
         }
+    }
+
+    pub fn to_credentials(&self) -> Result<Credentials> {
+        Ok(Credentials {
+            password: secret::load(&self.identifier, None)?,
+            identifier: self.identifier.clone(),
+            cost: self.cost,
+            nonce: self.nonce.clone(),
+        })
     }
 
     pub fn write(&self) -> Result<()> {
