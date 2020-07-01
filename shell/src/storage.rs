@@ -36,11 +36,18 @@ impl Storage {
         if storage.path.exists() {
             for entry in read_dir(&storage.path)? {
                 let file_path = entry?.path();
-                let uuid = Uuid::parse_str(file_path.file_name().unwrap().to_string_lossy().as_ref())?;
-                let contents = read_to_string(file_path)?;
-                let encrypted_item = standardfile::Item::from_str(&contents)?;
-                assert_eq!(uuid, encrypted_item.uuid);
-                storage.decrypt(&encrypted_item);
+
+                if let Some(file_name) = file_path.file_name() {
+                    let uuid = Uuid::parse_str(file_name.to_string_lossy().as_ref())?;
+                    let contents = read_to_string(file_path)?;
+                    let encrypted_item = standardfile::Item::from_str(&contents)?;
+
+                    if uuid != encrypted_item.uuid {
+                        return Err(anyhow!("File is corrupted"));
+                    }
+
+                    storage.decrypt(&encrypted_item);
+                }
             }
         }
 
