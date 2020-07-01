@@ -15,7 +15,7 @@ use uuid::Uuid;
 pub struct Storage {
     path: PathBuf,
     pub notes: HashMap<Uuid, Note>,
-    crypto: Option<Crypto>,
+    crypto: Crypto,
 }
 
 fn data_path_from_identifier(identifier: &str) -> PathBuf {
@@ -28,18 +28,7 @@ fn data_path_from_identifier(identifier: &str) -> PathBuf {
 }
 
 impl Storage {
-    pub fn new() -> Storage {
-        Self {
-            // FIXME: find a better solution, Option<PathBuf> is not ...
-            path: PathBuf::from("/tmp"),
-            notes: HashMap::new(),
-            crypto: None,
-        }
-    }
-
     pub fn new_from_config(config: &Config) -> Result<Self> {
-        let path = data_path_from_identifier(&config.identifier);
-
         let credentials = standardfile::Credentials {
             identifier: config.identifier.clone(),
             cost: config.cost,
@@ -47,16 +36,18 @@ impl Storage {
             password: secret::load(&config.identifier, None)?,
         };
 
-        let crypto = Crypto::new(&credentials)?;
+        Ok(Storage::new_from_credentials(&credentials)?)
+    }
 
+    pub fn new_from_credentials(credentials: &standardfile::Credentials) -> Result<Self> {
         let mut storage = Self {
-            path: path.clone(),
+            path: data_path_from_identifier(&credentials.identifier),
             notes: HashMap::new(),
-            crypto: Some(crypto),
+            crypto: Crypto::new(&credentials)?,
         };
 
-        if path.exists() {
-            for entry in read_dir(&path)? {
+        if storage.path.exists() {
+            for entry in read_dir(&storage.path)? {
                 let file_path = entry?.path();
                 let uuid = Uuid::parse_str(file_path.file_name().unwrap().to_string_lossy().as_ref())?;
                 let contents = read_to_string(file_path)?;
@@ -64,24 +55,14 @@ impl Storage {
                 assert_eq!(uuid, encrypted_item.uuid);
                 storage.decrypt(&encrypted_item);
             }
-
-            storage.read_from_disk(&path)?;
         }
-        Ok(storage)
-    }
 
-    pub fn reset(&mut self, credentials: &standardfile::Credentials) -> Result<()> {
-        let path = data_path_from_identifier(&credentials.identifier);
-        log::info!("reset path to {:?}", path);
-        self.crypto = Some(Crypto::new(&credentials)?);
-        self.read_from_disk(&path)?;
-        self.path = path;
-        Ok(())
+        Ok(storage)
     }
 
     /// Decrypt item and add it to the storage.
     pub fn decrypt(&mut self, item: &standardfile::Item) -> Option<Uuid> {
-        let note = self.crypto.as_ref().unwrap().decrypt(item).unwrap();
+        let note = self.crypto.decrypt(item).unwrap();
         self.notes.insert(item.uuid, note);
         Some(item.uuid)
     }
@@ -89,10 +70,7 @@ impl Storage {
     /// Encrypt an item and return it.
     pub fn encrypt(&self, uuid: &Uuid) -> Result<standardfile::Item> {
         if let Some(note) = self.notes.get(&uuid) {
-            assert!(self.crypto.is_some());
-
-            let crypto = self.crypto.as_ref().unwrap();
-            Ok(crypto.encrypt(&note, &uuid)?)
+            Ok(self.crypto.encrypt(&note, &uuid)?)
         }
         else {
             Err(anyhow!("Note {} does not exist", uuid))
@@ -102,18 +80,14 @@ impl Storage {
     /// Encrypts item and writes it to disk.
     pub fn flush(&self, uuid: &Uuid) -> Result<()> {
         if let Some(item) = self.notes.get(uuid) {
-            let encrypted = self.crypto.as_ref().unwrap().encrypt(item, uuid)?;
+            let encrypted = self.crypto.encrypt(item, uuid)?;
             let path = self.path_from_uuid(&uuid);
-            self.ensure_path_exists()?;
+
+            if !path.exists() {
+                create_dir_all(&path)?;
+            }
+
             write(&path, encrypted.to_string()?)?;
-        }
-
-        Ok(())
-    }
-
-    fn ensure_path_exists(&self) -> Result<()> {
-        if !self.path.exists() {
-            create_dir_all(&self.path)?;
         }
 
         Ok(())
@@ -170,22 +144,5 @@ impl Storage {
         }
 
         // Returning an error?
-    }
-
-    fn read_from_disk(&mut self, path: &PathBuf) -> Result<()> {
-        if !path.exists() {
-            return Ok(())
-        }
-
-        for entry in read_dir(&path)? {
-            let file_path = entry?.path();
-            let uuid = Uuid::parse_str(file_path.file_name().unwrap().to_string_lossy().as_ref())?;
-            let contents = read_to_string(file_path)?;
-            let encrypted_item = standardfile::Item::from_str(&contents)?;
-            assert_eq!(uuid, encrypted_item.uuid);
-            self.decrypt(&encrypted_item);
-        }
-
-        Ok(())
     }
 }

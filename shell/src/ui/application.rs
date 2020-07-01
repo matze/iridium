@@ -65,14 +65,16 @@ impl Application {
                 }
                 window.sender.send(WindowEvent::ShowMainContent).unwrap();
 
-                Storage::new_from_config(&config)?
-            }
-            None => { Storage::new() },
-        };
+                let storage = Storage::new_from_config(&config)?;
 
-        for (uuid, note) in &storage.notes {
-            window.sender.send(WindowEvent::AddNote(*uuid, note.title.clone())).unwrap();
-        }
+                for (uuid, note) in &storage.notes {
+                    window.sender.send(WindowEvent::AddNote(*uuid, note.title.clone())).unwrap();
+                }
+
+                Some(storage)
+            }
+            None => None
+        };
 
         app.connect_activate(
             clone!(@weak window.widget as window => move |app| {
@@ -179,8 +181,10 @@ impl Application {
             clone!(@strong sender as app_sender, @strong window.sender as sender, @strong app => move |event| {
                 match event {
                     AppEvent::Quit => {
-                        for uuid in &to_flush {
-                            storage.flush(&uuid).unwrap();
+                        if let Some(storage) = &mut storage {
+                            for uuid in &to_flush {
+                                storage.flush(&uuid).unwrap();
+                            }
                         }
 
                         app.quit();
@@ -193,7 +197,7 @@ impl Application {
                             password: user.password,
                         };
 
-                        storage.reset(&credentials).unwrap();
+                        storage = Some(Storage::new_from_credentials(&credentials).unwrap());
                         config::write(&credentials).unwrap();
                         secret::store(&credentials, None);
                     }
@@ -204,7 +208,7 @@ impl Application {
                         match new_client {
                             Ok(new_client) => {
                                 let credentials = &new_client.credentials;
-                                storage.reset(&credentials).unwrap();
+                                storage = Some(Storage::new_from_credentials(&credentials).unwrap());
                                 config::write(&credentials).unwrap();
                                 secret::store(&credentials, Some(&auth.server));
                                 sender.send(WindowEvent::ShowMainContent).unwrap();
@@ -229,10 +233,10 @@ impl Application {
                                 let credentials = &new_client.credentials;
 
                                 // Switch storage, read local files and show them in the UI.
-                                storage.reset(&credentials).unwrap();
+                                storage = Some(Storage::new_from_credentials(&credentials).unwrap());
                                 config::write_with_server(&credentials, &auth.server).unwrap();
 
-                                for (uuid, note) in &storage.notes {
+                                for (uuid, note) in &storage.as_ref().unwrap().notes {
                                     sender.send(WindowEvent::AddNote(uuid.clone(), note.title.clone())).unwrap();
                                 }
 
@@ -256,17 +260,19 @@ impl Application {
                             // never synced an item.
                             let mut unsynced_items: Vec<Item> = Vec::new();
 
-                            for (uuid, _) in &storage.notes {
-                                unsynced_items.push(storage.encrypt(&uuid).unwrap());
-                            }
+                            if let Some(storage) = &mut storage {
+                                for (uuid, _) in &storage.notes {
+                                    unsynced_items.push(storage.encrypt(&uuid).unwrap());
+                                }
 
-                            // Decrypt, flush and show notes we have retrieved from the initial
-                            // sync.
-                            let items = client.sync(unsynced_items).unwrap();
+                                // Decrypt, flush and show notes we have retrieved from the initial
+                                // sync.
+                                let items = client.sync(unsynced_items).unwrap();
 
-                            for item in encrypted_notes(&items) {
-                                if !item.deleted.unwrap_or(false) {
-                                    decrypt_and_store(&mut storage, &item, &sender).unwrap();
+                                for item in encrypted_notes(&items) {
+                                    if !item.deleted.unwrap_or(false) {
+                                        decrypt_and_store(storage, &item, &sender).unwrap();
+                                    }
                                 }
                             }
                         }
@@ -283,12 +289,14 @@ impl Application {
                                     password: password,
                                 };
 
-                                storage.reset(&credentials).unwrap();
+                                storage = Some(Storage::new_from_credentials(&credentials).unwrap());
                                 config::write(&credentials).unwrap();
                                 secret::store(&credentials, server.as_deref());
 
-                                for item in encrypted_notes(&exported.items) {
-                                    decrypt_and_store(&mut storage, &item, &sender).unwrap();
+                                if let Some(storage) = &mut storage {
+                                    for item in encrypted_notes(&exported.items) {
+                                        decrypt_and_store(storage, &item, &sender).unwrap();
+                                    }
                                 }
                             }
                             else {
@@ -302,9 +310,11 @@ impl Application {
                         }
                     }
                     AppEvent::AddNote => {
-                        let uuid = storage.create_note();
-                        let note = storage.notes.get(&uuid).unwrap();
-                        sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
+                        if let Some(storage) = &mut storage {
+                            let uuid = storage.create_note();
+                            let note = storage.notes.get(&uuid).unwrap();
+                            sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
+                        }
                     }
                     AppEvent::DeleteNote => {
                         if let Some(uuid) = selected {
@@ -314,32 +324,38 @@ impl Application {
                                 to_flush.remove(&uuid);
                             }
 
-                            if let Some(client) = &mut client {
-                                let mut encrypted = storage.encrypt(&uuid).unwrap();
-                                encrypted.deleted = Some(true);
+                            if let Some(storage) = &mut storage {
+                                if let Some(client) = &mut client {
+                                    let mut encrypted = storage.encrypt(&uuid).unwrap();
+                                    encrypted.deleted = Some(true);
 
-                                // Apparently, we do not receive the item back as marked deleted
-                                // but on subsequent syncs only.
-                                client.sync(vec![encrypted]).unwrap();
+                                    // Apparently, we do not receive the item back as marked deleted
+                                    // but on subsequent syncs only.
+                                    client.sync(vec![encrypted]).unwrap();
+                                }
+
+                                sender.send(WindowEvent::DeleteNote(uuid)).unwrap();
+                                storage.delete(&uuid).unwrap();
                             }
-
-                            sender.send(WindowEvent::DeleteNote(uuid)).unwrap();
-                            storage.delete(&uuid).unwrap();
                         }
                     }
                     AppEvent::SelectNote(uuid) => {
-                        if let Some(item) = storage.notes.get(&uuid) {
-                            window.load_note(&item.title, &item.text);
-                            selected = Some(uuid);
+                        if let Some(storage) = &storage {
+                            if let Some(item) = storage.notes.get(&uuid) {
+                                window.load_note(&item.title, &item.text);
+                                selected = Some(uuid);
+                            }
                         }
                     }
                     AppEvent::Update(uuid, title, text) => {
-                        if let Some(title) = title {
-                            storage.update_title(&uuid, &title);
-                        }
+                        if let Some(storage) = &mut storage {
+                            if let Some(title) = title {
+                                storage.update_title(&uuid, &title);
+                            }
 
-                        if let Some(text) = text {
-                            storage.update_text(&uuid, &text);
+                            if let Some(text) = text {
+                                storage.update_text(&uuid, &text);
+                            }
                         }
 
                         if !to_flush.contains(&uuid) {
@@ -354,15 +370,17 @@ impl Application {
                         }
                     }
                     AppEvent::Flush(uuid) => {
-                        if let Some(client) = &mut client {
-                            // Ideally we use this to store on the server and the local storage.
-                            let encrypted = storage.encrypt(&uuid).unwrap();
-                            client.sync(vec![encrypted]).unwrap();
-                        };
+                        if let Some(storage) = &storage {
+                            if let Some(client) = &mut client {
+                                // Ideally we use this to store on the server and the local storage.
+                                let encrypted = storage.encrypt(&uuid).unwrap();
+                                client.sync(vec![encrypted]).unwrap();
+                            };
 
-                        if to_flush.contains(&uuid) {
-                            storage.flush(&uuid).unwrap();
-                            to_flush.remove(&uuid);
+                            if to_flush.contains(&uuid) {
+                                storage.flush(&uuid).unwrap();
+                                to_flush.remove(&uuid);
+                            }
                         }
                     }
                 }
