@@ -16,19 +16,24 @@ pub struct Storage {
     crypto: Crypto,
 }
 
-fn data_path_from_identifier(identifier: &str) -> PathBuf {
+fn data_path_from_identifier(identifier: &str) -> Result<PathBuf> {
     let name = HEXLOWER.encode(digest::digest(&digest::SHA256, identifier.as_bytes()).as_ref());
-    let dirs = BaseDirs::new().unwrap();
-    let mut path = PathBuf::from(dirs.data_dir());
-    path.push("iridium");
-    path.push(name);
-    path
+
+    if let Some(dirs) = BaseDirs::new() {
+        let mut path = PathBuf::from(dirs.data_dir());
+        path.push("iridium");
+        path.push(name);
+        Ok(path)
+    }
+    else {
+        Err(anyhow!("Could not determine XDG data dir"))
+    }
 }
 
 impl Storage {
     pub fn new(credentials: &standardfile::Credentials) -> Result<Self> {
         let mut storage = Self {
-            path: data_path_from_identifier(&credentials.identifier),
+            path: data_path_from_identifier(&credentials.identifier)?,
             notes: HashMap::new(),
             crypto: Crypto::new(&credentials)?,
         };
