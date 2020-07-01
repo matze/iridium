@@ -55,10 +55,10 @@ impl Storage {
     }
 
     /// Decrypt item and add it to the storage.
-    pub fn decrypt(&mut self, item: &standardfile::Item) -> Option<Uuid> {
-        let note = self.crypto.decrypt(item).unwrap();
+    pub fn decrypt(&mut self, item: &standardfile::Item) -> Result<Uuid> {
+        let note = self.crypto.decrypt(item)?;
         self.notes.insert(item.uuid, note);
-        Some(item.uuid)
+        Ok(item.uuid)
     }
 
     /// Encrypt an item and return it.

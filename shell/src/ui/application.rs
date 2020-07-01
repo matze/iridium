@@ -30,13 +30,14 @@ fn setup_server_dialog(builder: &gtk::Builder) {
 }
 
 fn decrypt_and_store(storage: &mut Storage, item: &Item, sender: &glib::Sender<WindowEvent>) -> Result<()> {
-    if let Some(uuid) = storage.decrypt(&item) {
-        storage.flush(&uuid)?;
+    let uuid = storage.decrypt(&item)?;
 
-        if let Some(note) = storage.notes.get(&uuid) {
-            sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
-        }
+    storage.flush(&uuid)?;
+
+    if let Some(note) = storage.notes.get(&uuid) {
+        sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
     }
+
     Ok(())
 }
 
