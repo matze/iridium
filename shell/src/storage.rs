@@ -46,7 +46,7 @@ impl Storage {
                         return Err(anyhow!("File is corrupted"));
                     }
 
-                    storage.decrypt(&encrypted_item);
+                    storage.decrypt(&encrypted_item)?;
                 }
             }
         }
