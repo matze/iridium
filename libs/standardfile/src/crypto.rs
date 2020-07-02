@@ -27,8 +27,13 @@ fn decrypt(s: &str, ek: &Key, ak: &Key, check_uuid: &Uuid) -> Result<String> {
     let iv = s[3];
     let ciphertext = s[4];
 
-    assert!(version == "003");
-    assert!(check_uuid == &uuid);
+    if version != "003" {
+        return Err(anyhow!("No support for encryption scheme < 003"));
+    }
+
+    if &uuid != check_uuid {
+        return Err(anyhow!("UUIDs do not match"));
+    }
 
     let to_auth = std::format!("003:{}:{}:{}", uuid, iv, ciphertext);
     let auth_hash_bytes = HEXLOWER.decode(&auth_hash.as_bytes())?;
