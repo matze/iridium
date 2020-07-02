@@ -401,7 +401,7 @@
                                 <property name="name">iridium-title-entry</property>
                                 <property name="visible">True</property>
                                 <property name="placeholder-text">Add title …</property>
-                                <property name="margin-top">6</property>
+                                <property name="margin-top">12</property>
                                 <property name="margin-left">6</property>
                                 <property name="margin-right">6</property>
                                 <property name="halign">GTK_ALIGN_FILL</property>
