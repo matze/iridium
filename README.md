@@ -4,6 +4,8 @@ Iridium is a [Standard Notes](https://standardnotes.org) client written in Rust
 and GTK. It synchronizes with any compliant Standard Notes server but can work
 entirely offline as well.
 
+![main window](https://i.imgur.com/F2E8KFs.png)
+
 ## Building from source
 
 Iridium is written in Rust, so you will need the Rust toolchain. You could use
