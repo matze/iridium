@@ -124,8 +124,8 @@ impl Crypto {
             return Err(anyhow!("Cannot decrypt without key"));
         }
 
-        let enc_item_key = item.enc_item_key.as_ref().unwrap();
-        let content = item.content.as_ref().unwrap();
+        let enc_item_key = item.enc_item_key.as_ref().ok_or(anyhow!("Encrypted item key required"))?;
+        let content = item.content.as_ref().ok_or(anyhow!("Encrypted content required"))?;
         let item_key = decrypt(&enc_item_key, &self.mk, &self.ak, &item.uuid)?;
         let mut item_ek: Key = [0; 32];
         let mut item_ak: Key = [0; 32];
