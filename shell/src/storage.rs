@@ -39,6 +39,8 @@ impl Storage {
         };
 
         if storage.path.exists() {
+            log::info!("Loading {:?}", storage.path);
+
             for entry in read_dir(&storage.path)? {
                 let file_path = entry?.path();
 
@@ -82,8 +84,10 @@ impl Storage {
             let encrypted = self.crypto.encrypt(item, uuid)?;
             let path = self.path_from_uuid(&uuid);
 
-            if !path.exists() {
-                create_dir_all(&path)?;
+            if let Some(parent) = path.parent() {
+                if !parent.exists() {
+                    create_dir_all(&parent)?;
+                }
             }
 
             write(&path, encrypted.to_string()?)?;
