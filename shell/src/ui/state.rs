@@ -21,7 +21,7 @@ pub enum AppEvent {
     Import(PathBuf, String, Option<String>),
     Update(Uuid, Option<String>, Option<String>),
     CreateStorage(User),
-    Flush(Uuid),
+    FlushDirty,
     Quit,
 }
 

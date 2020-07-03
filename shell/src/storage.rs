@@ -5,7 +5,7 @@ use chrono::Utc;
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
 use ring::digest;
-use std::collections::HashMap;
+use std::collections::{HashSet, HashMap};
 use std::fs::{create_dir_all, write, read_dir, read_to_string, remove_file};
 use std::path::PathBuf;
 use uuid::Uuid;
@@ -15,6 +15,9 @@ pub struct Storage {
     pub notes: HashMap<Uuid, Note>,
     crypto: Crypto,
     current: Option<Uuid>,
+
+    /// Contains uuids of notes that have not been flushed yet
+    dirty: HashSet<Uuid>,
 }
 
 fn data_path_from_identifier(identifier: &str) -> Result<PathBuf> {
@@ -38,6 +41,7 @@ impl Storage {
             notes: HashMap::new(),
             crypto: Crypto::new(&credentials)?,
             current: None,
+            dirty: HashSet::new(),
         };
 
         if storage.path.exists() {
@@ -63,6 +67,11 @@ impl Storage {
         Ok(storage)
     }
 
+    /// Check if given uuid is already marked dirty.
+    pub fn is_dirty(&self, uuid: &Uuid) -> bool {
+        self.dirty.contains(uuid)
+    }
+
     /// Set the currently note to update.
     pub fn set_current_uuid(&mut self, uuid: &Uuid) -> Result<()> {
         if !self.notes.contains_key(&uuid) {
@@ -75,10 +84,14 @@ impl Storage {
 
     /// Update the contents of the currently selected item.
     pub fn set_text(&mut self, text: &str) {
-        if let Some(item) = self.notes.get_mut(&self.current.unwrap()) {
+        let uuid = &self.current.unwrap();
+
+        if let Some(item) = self.notes.get_mut(uuid) {
             item.updated_at = Utc::now();
             item.text = text.to_owned();
         }
+
+        self.dirty.insert(*uuid);
 
         // Returning an error?
     }
@@ -91,10 +104,14 @@ impl Storage {
 
     /// Update the title of the currently selected item.
     pub fn set_title(&mut self, title: &str) {
-        if let Some(item) = self.notes.get_mut(&self.current.unwrap()) {
+        let uuid = &self.current.unwrap();
+
+        if let Some(item) = self.notes.get_mut(uuid) {
             item.updated_at = Utc::now();
             item.title = title.to_owned();
         }
+
+        self.dirty.insert(*uuid);
 
         // Returning an error?
     }
@@ -140,8 +157,28 @@ impl Storage {
         Ok(())
     }
 
+    /// Get all currently dirty uuids.
+    pub fn get_dirty(&self) -> Vec<Uuid> {
+        self.dirty.clone().into_iter().collect::<_>()
+    }
+
+    /// Flush all dirty items.
+    pub fn flush_dirty(&mut self) -> Result<()> {
+        for uuid in &self.dirty {
+            self.flush(&uuid)?;
+        }
+
+        self.dirty.clear();
+
+        Ok(())
+    }
+
     /// Delete note from storage.
     pub fn delete(&mut self, uuid: &Uuid) -> Result<()> {
+        if self.dirty.contains(uuid) {
+            self.dirty.remove(&uuid);
+        }
+
         let path = self.path_from_uuid(&uuid);
         log::info!("Deleting {:?}", path);
         remove_file(path)?;

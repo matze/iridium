@@ -2,7 +2,6 @@ use anyhow::Result;
 use gio::prelude::*;
 use gtk::prelude::*;
 use std::env;
-use std::collections::HashSet;
 use crate::config;
 use crate::consts::{ABOUT_UI, IMPORT_UI, SETUP_UI};
 use crate::consts::{APP_ID, APP_VERSION};
@@ -175,18 +174,15 @@ impl Application {
         app.set_accels_for_action("app.quit", &["<primary>q"]);
         app.set_accels_for_action("app.search", &["<primary>f"]);
 
-        let mut to_flush: HashSet<Uuid> = HashSet::new();
         let mut client: Option<remote::Client> = None;
-        let mut selected: Option<Uuid> = None;
+        let mut flush_timer_running = false;
 
         receiver.attach(None,
             clone!(@strong sender as app_sender, @strong window.sender as sender, @strong app => move |event| {
                 match event {
                     AppEvent::Quit => {
                         if let Some(storage) = &mut storage {
-                            for uuid in &to_flush {
-                                storage.flush(&uuid).unwrap();
-                            }
+                            storage.flush_dirty().unwrap();
                         }
 
                         app.quit();
@@ -329,10 +325,6 @@ impl Application {
                         if let Some(uuid) = selected {
                             log::info!("Deleting {}", uuid);
 
-                            if to_flush.contains(&uuid) {
-                                to_flush.remove(&uuid);
-                            }
-
                             if let Some(storage) = &mut storage {
                                 if let Some(client) = &mut client {
                                     let mut encrypted = storage.encrypt(&uuid).unwrap();
@@ -364,31 +356,33 @@ impl Application {
                             if let Some(text) = text {
                                 storage.set_text(&text);
                             }
-                        }
 
-                        if !to_flush.contains(&uuid) {
-                            to_flush.insert(uuid);
+                            if !flush_timer_running {
+                                glib::source::timeout_add_seconds(5,
+                                    clone!(@strong app_sender as sender => move || {
+                                        sender.send(AppEvent::FlushDirty).unwrap();
+                                        glib::Continue(false)
+                                    })
+                                );
 
-                            glib::source::timeout_add_seconds(5,
-                                clone!(@strong app_sender as sender => move || {
-                                    sender.send(AppEvent::Flush(uuid)).unwrap();
-                                    glib::Continue(false)
-                                })
-                            );
+                                flush_timer_running = true;
+                            }
                         }
                     }
-                    AppEvent::Flush(uuid) => {
-                        if let Some(storage) = &storage {
+                    AppEvent::FlushDirty => {
+                        if let Some(storage) = &mut storage {
                             if let Some(client) = &mut client {
-                                // Ideally we use this to store on the server and the local storage.
-                                let encrypted = storage.encrypt(&uuid).unwrap();
-                                client.sync(vec![encrypted]).unwrap();
+                                // FIXME: ideally we do not re-encrypt twice to store and to send
+                                // to the server ...
+
+                                for uuid in storage.get_dirty() {
+                                    let encrypted = storage.encrypt(&uuid).unwrap();
+                                    client.sync(vec![encrypted]).unwrap();
+                                }
                             };
 
-                            if to_flush.contains(&uuid) {
-                                storage.flush(&uuid).unwrap();
-                                to_flush.remove(&uuid);
-                            }
+                            storage.flush_dirty().unwrap();
+                            flush_timer_running = false;
                         }
                     }
                 }
