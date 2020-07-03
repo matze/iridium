@@ -199,9 +199,16 @@ impl Application {
                             password: user.password,
                         };
 
-                        storage = Some(Storage::new(&credentials).unwrap());
-                        config::write(&credentials).unwrap();
-                        secret::store(&credentials, None);
+                        match Storage::new(&credentials) {
+                            Ok(s) => {
+                                storage = Some(s);
+                                config::write(&credentials).unwrap();
+                                secret::store(&credentials, None);
+                            }
+                            Err(message) => {
+                                sender.send(WindowEvent::ShowNotification(format!("Error: {}.", message))).unwrap();
+                            }
+                        };
                     }
                     AppEvent::Register(auth) => {
                         log::info!("Registering with {}", auth.server);
