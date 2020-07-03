@@ -47,6 +47,7 @@ pub struct Note {
 
 /// Authentication parameters constructed locally, from a remote server or an imported file and
 /// passed to construct the crypto used in the storage.
+#[derive(Clone)]
 pub struct Credentials {
     pub identifier: String,
     pub cost: u32,

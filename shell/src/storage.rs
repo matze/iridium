@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use standardfile::Note;
+use standardfile::{encrypted_notes, remote, Item, Note};
 use standardfile::crypto::Crypto;
 use chrono::Utc;
 use data_encoding::HEXLOWER;
@@ -18,6 +18,9 @@ pub struct Storage {
 
     /// Contains uuids of notes that have not been flushed yet
     dirty: HashSet<Uuid>,
+
+    /// The storage automatically syncs with the client if it exists.
+    pub client: Option<remote::Client>,
 }
 
 fn data_path_from_identifier(identifier: &str) -> Result<PathBuf> {
@@ -35,14 +38,17 @@ fn data_path_from_identifier(identifier: &str) -> Result<PathBuf> {
 }
 
 impl Storage {
-    pub fn new(credentials: &standardfile::Credentials) -> Result<Self> {
+    pub fn new(credentials: &standardfile::Credentials, client: Option<remote::Client>) -> Result<Self> {
         let mut storage = Self {
             path: data_path_from_identifier(&credentials.identifier)?,
             notes: HashMap::new(),
             crypto: Crypto::new(&credentials)?,
             current: None,
             dirty: HashSet::new(),
+            client: client,
         };
+
+        let mut encrypted_items: Vec<Item> = Vec::new();
 
         if storage.path.exists() {
             log::info!("Loading {:?}", storage.path);
@@ -53,23 +59,34 @@ impl Storage {
                 if let Some(file_name) = file_path.file_name() {
                     let uuid = Uuid::parse_str(file_name.to_string_lossy().as_ref())?;
                     let contents = read_to_string(file_path)?;
-                    let encrypted_item = standardfile::Item::from_str(&contents)?;
+                    let encrypted_item = Item::from_str(&contents)?;
 
                     if uuid != encrypted_item.uuid {
                         return Err(anyhow!("File is corrupted"));
                     }
 
-                    storage.decrypt(&encrypted_item)?;
+                    storage.decrypt_and_add(&encrypted_item)?;
+                    encrypted_items.push(encrypted_item);
+                }
+            }
+        }
+
+        if let Some(client) = &mut storage.client {
+            log::info!("Syncing with remote");
+
+            // Use all items we haven't synced yet. For now pretend we have never synced an item.
+            // Decrypt, flush and show notes we have retrieved from the initial sync.
+            let items = client.sync(encrypted_items).unwrap();
+
+            for item in encrypted_notes(&items) {
+                if !item.deleted.unwrap_or(false) {
+                    let uuid = storage.decrypt_and_add(&item)?;
+                    storage.flush(&uuid)?;
                 }
             }
         }
 
         Ok(storage)
-    }
-
-    /// Check if given uuid is already marked dirty.
-    pub fn is_dirty(&self, uuid: &Uuid) -> bool {
-        self.dirty.contains(uuid)
     }
 
     /// Set the currently note to update.
@@ -123,49 +140,58 @@ impl Storage {
     }
 
     /// Decrypt item and add it to the storage.
-    pub fn decrypt(&mut self, item: &standardfile::Item) -> Result<Uuid> {
+    pub fn decrypt_and_add(&mut self, item: &Item) -> Result<Uuid> {
         let note = self.crypto.decrypt(item)?;
         self.notes.insert(item.uuid, note);
         Ok(item.uuid)
     }
 
-    /// Encrypt an item and return it.
-    pub fn encrypt(&self, uuid: &Uuid) -> Result<standardfile::Item> {
-        if let Some(note) = self.notes.get(&uuid) {
-            Ok(self.crypto.encrypt(&note, &uuid)?)
+    fn flush_to_disk(&self, uuid: &Uuid, encrypted: &Item) -> Result<()> {
+        let path = self.path_from_uuid(&uuid);
+
+        if let Some(parent) = path.parent() {
+            if !parent.exists() {
+                create_dir_all(&parent)?;
+            }
         }
-        else {
-            Err(anyhow!("Note {} does not exist", uuid))
-        }
+
+        write(&path, encrypted.to_string()?)?;
+
+        Ok(())
     }
 
-    /// Encrypts item and writes it to disk.
-    pub fn flush(&self, uuid: &Uuid) -> Result<()> {
+    /// Encrypt single item, write it to disk and sync with remote.
+    pub fn flush(&mut self, uuid: &Uuid) -> Result<()> {
         if let Some(item) = self.notes.get(uuid) {
             let encrypted = self.crypto.encrypt(item, uuid)?;
-            let path = self.path_from_uuid(&uuid);
 
-            if let Some(parent) = path.parent() {
-                if !parent.exists() {
-                    create_dir_all(&parent)?;
-                }
+            self.flush_to_disk(&uuid, &encrypted)?;
+
+            if let Some(client) = &mut self.client {
+                log::info!("Syncing {}", uuid);
+                client.sync(vec![encrypted])?;
             }
-
-            write(&path, encrypted.to_string()?)?;
         }
 
         Ok(())
     }
 
-    /// Get all currently dirty uuids.
-    pub fn get_dirty(&self) -> Vec<Uuid> {
-        self.dirty.clone().into_iter().collect::<_>()
-    }
-
-    /// Flush all dirty items.
+    /// Encrypt all dirty items, write them to disk and sync with remote.
     pub fn flush_dirty(&mut self) -> Result<()> {
+        let mut encrypted_items: Vec<Item> = Vec::new();
+
         for uuid in &self.dirty {
-            self.flush(&uuid)?;
+            if let Some(item) = self.notes.get(uuid) {
+                let encrypted = self.crypto.encrypt(item, uuid)?;
+
+                self.flush_to_disk(&uuid, &encrypted)?;
+                encrypted_items.push(encrypted);
+            }
+        }
+
+        if let Some(client) = &mut self.client {
+            log::info!("Syncing dirty items");
+            client.sync(encrypted_items)?;
         }
 
         self.dirty.clear();
@@ -179,10 +205,22 @@ impl Storage {
             self.dirty.remove(&uuid);
         }
 
+        if let Some(client) = &mut self.client {
+            if let Some(note) = self.notes.get(&uuid) {
+                let mut encrypted = self.crypto.encrypt(&note, &uuid)?;
+                encrypted.deleted = Some(true);
+
+                // Apparently, we do not receive the item back as marked deleted
+                // but on subsequent syncs only.
+                client.sync(vec![encrypted])?;
+            }
+        }
+
         let path = self.path_from_uuid(&uuid);
         log::info!("Deleting {:?}", path);
         remove_file(path)?;
         self.notes.remove(&uuid);
+
         Ok(())
     }
 

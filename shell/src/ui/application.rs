@@ -28,7 +28,7 @@ fn setup_server_dialog(builder: &gtk::Builder) {
 }
 
 fn decrypt_and_store(storage: &mut Storage, item: &Item, sender: &glib::Sender<WindowEvent>) -> Result<()> {
-    let uuid = storage.decrypt(&item)?;
+    let uuid = storage.decrypt_and_add(&item)?;
 
     storage.flush(&uuid)?;
 
@@ -65,7 +65,7 @@ impl Application {
                 window.sender.send(WindowEvent::ShowMainContent).unwrap();
 
                 let credentials = config.to_credentials()?;
-                let storage = Storage::new(&credentials)?;
+                let storage = Storage::new(&credentials, None)?;
 
                 for (uuid, note) in &storage.notes {
                     window.sender.send(WindowEvent::AddNote(*uuid, note.title.clone())).unwrap();
@@ -193,7 +193,7 @@ impl Application {
                             password: user.password,
                         };
 
-                        match Storage::new(&credentials) {
+                        match Storage::new(&credentials, None) {
                             Ok(s) => {
                                 storage = Some(s);
                                 config::write(&credentials).unwrap();
@@ -206,37 +206,32 @@ impl Application {
                     }
                     AppEvent::Register(auth) => {
                         log::info!("Registering with {}", auth.server);
-                        let new_client = remote::Client::new_register(&auth.server, &auth.user.identifier, &auth.user.password);
+                        let client = remote::Client::new_register(&auth.server, &auth.user.identifier, &auth.user.password);
 
-                        match new_client {
-                            Ok(new_client) => {
-                                let credentials = &new_client.credentials;
-                                storage = Some(Storage::new(&credentials).unwrap());
-                                config::write(&credentials).unwrap();
+                        match client {
+                            Ok(client) => {
+                                let credentials = client.credentials.clone();
+                                storage = Some(Storage::new(&credentials, Some(client)).unwrap());
+                                config::write_with_server(&credentials, &auth.server).unwrap();
                                 secret::store(&credentials, Some(&auth.server));
                                 sender.send(WindowEvent::ShowMainContent).unwrap();
-
-                                // Replace the shared client.
-                                client = Some(new_client);
                             }
                             Err(message) => {
                                 let message = format!("Registration failed: {}.", message);
                                 sender.send(WindowEvent::ShowNotification(message)).unwrap();
-                                client = None;
                             }
                         };
                     }
                     AppEvent::SignIn(auth) => {
                         log::info!("Signing in to {}", auth.server);
+                        let client = remote::Client::new_sign_in(&auth.server, &auth.user.identifier, &auth.user.password);
 
-                        let new_client = remote::Client::new_sign_in(&auth.server, &auth.user.identifier, &auth.user.password);
-
-                        match new_client {
-                            Ok(new_client) => {
-                                let credentials = &new_client.credentials;
+                        match client {
+                            Ok(client) => {
+                                let credentials = client.credentials.clone();
 
                                 // Switch storage, read local files and show them in the UI.
-                                storage = Some(Storage::new(&credentials).unwrap());
+                                storage = Some(Storage::new(&credentials, Some(client)).unwrap());
                                 config::write_with_server(&credentials, &auth.server).unwrap();
 
                                 for (uuid, note) in &storage.as_ref().unwrap().notes {
@@ -247,36 +242,10 @@ impl Application {
                                 secret::store(&credentials, Some(&auth.server));
 
                                 sender.send(WindowEvent::ShowMainContent).unwrap();
-
-                                // Replace the shared client.
-                                client = Some(new_client);
                             }
                             Err(message) => {
                                 let message = format!("Login failed: {}.", message);
                                 sender.send(WindowEvent::ShowNotification(message)).unwrap();
-                                client = None;
-                            }
-                        }
-
-                        if let Some(client) = &mut client {
-                            // Find all items we haven't synced yet. For now pretend we have
-                            // never synced an item.
-                            let mut unsynced_items: Vec<Item> = Vec::new();
-
-                            if let Some(storage) = &mut storage {
-                                for (uuid, _) in &storage.notes {
-                                    unsynced_items.push(storage.encrypt(&uuid).unwrap());
-                                }
-
-                                // Decrypt, flush and show notes we have retrieved from the initial
-                                // sync.
-                                let items = client.sync(unsynced_items).unwrap();
-
-                                for item in encrypted_notes(&items) {
-                                    if !item.deleted.unwrap_or(false) {
-                                        decrypt_and_store(storage, &item, &sender).unwrap();
-                                    }
-                                }
                             }
                         }
                     }
@@ -292,7 +261,7 @@ impl Application {
                                     password: password,
                                 };
 
-                                storage = Some(Storage::new(&credentials).unwrap());
+                                storage = Some(Storage::new(&credentials, None).unwrap());
                                 config::write(&credentials).unwrap();
                                 secret::store(&credentials, server.as_deref());
 
@@ -322,15 +291,6 @@ impl Application {
                     AppEvent::DeleteNote => {
                         if let Some(storage) = &mut storage {
                             if let Some(uuid) = storage.current {
-                                if let Some(client) = &mut client {
-                                    let mut encrypted = storage.encrypt(&uuid).unwrap();
-                                    encrypted.deleted = Some(true);
-
-                                    // Apparently, we do not receive the item back as marked deleted
-                                    // but on subsequent syncs only.
-                                    client.sync(vec![encrypted]).unwrap();
-                                }
-
                                 log::info!("Deleting {}", uuid);
                                 sender.send(WindowEvent::DeleteNote(uuid)).unwrap();
                                 storage.delete(&uuid).unwrap();
@@ -367,16 +327,6 @@ impl Application {
                     }
                     AppEvent::FlushDirty => {
                         if let Some(storage) = &mut storage {
-                            if let Some(client) = &mut client {
-                                // FIXME: ideally we do not re-encrypt twice to store and to send
-                                // to the server ...
-
-                                for uuid in storage.get_dirty() {
-                                    let encrypted = storage.encrypt(&uuid).unwrap();
-                                    client.sync(vec![encrypted]).unwrap();
-                                }
-                            };
-
                             storage.flush_dirty().unwrap();
                             flush_timer_running = false;
                         }
