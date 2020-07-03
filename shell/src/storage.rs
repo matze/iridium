@@ -14,6 +14,7 @@ pub struct Storage {
     path: PathBuf,
     pub notes: HashMap<Uuid, Note>,
     crypto: Crypto,
+    current: Option<Uuid>,
 }
 
 fn data_path_from_identifier(identifier: &str) -> Result<PathBuf> {
@@ -36,6 +37,7 @@ impl Storage {
             path: data_path_from_identifier(&credentials.identifier)?,
             notes: HashMap::new(),
             crypto: Crypto::new(&credentials)?,
+            current: None,
         };
 
         if storage.path.exists() {
@@ -59,6 +61,48 @@ impl Storage {
         }
 
         Ok(storage)
+    }
+
+    /// Set the currently note to update.
+    pub fn set_current_uuid(&mut self, uuid: &Uuid) -> Result<()> {
+        if !self.notes.contains_key(&uuid) {
+            return Err(anyhow!(format!("{} does not exist", uuid)));
+        }
+
+        self.current = Some(*uuid);
+        Ok(())
+    }
+
+    /// Update the contents of the currently selected item.
+    pub fn set_text(&mut self, text: &str) {
+        if let Some(item) = self.notes.get_mut(&self.current.unwrap()) {
+            item.updated_at = Utc::now();
+            item.text = text.to_owned();
+        }
+
+        // Returning an error?
+    }
+
+    /// Get text of the currently selected item.
+    pub fn get_text(&self) -> String {
+        // FIXME: for obvious reasons
+        self.notes.get(&self.current.unwrap()).unwrap().text.clone()
+    }
+
+    /// Update the title of the currently selected item.
+    pub fn set_title(&mut self, title: &str) {
+        if let Some(item) = self.notes.get_mut(&self.current.unwrap()) {
+            item.updated_at = Utc::now();
+            item.title = title.to_owned();
+        }
+
+        // Returning an error?
+    }
+
+    /// Get title of the currently selected item.
+    pub fn get_title(&self) -> String {
+        // FIXME: for obvious reasons
+        self.notes.get(&self.current.unwrap()).unwrap().title.clone()
     }
 
     /// Decrypt item and add it to the storage.
@@ -127,25 +171,5 @@ impl Storage {
         self.notes.insert(uuid, note);
 
         uuid
-    }
-
-    /// Update the contents of a note.
-    pub fn update_text(&mut self, uuid: &Uuid, text: &str) {
-        if let Some(item) = self.notes.get_mut(uuid) {
-            item.updated_at = Utc::now();
-            item.text = text.to_owned();
-        }
-
-        // Returning an error?
-    }
-
-    /// Update the title of a note.
-    pub fn update_title(&mut self, uuid: &Uuid, title: &str) {
-        if let Some(item) = self.notes.get_mut(uuid) {
-            item.updated_at = Utc::now();
-            item.title = title.to_owned();
-        }
-
-        // Returning an error?
     }
 }

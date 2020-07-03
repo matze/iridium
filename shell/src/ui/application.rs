@@ -349,21 +349,20 @@ impl Application {
                         }
                     }
                     AppEvent::SelectNote(uuid) => {
-                        if let Some(storage) = &storage {
-                            if let Some(item) = storage.notes.get(&uuid) {
-                                window.load_note(&item.title, &item.text);
-                                selected = Some(uuid);
-                            }
+                        if let Some(storage) = &mut storage {
+                            storage.set_current_uuid(&uuid).unwrap();
+                            window.load_note(&storage.get_title(), &storage.get_text());
+                            selected = Some(uuid);
                         }
                     }
                     AppEvent::Update(uuid, title, text) => {
                         if let Some(storage) = &mut storage {
                             if let Some(title) = title {
-                                storage.update_title(&uuid, &title);
+                                storage.set_title(&title);
                             }
 
                             if let Some(text) = text {
-                                storage.update_text(&uuid, &text);
+                                storage.set_text(&text);
                             }
                         }
 
