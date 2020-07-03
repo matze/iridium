@@ -402,7 +402,7 @@
                                 <property name="visible">True</property>
                                 <property name="placeholder-text">Add title …</property>
                                 <property name="margin-top">12</property>
-                                <property name="margin-left">6</property>
+                                <property name="margin-left">10</property>
                                 <property name="margin-right">6</property>
                                 <property name="halign">GTK_ALIGN_FILL</property>
                                 <property name="hexpand">TRUE</property>
@@ -415,6 +415,7 @@
                                   <object class="GtkScrolledWindow">
                                     <property name="visible">True</property>
                                     <property name="margin">12</property>
+                                    <property name="margin-left">18</property>
                                     <child>
                                       <object class="GtkTextView" id="iridium-text-view">
                                         <property name="name">iridium-text-view</property>
