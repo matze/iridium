@@ -19,7 +19,7 @@ pub enum AppEvent {
     Register(RemoteAuth),
     SignIn(RemoteAuth),
     Import(PathBuf, String, Option<String>),
-    Update(Uuid, Option<String>, Option<String>),
+    Update(Option<String>, Option<String>),
     CreateStorage(User),
     FlushDirty,
     Quit,

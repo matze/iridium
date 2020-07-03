@@ -10,7 +10,6 @@ use crate::storage::Storage;
 use crate::ui::state::{User, RemoteAuth, AppEvent, WindowEvent};
 use crate::ui::window::Window;
 use standardfile::{crypto, remote, Item, Exported, Credentials, encrypted_notes};
-use uuid::Uuid;
 
 pub struct Application {
     app: gtk::Application,
@@ -174,7 +173,6 @@ impl Application {
         app.set_accels_for_action("app.quit", &["<primary>q"]);
         app.set_accels_for_action("app.search", &["<primary>f"]);
 
-        let mut client: Option<remote::Client> = None;
         let mut flush_timer_running = false;
 
         receiver.attach(None,
@@ -322,10 +320,8 @@ impl Application {
                         }
                     }
                     AppEvent::DeleteNote => {
-                        if let Some(uuid) = selected {
-                            log::info!("Deleting {}", uuid);
-
-                            if let Some(storage) = &mut storage {
+                        if let Some(storage) = &mut storage {
+                            if let Some(uuid) = storage.current {
                                 if let Some(client) = &mut client {
                                     let mut encrypted = storage.encrypt(&uuid).unwrap();
                                     encrypted.deleted = Some(true);
@@ -335,6 +331,7 @@ impl Application {
                                     client.sync(vec![encrypted]).unwrap();
                                 }
 
+                                log::info!("Deleting {}", uuid);
                                 sender.send(WindowEvent::DeleteNote(uuid)).unwrap();
                                 storage.delete(&uuid).unwrap();
                             }
@@ -344,10 +341,9 @@ impl Application {
                         if let Some(storage) = &mut storage {
                             storage.set_current_uuid(&uuid).unwrap();
                             window.load_note(&storage.get_title(), &storage.get_text());
-                            selected = Some(uuid);
                         }
                     }
-                    AppEvent::Update(uuid, title, text) => {
+                    AppEvent::Update(title, text) => {
                         if let Some(storage) = &mut storage {
                             if let Some(title) = title {
                                 storage.set_title(&title);

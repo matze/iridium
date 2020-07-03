@@ -120,7 +120,6 @@ impl Window {
         // This auxiliary variable helps us break the binding between the title entry widget and
         // the selected listbox row.
         let mut current_binding: Option<glib::Binding> = None;
-        let mut current_uuid: Option<Uuid> = None;
         let mut known_uuids: HashSet<Uuid> = HashSet::new();
         let mut row_map: RowMap = HashMap::new();
 
@@ -227,7 +226,6 @@ impl Window {
                             note_list_box.select_row(Some(&row));
                             title_entry.grab_focus();
                             row_map.insert(row, (uuid, label));
-                            current_uuid = Some(uuid);
                             known_uuids.insert(uuid);
                         }
                     }
@@ -265,7 +263,6 @@ impl Window {
                         if let Some((uuid, label)) = row_map.get(&row) {
                             app_sender.send(AppEvent::SelectNote(*uuid)).unwrap();
                             current_binding = Some(title_entry.bind_property("text", label, "label").build().unwrap());
-                            current_uuid = Some(*uuid);
                         }
                     }
                     WindowEvent::UpdateFilter(term) => {
@@ -278,20 +275,16 @@ impl Window {
                         }
                     }
                     WindowEvent::UpdateTitle => {
-                        if let Some(uuid) = current_uuid {
-                            let title = title_entry.get_text().unwrap();
-                            let title = title.as_str().to_string();
-                            app_sender.send(AppEvent::Update(uuid, Some(title), None)).unwrap();
-                        }
+                        let title = title_entry.get_text().unwrap();
+                        let title = title.as_str().to_string();
+                        app_sender.send(AppEvent::Update(Some(title), None)).unwrap();
                     }
                     WindowEvent::UpdateText => {
-                        if let Some(uuid) = current_uuid {
-                            let start = text_buffer.get_start_iter();
-                            let end = text_buffer.get_end_iter();
-                            let text = text_buffer.get_text(&start, &end, false).unwrap();
-                            let text = text.as_str().to_string();
-                            app_sender.send(AppEvent::Update(uuid, None, Some(text))).unwrap();
-                        }
+                        let start = text_buffer.get_start_iter();
+                        let end = text_buffer.get_end_iter();
+                        let text = text_buffer.get_text(&start, &end, false).unwrap();
+                        let text = text.as_str().to_string();
+                        app_sender.send(AppEvent::Update(None, Some(text))).unwrap();
                     }
                     WindowEvent::ToggleSearchBar => {
                         search_bar.set_search_mode(!search_bar.get_search_mode());

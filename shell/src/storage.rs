@@ -14,7 +14,7 @@ pub struct Storage {
     path: PathBuf,
     pub notes: HashMap<Uuid, Note>,
     crypto: Crypto,
-    current: Option<Uuid>,
+    pub current: Option<Uuid>,
 
     /// Contains uuids of notes that have not been flushed yet
     dirty: HashSet<Uuid>,
