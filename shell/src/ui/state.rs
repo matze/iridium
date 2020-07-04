@@ -1,6 +1,4 @@
-use gtk::ListBoxRow;
 use std::path::PathBuf;
-use uuid::Uuid;
 
 pub struct User {
     pub identifier: String,
@@ -15,25 +13,13 @@ pub struct RemoteAuth {
 pub enum AppEvent {
     AddNote,
     DeleteNote,
-    SelectNote(Uuid),
+    SelectNote,
     Register(RemoteAuth),
     SignIn(RemoteAuth),
     Import(PathBuf, String, Option<String>),
     Update(Option<String>, Option<String>),
+    UpdateFilter(Option<String>),
     CreateStorage(User),
     FlushDirty,
     Quit,
-}
-
-pub enum WindowEvent {
-    AddNote(Uuid, String),
-    DeleteNote(Uuid),
-    SelectNote(ListBoxRow),
-    UpdateNote(String, String),
-    ToggleSearchBar,
-    UpdateTitle,
-    UpdateText,
-    UpdateFilter(Option<String>),
-    ShowNotification(String),
-    ShowMainContent,
 }
