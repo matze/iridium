@@ -289,7 +289,7 @@ impl Application {
                     AppEvent::SelectNote(uuid) => {
                         if let Some(storage) = &mut storage {
                             storage.set_current_uuid(&uuid).unwrap();
-                            window.load_note(&storage.get_title(), &storage.get_text());
+                            sender.send(WindowEvent::UpdateNote(storage.get_title(), storage.get_text())).unwrap();
                         }
                     }
                     AppEvent::Update(title, text) => {

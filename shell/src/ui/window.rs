@@ -6,8 +6,6 @@ use gtk::prelude::*;
 pub struct Window {
     pub widget: gtk::ApplicationWindow,
     pub sender: glib::Sender<WindowEvent>,
-    text_buffer: gtk::TextBuffer,
-    title_entry: gtk::Entry,
 }
 
 fn get_shortcuts_window() -> gtk::ShortcutsWindow {
@@ -206,6 +204,10 @@ impl Window {
                         let text = text.as_str().to_string();
                         app_sender.send(AppEvent::Update(None, Some(text))).unwrap();
                     }
+                    WindowEvent::UpdateNote(title, content) => {
+                        title_entry.set_text(&title);
+                        text_buffer.set_text(&content);
+                    }
                     WindowEvent::ToggleSearchBar => {
                         search_bar.set_search_mode(!search_bar.get_search_mode());
                     }
@@ -230,13 +232,6 @@ impl Window {
         Window {
             widget: window,
             sender: win_sender,
-            text_buffer: text_buffer,
-            title_entry: builder.get_object("iridium-title-entry").unwrap(),
         }
-    }
-
-    pub fn load_note(&self, title: &str, content: &str) {
-        self.title_entry.set_text(title);
-        self.text_buffer.set_text(content);
     }
 }

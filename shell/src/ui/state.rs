@@ -29,6 +29,7 @@ pub enum WindowEvent {
     AddNote(Uuid, String),
     DeleteNote(Uuid),
     SelectNote(ListBoxRow),
+    UpdateNote(String, String),
     ToggleSearchBar,
     UpdateTitle,
     UpdateText,
