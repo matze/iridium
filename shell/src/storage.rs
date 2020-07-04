@@ -76,7 +76,7 @@ impl Storage {
 
             // Use all items we haven't synced yet. For now pretend we have never synced an item.
             // Decrypt, flush and show notes we have retrieved from the initial sync.
-            let items = client.sync(encrypted_items).unwrap();
+            let items = client.sync(encrypted_items)?;
 
             for item in encrypted_notes(&items) {
                 if !item.deleted.unwrap_or(false) {
