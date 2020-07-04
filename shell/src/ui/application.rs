@@ -487,6 +487,8 @@ impl Application {
                                 storage.set_text(&text);
                             }
 
+                            model.updated(&storage.current.unwrap());
+
                             if !flush_timer_running {
                                 glib::source::timeout_add_seconds(5,
                                     clone!(@strong sender => move || {

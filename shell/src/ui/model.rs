@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use gio::prelude::*;
 use gtk::prelude::*;
 use standardfile::Note;
@@ -8,6 +9,7 @@ struct Item {
     uuid: Uuid,
     row: gtk::ListBoxRow,
     label: gtk::Label,
+    last_updated: DateTime<Utc>,
 }
 
 pub struct Model {
@@ -46,14 +48,25 @@ impl Model {
         row.set_widget_name("iridium-note-row");
         row.show_all();
 
+        // Do stupid insertion sort until we figured out how gtk::ListBox::set_sort_func's closure
+        // could use the model itself.
+        let mut position: i32 = -1;
+
+        for item in &self.items {
+            if note.updated_at > item.last_updated {
+                position = item.row.get_index() - 1;
+            }
+        }
+
+        self.list_box.insert(&row, position);
+        self.list_box.select_row(Some(&row));
+
         self.items.push(Item {
             uuid: note.uuid,
             row: row.clone(),
-            label: label.clone()
+            label: label.clone(),
+            last_updated: note.updated_at,
         });
-
-        self.list_box.add(&row);
-        self.list_box.select_row(Some(&row));
     }
 
     pub fn delete(&mut self, uuid: &Uuid) {
@@ -87,6 +100,19 @@ impl Model {
         }
 
         None
+    }
+
+    pub fn updated(&mut self, uuid: &Uuid) {
+        for item in &mut self.items {
+            if item.uuid == *uuid {
+                item.last_updated = Utc::now();
+
+                if item.row.get_index() > 0 {
+                    self.list_box.remove(&item.row);
+                    self.list_box.insert(&item.row, 0);
+                }
+            }
+        }
     }
 
     pub fn is_empty(&self) -> bool {
