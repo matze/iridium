@@ -1,5 +1,6 @@
 use gio::prelude::*;
 use gtk::prelude::*;
+use standardfile::Note;
 use std::cmp;
 use uuid::Uuid;
 
@@ -26,8 +27,8 @@ impl Model {
         }
     }
 
-    pub fn insert(&mut self, uuid: &Uuid, title: &str) {
-        if self.have(uuid) {
+    pub fn insert(&mut self, note: &Note) {
+        if self.have(&note.uuid) {
             return;
         }
 
@@ -38,7 +39,7 @@ impl Model {
         label.set_margin_top(9);
         label.set_margin_bottom(9);
         label.set_widget_name("iridium-note-row-label");
-        label.set_text(&title);
+        label.set_text(&note.title);
 
         let row = gtk::ListBoxRow::new();
         row.add(&label);
@@ -46,7 +47,7 @@ impl Model {
         row.show_all();
 
         self.items.push(Item {
-            uuid: *uuid,
+            uuid: note.uuid,
             row: row.clone(),
             label: label.clone()
         });

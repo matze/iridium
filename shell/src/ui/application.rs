@@ -140,8 +140,8 @@ impl Application {
                 let credentials = config.to_credentials()?;
                 let storage = Storage::new(&credentials, None)?;
 
-                for (uuid, note) in &storage.notes {
-                    model.insert(&uuid, &note.title);
+                for note in storage.notes.values() {
+                    model.insert(&note);
                 }
 
                 if !model.is_empty() {
@@ -398,8 +398,8 @@ impl Application {
                                 storage = Some(Storage::new(&credentials, Some(client)).unwrap());
                                 config::write_with_server(&credentials, &auth.server).unwrap();
 
-                                for (uuid, note) in &storage.as_ref().unwrap().notes {
-                                    model.insert(&uuid, &note.title);
+                                for note in storage.as_ref().unwrap().notes.values() {
+                                    model.insert(&note);
                                 }
 
                                 // Store the encryption password and auth token in the keyring.
@@ -430,8 +430,8 @@ impl Application {
                                 config::write(&credentials).unwrap();
                                 secret::store(&credentials, server.as_deref());
 
-                                for (uuid, note) in &temp.notes {
-                                    model.insert(&uuid, &note.title);
+                                for note in temp.notes.values() {
+                                    model.insert(&note);
                                 }
 
                                 storage = Some(temp);
@@ -449,7 +449,8 @@ impl Application {
                     AppEvent::AddNote => {
                         if let Some(storage) = &mut storage {
                             let uuid = storage.create_note();
-                            model.insert(&uuid, "");
+                            let note = storage.notes.get(&uuid).unwrap();
+                            model.insert(&note);
                         }
                     }
                     AppEvent::DeleteNote => {
