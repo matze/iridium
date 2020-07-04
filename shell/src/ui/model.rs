@@ -3,8 +3,14 @@ use gtk::prelude::*;
 use std::cmp;
 use uuid::Uuid;
 
+struct Item {
+    uuid: Uuid,
+    row: gtk::ListBoxRow,
+    label: gtk::Label,
+}
+
 pub struct Model {
-    items: Vec<(gtk::ListBoxRow, Uuid, gtk::Label)>,
+    items: Vec<Item>,
     list_box: gtk::ListBox,
     title_entry: gtk::Entry,
     binding: Option<glib::Binding>,
@@ -39,7 +45,11 @@ impl Model {
         row.set_widget_name("iridium-note-row");
         row.show_all();
 
-        self.items.push((row.clone(), *uuid, label.clone()));
+        self.items.push(Item {
+            uuid: *uuid,
+            row: row.clone(),
+            label: label.clone()
+        });
 
         self.list_box.add(&row);
         self.list_box.select_row(Some(&row));
@@ -48,14 +58,14 @@ impl Model {
     pub fn delete(&mut self, uuid: &Uuid) {
         let mut index = 0;
 
-        for (row, row_uuid, _) in &self.items {
-            if row_uuid == uuid {
-                index = cmp::max(0, row.get_index() - 1);
-                self.list_box.remove(row);
+        for item in &self.items {
+            if item.uuid == *uuid {
+                index = cmp::max(0, item.row.get_index() - 1);
+                self.list_box.remove(&item.row);
             }
         }
 
-        self.items.retain(|(_, row_uuid, _)| uuid != row_uuid);
+        self.items.retain(|item| item.uuid != *uuid);
 
         if self.items.len() > 0 {
             let new_selected_row = self.list_box.get_row_at_index(index).unwrap();
@@ -68,10 +78,10 @@ impl Model {
             binding.unbind();
         }
 
-        for (row, uuid, label) in &self.items {
-            if row == selected_row {
-                self.binding = Some(self.title_entry.bind_property("text", label, "label").build().unwrap());
-                return Some(uuid.clone());
+        for item in &self.items {
+            if item.row == *selected_row {
+                self.binding = Some(self.title_entry.bind_property("text", &item.label, "label").build().unwrap());
+                return Some(item.uuid);
             }
         }
 
@@ -83,25 +93,25 @@ impl Model {
     }
 
     pub fn show_matching_rows(&self, term: &str) {
-        for (row, _, label) in &self.items {
-            let label_text = label.get_text().unwrap().to_string().to_lowercase();
+        for item in &self.items {
+            let label_text = item.label.get_text().unwrap().to_string().to_lowercase();
 
             if label_text.contains(&term) {
-                row.show();
+                item.row.show();
             }
             else {
-                row.hide();
+                item.row.hide();
             }
         }
     }
 
     pub fn show_all_rows(&self) {
-        for (row, _, _) in &self.items {
-            row.show();
+        for item in &self.items {
+            item.row.show();
         }
     }
 
     fn have(&self, uuid: &Uuid) -> bool {
-        self.items.iter().any(|item| item.1 == *uuid)
+        self.items.iter().any(|item| item.uuid == *uuid)
     }
 }
