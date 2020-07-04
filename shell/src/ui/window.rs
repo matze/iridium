@@ -3,7 +3,6 @@ use crate::ui::state::{AppEvent, WindowEvent, User, RemoteAuth};
 use gio::prelude::*;
 use gtk::prelude::*;
 use std::cmp;
-use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
 pub struct Window {
@@ -13,7 +12,108 @@ pub struct Window {
     title_entry: gtk::Entry,
 }
 
-type RowMap = HashMap<gtk::ListBoxRow, (Uuid, gtk::Label)>;
+struct Model {
+    items: Vec<(gtk::ListBoxRow, Uuid, gtk::Label)>,
+    list_box: gtk::ListBox,
+    title_entry: gtk::Entry,
+    binding: Option<glib::Binding>,
+}
+
+impl Model {
+    pub fn new(list_box: gtk::ListBox, title_entry: gtk::Entry) -> Self {
+        Self {
+            items: Vec::new(),
+            list_box: list_box,
+            title_entry: title_entry,
+            binding: None,
+        }
+    }
+
+    pub fn insert(&mut self, uuid: &Uuid, title: &str) {
+        if self.have(uuid) {
+            return;
+        }
+
+        let label = gtk::Label::new(None);
+        label.set_halign(gtk::Align::Start);
+        label.set_margin_start(9);
+        label.set_margin_end(9);
+        label.set_margin_top(9);
+        label.set_margin_bottom(9);
+        label.set_widget_name("iridium-note-row-label");
+        label.set_text(&title);
+
+        let row = gtk::ListBoxRow::new();
+        row.add(&label);
+        row.set_widget_name("iridium-note-row");
+        row.show_all();
+
+        self.items.push((row.clone(), *uuid, label.clone()));
+
+        self.list_box.add(&row);
+        self.list_box.select_row(Some(&row));
+    }
+
+    pub fn delete(&mut self, uuid: &Uuid) {
+        let mut index = 0;
+
+        for (row, row_uuid, _) in &self.items {
+            if row_uuid == uuid {
+                index = cmp::max(0, row.get_index() - 1);
+                self.list_box.remove(row);
+            }
+        }
+
+        self.items.retain(|(_, row_uuid, _)| uuid != row_uuid);
+
+        if self.items.len() > 0 {
+            let new_selected_row = self.list_box.get_row_at_index(index).unwrap();
+            self.list_box.select_row(Some(&new_selected_row));
+        }
+    }
+
+    pub fn select(&mut self, selected_row: &gtk::ListBoxRow) -> Option<Uuid> {
+        if let Some(binding) = &self.binding {
+            binding.unbind();
+        }
+
+        for (row, uuid, label) in &self.items {
+            if row == selected_row {
+                self.binding = Some(self.title_entry.bind_property("text", label, "label").build().unwrap());
+                return Some(uuid.clone());
+            }
+        }
+
+        None
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.items.len() == 0
+    }
+
+    pub fn show_matching_rows(&self, term: &str) {
+        for (row, _, label) in &self.items {
+            let label_text = label.get_text().unwrap().to_string().to_lowercase();
+
+            if label_text.contains(&term) {
+                row.show();
+            }
+            else {
+                row.hide();
+            }
+        }
+    }
+
+    pub fn show_all_rows(&self) {
+        for (row, _, _) in &self.items {
+            row.show();
+        }
+    }
+
+    fn have(&self, uuid: &Uuid) -> bool {
+        self.items.iter().any(|item| item.1 == *uuid)
+    }
+}
 
 fn get_shortcuts_window() -> gtk::ShortcutsWindow {
     let builder = gtk::Builder::new_from_resource(SHORTCUTS_UI);
@@ -36,51 +136,6 @@ fn get_auth_details(builder: &gtk::Builder) -> RemoteAuth {
     RemoteAuth {
         server: server_combo_box.get_active_text().unwrap().to_string(),
         user: get_user_details(&builder),
-    }
-}
-
-fn new_note_row(title: &str) -> (gtk::ListBoxRow, gtk::Label) {
-    let label = gtk::Label::new(None);
-    label.set_halign(gtk::Align::Start);
-    label.set_margin_start(9);
-    label.set_margin_end(9);
-    label.set_margin_top(9);
-    label.set_margin_bottom(9);
-    label.set_widget_name("iridium-note-row-label");
-    label.set_text(&title);
-
-    let row_widget = gtk::ListBoxRow::new();
-    row_widget.add(&label);
-    row_widget.set_widget_name("iridium-note-row");
-    row_widget.show_all();
-    (row_widget, label)
-}
-
-fn show_matching_rows(row_map: &RowMap, note_list_box: &gtk::ListBox, term: &str) {
-    let count = row_map.len();
-
-    for index in 0..count as i32 {
-        let row = note_list_box.get_row_at_index(index).unwrap();
-
-        if let Some((_, label)) = row_map.get(&row) {
-            let label_text = label.get_text().unwrap().to_string().to_lowercase();
-
-            if label_text.contains(&term) {
-                row.show();
-            }
-            else {
-                row.hide();
-            }
-        }
-    }
-}
-
-fn show_all_rows(row_map: &RowMap, note_list_box: &gtk::ListBox) {
-    let count = row_map.len();
-
-    for index in 0..count as i32 {
-        let row = note_list_box.get_row_at_index(index).unwrap();
-        row.show();
     }
 }
 
@@ -119,9 +174,7 @@ impl Window {
 
         // This auxiliary variable helps us break the binding between the title entry widget and
         // the selected listbox row.
-        let mut current_binding: Option<glib::Binding> = None;
-        let mut known_uuids: HashSet<Uuid> = HashSet::new();
-        let mut row_map: RowMap = HashMap::new();
+        let mut model = Model::new(note_list_box.clone(), title_entry.clone());
 
         search_bar.connect_entry(&search_entry);
 
@@ -204,7 +257,7 @@ impl Window {
         );
 
         win_receiver.attach(None,
-            clone!(@strong note_list_box, @strong text_buffer, @strong builder => move |event| {
+            clone!(@strong text_buffer, @strong builder => move |event| {
                 match event {
                     WindowEvent::ShowMainContent => {
                         let stack = get_widget!(builder, gtk::Stack, "iridium-main-stack");
@@ -212,66 +265,34 @@ impl Window {
                         stack.set_visible_child(&main_box);
 
                         // Do not show the right hand pane until we have a note to show.
-                        if known_uuids.len() == 0 {
+                        if model.is_empty() {
                             right_hand_stack.set_visible_child(&right_hand_info);
                         }
                     }
                     WindowEvent::AddNote(uuid, title) => {
+                        model.insert(&uuid, &title);
                         right_hand_stack.set_visible_child(&note_pane_box);
-
-                        if !known_uuids.contains(&uuid) {
-                            let (row, label) = new_note_row(&title);
-                            note_list_box.add(&row);
-
-                            note_list_box.select_row(Some(&row));
-                            title_entry.grab_focus();
-                            row_map.insert(row, (uuid, label));
-                            known_uuids.insert(uuid);
-                        }
+                        title_entry.grab_focus();
                     }
                     WindowEvent::DeleteNote(uuid) => {
-                        known_uuids.remove(&uuid);
+                        model.delete(&uuid);
 
-                        // Feels dirty to get the index of the previous row but okay ...
-                        let mut index = 0;
-
-                        // Disgusting but works for now ...
-                        for row in row_map.iter()
-                            .filter(|&(_, (row_uuid, _))| uuid == *row_uuid)
-                            .map(|(row, _)| row) {
-                                index = cmp::max(0, row.get_index() - 1);
-                                note_list_box.remove(row);
-                        }
-
-                        row_map.retain(|_, (row_uuid, _)| uuid != *row_uuid);
-
-                        // If we have no more notes, hide the note entry part otherwise switch to
-                        // the previous note.
-                        if known_uuids.len() == 0 {
+                        if model.is_empty() {
                             right_hand_stack.set_visible_child(&right_hand_info);
-                        }
-                        else {
-                            let new_row = note_list_box.get_row_at_index(index).unwrap();
-                            note_list_box.select_row(Some(&new_row));
                         }
                     }
                     WindowEvent::SelectNote(row) => {
-                        if let Some(binding) = &current_binding {
-                            binding.unbind();
-                        }
-
-                        if let Some((uuid, label)) = row_map.get(&row) {
-                            app_sender.send(AppEvent::SelectNote(*uuid)).unwrap();
-                            current_binding = Some(title_entry.bind_property("text", label, "label").build().unwrap());
+                        if let Some(uuid) = model.select(&row) {
+                            app_sender.send(AppEvent::SelectNote(uuid)).unwrap();
                         }
                     }
                     WindowEvent::UpdateFilter(term) => {
                         if let Some(term) = term {
                             let term = term.to_lowercase();
-                            show_matching_rows(&row_map, &note_list_box, &term);
+                            model.show_matching_rows(&term);
                         }
                         else {
-                            show_all_rows(&row_map, &note_list_box);
+                            model.show_all_rows();
                         }
                     }
                     WindowEvent::UpdateTitle => {
