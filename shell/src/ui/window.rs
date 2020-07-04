@@ -1,4 +1,4 @@
-use crate::consts::{SHORTCUTS_UI, WINDOW_UI};
+use crate::consts::{SHORTCUTS_UI, WINDOW_UI, BASE_CSS};
 use crate::ui::state::{AppEvent, WindowEvent, User, RemoteAuth};
 use crate::ui::model::Model;
 use gtk::prelude::*;
@@ -34,20 +34,24 @@ fn get_auth_details(builder: &gtk::Builder) -> RemoteAuth {
     }
 }
 
+fn setup_style_provider(window: &gtk::ApplicationWindow) {
+    let style_provider = gtk::CssProvider::new();
+    style_provider.load_from_resource(BASE_CSS);
+
+    gtk::StyleContext::add_provider_for_screen(
+        &window.get_screen().unwrap(),
+        &style_provider,
+        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
+}
+
 impl Window {
     pub fn new(app_sender: glib::Sender<AppEvent>) -> Self {
         let builder = gtk::Builder::new_from_resource(WINDOW_UI);
         let window: gtk::ApplicationWindow = builder.get_object("window").unwrap();
 
         window.set_help_overlay(Some(&get_shortcuts_window()));
-
-        let style_provider = gtk::CssProvider::new();
-        style_provider.load_from_resource("/net/bloerg/Iridium/data/resources/css/base.css");
-        gtk::StyleContext::add_provider_for_screen(
-            &window.get_screen().unwrap(),
-            &style_provider,
-            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-        );
+        setup_style_provider(&window);
 
         let note_list_box = get_widget!(builder, gtk::ListBox, "iridium-note-list");
         let title_entry = get_widget!(builder, gtk::Entry, "iridium-title-entry");

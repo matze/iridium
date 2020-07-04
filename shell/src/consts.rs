@@ -6,3 +6,4 @@ pub static IMPORT_UI: &str = "/net/bloerg/Iridium/data/resources/ui/import.ui";
 pub static SETUP_UI: &str = "/net/bloerg/Iridium/data/resources/ui/setup.ui";
 pub static SHORTCUTS_UI: &str = "/net/bloerg/Iridium/data/resources/ui/shortcuts.ui";
 pub static WINDOW_UI: &str = "/net/bloerg/Iridium/data/resources/ui/window.ui";
+pub static BASE_CSS: &str = "/net/bloerg/Iridium/data/resources/css/base.css";
