@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
-use standardfile::{encrypted_notes, remote, Item, Note};
-use standardfile::crypto::Crypto;
 use chrono::Utc;
+use standardfile::{encrypted_notes, remote, Item, Note, Credentials};
+use standardfile::crypto::Crypto;
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
 use ring::digest;
@@ -38,7 +38,7 @@ fn data_path_from_identifier(identifier: &str) -> Result<PathBuf> {
 }
 
 impl Storage {
-    pub fn new(credentials: &standardfile::Credentials, client: Option<remote::Client>) -> Result<Self> {
+    pub fn new(credentials: &Credentials, client: Option<remote::Client>) -> Result<Self> {
         let mut storage = Self {
             path: data_path_from_identifier(&credentials.identifier)?,
             notes: HashMap::new(),
@@ -84,6 +84,18 @@ impl Storage {
                     storage.flush(&uuid)?;
                 }
             }
+        }
+
+        Ok(storage)
+    }
+
+    /// Create storage from vector of encrypted items.
+    pub fn new_from_items(credentials: &Credentials, items: &Vec<Item>) -> Result<Self> {
+        let mut storage = Storage::new(credentials, None)?;
+
+        for item in encrypted_notes(items) {
+            let uuid = storage.decrypt_and_add(&item)?;
+            storage.flush(&uuid)?;
         }
 
         Ok(storage)

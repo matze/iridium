@@ -9,7 +9,7 @@ use crate::secret;
 use crate::storage::Storage;
 use crate::ui::state::{User, RemoteAuth, AppEvent, WindowEvent};
 use crate::ui::window::Window;
-use standardfile::{crypto, remote, Item, Exported, Credentials, encrypted_notes};
+use standardfile::{crypto, remote, Exported, Credentials};
 
 pub struct Application {
     app: gtk::Application,
@@ -25,18 +25,6 @@ fn setup_server_dialog(builder: &gtk::Builder) {
     server_entry.set_placeholder_text(Some("Server address"));
     sync_button.bind_property("active", &server_box, "sensitive").flags(glib::BindingFlags::SYNC_CREATE).build();
     sync_button.bind_property("active", &server_entry, "sensitive").flags(glib::BindingFlags::SYNC_CREATE).build();
-}
-
-fn decrypt_and_store(storage: &mut Storage, item: &Item, sender: &glib::Sender<WindowEvent>) -> Result<()> {
-    let uuid = storage.decrypt_and_add(&item)?;
-
-    storage.flush(&uuid)?;
-
-    if let Some(note) = storage.notes.get(&uuid) {
-        sender.send(WindowEvent::AddNote(uuid, note.title.clone())).unwrap();
-    }
-
-    Ok(())
 }
 
 impl Application {
@@ -261,15 +249,16 @@ impl Application {
                                     password: password,
                                 };
 
-                                storage = Some(Storage::new(&credentials, None).unwrap());
+                                let temp = Storage::new_from_items(&credentials, &exported.items).unwrap();
+
                                 config::write(&credentials).unwrap();
                                 secret::store(&credentials, server.as_deref());
 
-                                if let Some(storage) = &mut storage {
-                                    for item in encrypted_notes(&exported.items) {
-                                        decrypt_and_store(storage, &item, &sender).unwrap();
-                                    }
+                                for (uuid, note) in &temp.notes {
+                                    sender.send(WindowEvent::AddNote(*uuid, note.title.clone())).unwrap();
                                 }
+
+                                storage = Some(temp);
                             }
                             else {
                                 let message = format!("{} is not exported JSON.", filename);

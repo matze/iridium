@@ -105,4 +105,3 @@ impl Model {
         self.items.iter().any(|item| item.1 == *uuid)
     }
 }
-
