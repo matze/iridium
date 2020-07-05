@@ -12,7 +12,7 @@ struct Item {
     last_updated: DateTime<Utc>,
 }
 
-pub struct Model {
+pub struct Controller {
     items: Vec<Item>,
     list_box: gtk::ListBox,
     title_entry: gtk::Entry,
@@ -22,7 +22,7 @@ pub struct Model {
     binding: Option<glib::Binding>,
 }
 
-impl Model {
+impl Controller {
     pub fn new(builder: &gtk::Builder) -> Self {
         Self {
             items: Vec::new(),

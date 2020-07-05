@@ -7,7 +7,7 @@ use crate::config;
 use crate::consts::{APP_ID, APP_VERSION, ABOUT_UI, BASE_CSS, IMPORT_UI, SETUP_UI, SHORTCUTS_UI, WINDOW_UI};
 use crate::secret;
 use crate::storage::Storage;
-use crate::ui::model::Model;
+use crate::ui::controller::Controller;
 use crate::ui::state::{User, RemoteAuth, AppEvent};
 use standardfile::{crypto, remote, Exported, Credentials};
 
@@ -104,7 +104,7 @@ impl Application {
         let search_bar = get_widget!(builder, gtk::SearchBar, "iridium-search-bar");
         let search_entry = get_widget!(builder, gtk::SearchEntry, "iridium-search-entry");
 
-        let mut model = Model::new(&builder);
+        let mut model = Controller::new(&builder);
 
         setup_overlay_help(&window);
         setup_style_provider(&window);

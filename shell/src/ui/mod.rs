@@ -1,5 +1,5 @@
 #[macro_use]
 pub mod utils;
 pub mod application;
-pub mod model;
+pub mod controller;
 pub mod state;
