@@ -16,6 +16,9 @@ pub struct Model {
     items: Vec<Item>,
     list_box: gtk::ListBox,
     title_entry: gtk::Entry,
+    note_stack: gtk::Stack,
+    note_info: gtk::Label,
+    note_content: gtk::Box,
     binding: Option<glib::Binding>,
 }
 
@@ -25,6 +28,9 @@ impl Model {
             items: Vec::new(),
             list_box: get_widget!(builder, gtk::ListBox, "iridium-note-list"),
             title_entry: get_widget!(builder, gtk::Entry, "iridium-title-entry"),
+            note_stack: get_widget!(builder, gtk::Stack, "right-hand-stack"),
+            note_info: get_widget!(builder, gtk::Label, "right-hand-info-label"),
+            note_content: get_widget!(builder, gtk::Box, "iridium-entry-box"),
             binding: None,
         }
     }
@@ -67,6 +73,10 @@ impl Model {
             label: label.clone(),
             last_updated: note.updated_at,
         });
+
+        if self.items.len() == 1 {
+            self.note_stack.set_visible_child(&self.note_content);
+        }
     }
 
     pub fn delete(&mut self, uuid: &Uuid) {
@@ -84,6 +94,9 @@ impl Model {
         if self.items.len() > 0 {
             let new_selected_row = self.list_box.get_row_at_index(index).unwrap();
             self.list_box.select_row(Some(&new_selected_row));
+        }
+        else {
+            self.note_stack.set_visible_child(&self.note_info);
         }
     }
 
@@ -113,10 +126,6 @@ impl Model {
                 }
             }
         }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.items.len() == 0
     }
 
     pub fn show_matching_rows(&self, term: &str) {

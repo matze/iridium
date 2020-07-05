@@ -46,17 +46,10 @@ fn get_auth_details(builder: &gtk::Builder) -> RemoteAuth {
     }
 }
 
-fn show_main_content(builder: &gtk::Builder, model: &Model) {
+fn show_main_content(builder: &gtk::Builder) {
     let stack = get_widget!(builder, gtk::Stack, "iridium-main-stack");
     let main_box = get_widget!(builder, gtk::Box, "iridium-main-content");
     stack.set_visible_child(&main_box);
-
-    // Do not show the right hand pane until we have a note to show.
-    if model.is_empty() {
-        let right_hand_stack = get_widget!(builder, gtk::Stack, "right-hand-stack");
-        let right_hand_info = get_widget!(builder, gtk::Label, "right-hand-info-label");
-        right_hand_stack.set_visible_child(&right_hand_info);
-    }
 }
 
 fn show_notification(builder: &gtk::Builder, message: &str) {
@@ -99,9 +92,6 @@ impl Application {
         let window = get_widget!(builder, gtk::ApplicationWindow, "window");
         let note_list_box = get_widget!(builder, gtk::ListBox, "iridium-note-list");
         let title_entry = get_widget!(builder, gtk::Entry, "iridium-title-entry");
-        let right_hand_stack = get_widget!(builder, gtk::Stack, "right-hand-stack");
-        let right_hand_info = get_widget!(builder, gtk::Label, "right-hand-info-label");
-        let note_pane_box = get_widget!(builder, gtk::Box, "iridium-entry-box");
         let note_popover = get_widget!(builder, gtk::PopoverMenu, "note_menu");
         let identifier_entry = get_widget!(builder, gtk::Entry, "identifier-entry");
         let local_button = get_widget!(builder, gtk::Button, "create-local-button");
@@ -136,17 +126,13 @@ impl Application {
                     sender.send(AppEvent::SignIn(auth)).unwrap();
                 }
 
-                show_main_content(&builder, &model);
+                show_main_content(&builder);
 
                 let credentials = config.to_credentials()?;
                 let storage = Storage::new(&credentials, None)?;
 
                 for note in storage.notes.values() {
                     model.insert(&note);
-                }
-
-                if !model.is_empty() {
-                    right_hand_stack.set_visible_child(&note_pane_box);
                 }
 
                 Some(storage)
@@ -360,7 +346,7 @@ impl Application {
                                 storage = Some(Storage::new(&credentials, Some(client)).unwrap());
                                 config::write_with_server(&credentials, &auth.server).unwrap();
                                 secret::store(&credentials, Some(&auth.server));
-                                show_main_content(&builder, &model);
+                                show_main_content(&builder);
                             }
                             Err(message) => {
                                 let message = format!("Registration failed: {}.", message);
@@ -387,7 +373,7 @@ impl Application {
                                 // Store the encryption password and auth token in the keyring.
                                 secret::store(&credentials, Some(&auth.server));
 
-                                show_main_content(&builder, &model);
+                                show_main_content(&builder);
                             }
                             Err(message) => {
                                 let message = format!("Login failed: {}.", message);
@@ -441,10 +427,6 @@ impl Application {
                                 log::info!("Deleting {}", uuid);
                                 model.delete(&uuid);
                                 storage.delete(&uuid).unwrap();
-
-                                if model.is_empty() {
-                                    right_hand_stack.set_visible_child(&right_hand_info);
-                                }
                             }
                         }
                     }
