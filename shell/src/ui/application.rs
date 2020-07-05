@@ -1,6 +1,7 @@
 use anyhow::Result;
 use gio::prelude::*;
 use gtk::prelude::*;
+use glib::translate::{ToGlib, from_glib};
 use std::env;
 use crate::config;
 use crate::consts::{APP_ID, APP_VERSION, ABOUT_UI, BASE_CSS, IMPORT_UI, SETUP_UI, SHORTCUTS_UI, WINDOW_UI};
@@ -217,25 +218,6 @@ impl Application {
             })
         );
 
-        title_entry.connect_changed(
-            clone!(@strong sender => move |entry| {
-                if let Some(text) = entry.get_text() {
-                    sender.send(AppEvent::Update(Some(text.to_string()), None)).unwrap();
-                }
-            })
-        );
-
-        text_buffer.connect_changed(
-            clone!(@strong sender => move |text_buffer| {
-                let start = text_buffer.get_start_iter();
-                let end = text_buffer.get_end_iter();
-                let text = text_buffer.get_text(&start, &end, false).unwrap();
-                let text = text.as_str().to_string();
-
-                sender.send(AppEvent::Update(None, Some(text))).unwrap();
-            })
-        );
-
         note_list_box.connect_row_selected(
             clone!(@strong sender, @strong note_popover => move |_, row| {
                 if let Some(row) = row {
@@ -338,6 +320,8 @@ impl Application {
         app.set_accels_for_action("app.search", &["<primary>f"]);
 
         let mut flush_timer_running = false;
+        let mut title_entry_handler: Option<u64> = None;
+        let mut text_buffer_handler: Option<u64> = None;
 
         receiver.attach(None,
             clone!(@strong sender, @strong app => move |event| {
@@ -472,8 +456,40 @@ impl Application {
                         if let Some(uuid) = model.select(&row) {
                             if let Some(storage) = &mut storage {
                                 storage.set_current_uuid(&uuid).unwrap();
+
+                                // We first disconnect the change handlers before setting the text
+                                // and content to avoid updating the storage and model which would
+                                // unnecessarily cause row movement and a server sync.
+
+                                if let Some(handler) = title_entry_handler {
+                                    title_entry.disconnect(from_glib(handler));
+                                }
+
+                                if let Some(handler) = text_buffer_handler {
+                                    text_buffer.disconnect(from_glib(handler));
+                                }
+
                                 title_entry.set_text(&storage.get_title());
                                 text_buffer.set_text(&storage.get_text());
+
+                                title_entry_handler = Some(title_entry.connect_changed(
+                                    clone!(@strong sender => move |entry| {
+                                        if let Some(text) = entry.get_text() {
+                                            sender.send(AppEvent::Update(Some(text.to_string()), None)).unwrap();
+                                        }
+                                    })
+                                ).to_glib());
+
+                                text_buffer_handler = Some(text_buffer.connect_changed(
+                                    clone!(@strong sender => move |text_buffer| {
+                                        let start = text_buffer.get_start_iter();
+                                        let end = text_buffer.get_end_iter();
+                                        let text = text_buffer.get_text(&start, &end, false).unwrap();
+                                        let text = text.as_str().to_string();
+
+                                        sender.send(AppEvent::Update(None, Some(text))).unwrap();
+                                    })
+                                ).to_glib());
                             }
                         }
                     }
