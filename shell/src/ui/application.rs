@@ -3,16 +3,30 @@ use gio::prelude::*;
 use gtk::prelude::*;
 use glib::translate::{ToGlib, from_glib};
 use std::env;
+use std::path::PathBuf;
 use crate::config;
 use crate::consts::{APP_ID, APP_VERSION, ABOUT_UI, BASE_CSS, IMPORT_UI, SETUP_UI, SHORTCUTS_UI, WINDOW_UI};
 use crate::secret;
 use crate::storage::Storage;
 use crate::ui::controller::Controller;
-use crate::ui::state::AppEvent;
 use standardfile::{remote, Exported, Credentials};
 
 pub struct Application {
     app: gtk::Application,
+}
+
+enum AppEvent {
+    AddNote,
+    DeleteNote,
+    SelectNote,
+    Register(String, Credentials),
+    SignIn(String, Credentials),
+    Import(PathBuf, String, Option<String>),
+    Update(Option<String>, Option<String>),
+    UpdateFilter(Option<String>),
+    CreateStorage(Credentials),
+    FlushDirty,
+    Quit,
 }
 
 fn setup_server_dialog(builder: &gtk::Builder) {
