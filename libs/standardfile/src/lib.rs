@@ -81,3 +81,23 @@ impl Exported {
         Ok(serde_json::from_str(s)?)
     }
 }
+
+impl Credentials {
+    pub fn from_exported(exported: &Exported, password: &str) -> Self {
+        Self {
+            identifier: exported.auth_params.identifier.clone(),
+            cost: exported.auth_params.pw_cost,
+            nonce: exported.auth_params.pw_nonce.clone(),
+            password: password.to_string(),
+        }
+    }
+
+    pub fn from_defaults(identifier: &str, password: &str) -> Self {
+        Self {
+            identifier: identifier.to_string(),
+            cost: 110000,
+            nonce: crypto::make_nonce(),
+            password: password.to_string(),
+        }
+    }
+}

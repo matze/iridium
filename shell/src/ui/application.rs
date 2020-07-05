@@ -9,7 +9,7 @@ use crate::secret;
 use crate::storage::Storage;
 use crate::ui::controller::Controller;
 use crate::ui::state::{User, RemoteAuth, AppEvent};
-use standardfile::{crypto, remote, Exported, Credentials};
+use standardfile::{remote, Exported, Credentials};
 
 pub struct Application {
     app: gtk::Application,
@@ -318,12 +318,7 @@ impl Application {
                         app.quit();
                     }
                     AppEvent::CreateStorage(user) => {
-                        let credentials = Credentials {
-                            identifier: user.identifier,
-                            cost: 110000,
-                            nonce: crypto::make_nonce(),
-                            password: user.password,
-                        };
+                        let credentials = Credentials::from_defaults(&user.identifier, &user.password);
 
                         match Storage::new(&credentials, None) {
                             Ok(s) => {
@@ -386,23 +381,18 @@ impl Application {
 
                         if let Ok(contents) = std::fs::read_to_string(&path) {
                             if let Ok(exported) = Exported::from_str(&contents) {
-                                let credentials = Credentials {
-                                    identifier: exported.auth_params.identifier,
-                                    cost: exported.auth_params.pw_cost,
-                                    nonce: exported.auth_params.pw_nonce,
-                                    password: password,
-                                };
-
-                                let temp = Storage::new_from_items(&credentials, &exported.items).unwrap();
+                                let credentials = Credentials::from_exported(&exported, &password);
 
                                 config::write(&credentials).unwrap();
                                 secret::store(&credentials, server.as_deref());
 
-                                for note in temp.notes.values() {
-                                    model.insert(&note);
-                                }
+                                storage = Some(Storage::new_from_items(&credentials, &exported.items).unwrap());
 
-                                storage = Some(temp);
+                                if let Some(storage) = &storage {
+                                    for note in storage.notes.values() {
+                                        model.insert(&note);
+                                    }
+                                }
                             }
                             else {
                                 let message = format!("{} is not exported JSON.", filename);
