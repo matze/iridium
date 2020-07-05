@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use anyhow::Result;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
