@@ -8,7 +8,7 @@ use crate::consts::{APP_ID, APP_VERSION, ABOUT_UI, BASE_CSS, IMPORT_UI, SETUP_UI
 use crate::secret;
 use crate::storage::Storage;
 use crate::ui::controller::Controller;
-use crate::ui::state::{RemoteAuth, AppEvent};
+use crate::ui::state::AppEvent;
 use standardfile::{remote, Exported, Credentials};
 
 pub struct Application {
@@ -34,13 +34,10 @@ fn get_user_details(builder: &gtk::Builder) -> Credentials {
     Credentials::from_defaults(&identifier_entry.get_text(), &password_entry.get_text())
 }
 
-fn get_auth_details(builder: &gtk::Builder) -> RemoteAuth {
+fn get_auth_details(builder: &gtk::Builder) -> (String, Credentials) {
     let server_combo_box = get_widget!(builder, gtk::ComboBoxText, "server-combo");
 
-    RemoteAuth {
-        server: server_combo_box.get_active_text().unwrap().to_string(),
-        credentials: get_user_details(&builder),
-    }
+    (server_combo_box.get_active_text().unwrap().to_string(), get_user_details(&builder))
 }
 
 fn show_main_content(builder: &gtk::Builder) {
@@ -114,11 +111,7 @@ impl Application {
                 let credentials = Credentials::from_defaults(&config.identifier, &password);
 
                 if let Some(server) = &config.server {
-                    let auth = RemoteAuth {
-                        credentials: credentials,
-                        server: server.clone(),
-                    };
-                    sender.send(AppEvent::SignIn(auth)).unwrap();
+                    sender.send(AppEvent::SignIn(server.to_string(), credentials)).unwrap();
                 }
 
                 show_main_content(&builder);
@@ -174,13 +167,15 @@ impl Application {
 
         signup_button.connect_clicked(
             clone!(@strong builder, @strong sender => move |_| {
-                sender.send(AppEvent::Register(get_auth_details(&builder))).unwrap();
+                let (server, credentials) = get_auth_details(&builder);
+                sender.send(AppEvent::Register(server, credentials)).unwrap();
             })
         );
 
         login_button.connect_clicked(
             clone!(@strong builder, @strong sender => move |_| {
-                sender.send(AppEvent::SignIn(get_auth_details(&builder))).unwrap();
+                let (server, credentials) = get_auth_details(&builder);
+                sender.send(AppEvent::SignIn(server, credentials)).unwrap();
             })
         );
 
@@ -326,16 +321,16 @@ impl Application {
                             }
                         };
                     }
-                    AppEvent::Register(auth) => {
-                        log::info!("Registering with {}", auth.server);
-                        let client = remote::Client::new_register(&auth.server, &auth.credentials.identifier, &auth.credentials.password);
+                    AppEvent::Register(server, credentials) => {
+                        log::info!("Registering with {}", server);
+                        let client = remote::Client::new_register(&server, credentials);
 
                         match client {
                             Ok(client) => {
                                 let credentials = client.credentials.clone();
                                 storage = Some(Storage::new(&credentials, Some(client)).unwrap());
-                                config::write_with_server(&credentials, &auth.server).unwrap();
-                                secret::store(&credentials, Some(&auth.server));
+                                config::write_with_server(&credentials, &server).unwrap();
+                                secret::store(&credentials, Some(&server));
                                 show_main_content(&builder);
                             }
                             Err(message) => {
@@ -344,24 +339,27 @@ impl Application {
                             }
                         };
                     }
-                    AppEvent::SignIn(auth) => {
-                        log::info!("Signing in to {}", auth.server);
-                        let client = remote::Client::new_sign_in(&auth.server, &auth.credentials.identifier, &auth.credentials.password);
+                    AppEvent::SignIn(server, credentials) => {
+                        log::info!("Signing in to {}", server);
+                        let client = remote::Client::new_sign_in(&server, &credentials);
 
                         match client {
                             Ok(client) => {
+                                // We have to use the clients credentials because encryption
+                                // parameters such as nonce and number of iterations might have
+                                // changed.
                                 let credentials = client.credentials.clone();
 
                                 // Switch storage, read local files and show them in the UI.
                                 storage = Some(Storage::new(&credentials, Some(client)).unwrap());
-                                config::write_with_server(&credentials, &auth.server).unwrap();
+                                config::write_with_server(&credentials, &server).unwrap();
 
                                 for note in storage.as_ref().unwrap().notes.values() {
                                     model.insert(&note);
                                 }
 
                                 // Store the encryption password and auth token in the keyring.
-                                secret::store(&credentials, Some(&auth.server));
+                                secret::store(&credentials, Some(&server));
 
                                 show_main_content(&builder);
                             }

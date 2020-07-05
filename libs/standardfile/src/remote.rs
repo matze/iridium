@@ -1,4 +1,4 @@
-use super::crypto::{make_nonce, Crypto};
+use super::crypto::Crypto;
 use super::{Credentials, Item};
 use anyhow::{anyhow, Result};
 use reqwest::StatusCode;
@@ -85,19 +85,12 @@ fn get_token_from_signin_response(response: Response) -> Result<String> {
 
 impl Client {
     /// Create client by registering a new user
-    pub fn new_register(host: &str, email: &str, password: &str) -> Result<Client> {
-        let credentials = Credentials {
-            identifier: email.to_string(),
-            cost: 110000,
-            nonce: make_nonce(),
-            password: password.to_string(),
-        };
-
+    pub fn new_register(host: &str, credentials: Credentials) -> Result<Client> {
         let crypto = Crypto::new(&credentials)?;
         let encoded_pw = crypto.password();
 
         let request = RegistrationRequest {
-            email: email.to_string(),
+            email: credentials.identifier.to_string(),
             password: encoded_pw,
             pw_cost: credentials.cost,
             pw_nonce: credentials.nonce.clone(),
@@ -118,24 +111,21 @@ impl Client {
     }
 
     /// Create client by signing in.
-    pub fn new_sign_in(host: &str, email: &str, password: &str) -> Result<Client> {
+    pub fn new_sign_in(host: &str, credentials: &Credentials) -> Result<Client> {
         let client = reqwest::blocking::Client::new();
 
-        let url = format!("{}/auth/params?email={}", host, email);
+        let url = format!("{}/auth/params?email={}", host, credentials.identifier);
         let response = client.get(&url).send()?.json::<AuthParamsResponse>()?;
 
-        let credentials = Credentials {
-            identifier: email.to_string(),
-            cost: response.pw_cost,
-            nonce: response.pw_nonce,
-            password: password.to_string(),
-        };
+        let mut credentials = credentials.clone();
+        credentials.cost = response.pw_cost;
+        credentials.nonce = response.pw_nonce;
 
         let crypto = Crypto::new(&credentials)?;
         let encoded_pw = crypto.password();
 
         let request = SignInRequest {
-            email: email.to_string(),
+            email: credentials.identifier.clone(),
             password: encoded_pw,
         };
 
