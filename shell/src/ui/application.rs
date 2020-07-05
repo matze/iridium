@@ -32,8 +32,8 @@ fn get_user_details(builder: &gtk::Builder) -> User {
     let password_entry = get_widget!(builder, gtk::Entry, "password-entry");
 
     User {
-        identifier: identifier_entry.get_text().unwrap().to_string(),
-        password: password_entry.get_text().unwrap().to_string(),
+        identifier: identifier_entry.get_text().to_string(),
+        password: password_entry.get_text().to_string(),
     }
 }
 
@@ -84,7 +84,7 @@ fn setup_style_provider(window: &gtk::ApplicationWindow) {
 }
 
 fn setup_overlay_help(window: &gtk::ApplicationWindow) {
-    let builder = gtk::Builder::new_from_resource(SHORTCUTS_UI);
+    let builder = gtk::Builder::from_resource(SHORTCUTS_UI);
     let shortcuts_window = get_widget!(builder, gtk::ShortcutsWindow,"shortcuts");
     window.set_help_overlay(Some(&shortcuts_window));
 }
@@ -95,7 +95,7 @@ impl Application {
 
         let (sender, receiver) = glib::MainContext::channel::<AppEvent>(glib::PRIORITY_DEFAULT);
 
-        let builder = gtk::Builder::new_from_resource(WINDOW_UI);
+        let builder = gtk::Builder::from_resource(WINDOW_UI);
         let window = get_widget!(builder, gtk::ApplicationWindow, "window");
         let note_list_box = get_widget!(builder, gtk::ListBox, "iridium-note-list");
         let title_entry = get_widget!(builder, gtk::Entry, "iridium-title-entry");
@@ -207,13 +207,13 @@ impl Application {
 
         search_entry.connect_search_changed(
             clone!(@weak search_entry, @strong sender => move |entry| {
-                if let Some(text) = entry.get_text() {
-                    if text.len() > 2 {
-                        sender.send(AppEvent::UpdateFilter(Some(text.as_str().to_string()))).unwrap();
-                    }
-                    else {
-                        sender.send(AppEvent::UpdateFilter(None)).unwrap();
-                    }
+                let text = entry.get_text();
+
+                if text.len() > 2 {
+                    sender.send(AppEvent::UpdateFilter(Some(text.as_str().to_string()))).unwrap();
+                }
+                else {
+                    sender.send(AppEvent::UpdateFilter(None)).unwrap();
                 }
             })
         );
@@ -244,12 +244,12 @@ impl Application {
 
         action!(app, "about",
             clone!(@weak window => move |_, _| {
-                let builder = gtk::Builder::new_from_resource(ABOUT_UI);
+                let builder = gtk::Builder::from_resource(ABOUT_UI);
                 let dialog = get_widget!(builder, gtk::AboutDialog, "about-dialog");
                 dialog.set_version(Some(APP_VERSION));
                 dialog.set_logo_icon_name(Some(APP_ID));
                 dialog.set_transient_for(Some(&window));
-                dialog.connect_response(|dialog, _| dialog.destroy());
+                dialog.connect_response(|dialog, _| dialog.close());
                 dialog.show();
             })
         );
@@ -274,7 +274,7 @@ impl Application {
 
         action!(app, "import",
             clone!(@weak  window, @strong sender => move |_, _| {
-                let builder = gtk::Builder::new_from_resource(IMPORT_UI);
+                let builder = gtk::Builder::from_resource(IMPORT_UI);
                 let dialog = get_widget!(builder, gtk::Dialog, "import-dialog");
 
                 setup_server_dialog(&builder);
@@ -289,29 +289,27 @@ impl Application {
                             let password_entry = get_widget!(builder, gtk::Entry, "import-password");
                             let server_box = get_widget!(builder, gtk::ComboBoxText, "server-box");
                             let server_entry = server_box.get_child().unwrap().downcast::<gtk::Entry>().unwrap();
-                            let server = server_entry.get_text().as_deref().unwrap().to_string();
+                            let server = server_entry.get_text().to_string();
 
-                            if let Some(password) = password_entry.get_text() {
-                                sender.send(AppEvent::Import(filename, password.as_str().to_string(), Some(server))).unwrap();
-                            }
+                            sender.send(AppEvent::Import(filename, password_entry.get_text().to_string(), Some(server))).unwrap();
                         }
                     }
                     _ => {}
                 }
 
-                dialog.destroy();
+                dialog.close();
             })
         );
 
         action!(app, "setup",
             clone!(@weak window => move |_, _| {
-                let builder = gtk::Builder::new_from_resource(SETUP_UI);
+                let builder = gtk::Builder::from_resource(SETUP_UI);
                 let dialog = get_widget!(builder, gtk::Dialog, "setup-dialog");
 
                 setup_server_dialog(&builder);
                 dialog.set_transient_for(Some(&window));
                 dialog.set_modal(true);
-                dialog.connect_response(|dialog, _| dialog.destroy());
+                dialog.connect_response(|dialog, _| dialog.close());
                 dialog.show();
             })
         );
@@ -474,9 +472,7 @@ impl Application {
 
                                 title_entry_handler = Some(title_entry.connect_changed(
                                     clone!(@strong sender => move |entry| {
-                                        if let Some(text) = entry.get_text() {
-                                            sender.send(AppEvent::Update(Some(text.to_string()), None)).unwrap();
-                                        }
+                                        sender.send(AppEvent::Update(Some(entry.get_text().to_string()), None)).unwrap();
                                     })
                                 ).to_glib());
 

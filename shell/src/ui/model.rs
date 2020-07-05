@@ -121,7 +121,7 @@ impl Model {
 
     pub fn show_matching_rows(&self, term: &str) {
         for item in &self.items {
-            let label_text = item.label.get_text().unwrap().to_string().to_lowercase();
+            let label_text = item.label.get_text().to_string().to_lowercase();
 
             if label_text.contains(&term) {
                 item.row.show();

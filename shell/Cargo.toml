@@ -11,10 +11,10 @@ data-encoding = "2.2.0"
 directories = "2.0"
 env_logger = "0"
 log = "0"
-gtk = { version = "0.8", features = ["v3_22"] }
-glib = "0.9"
-gio = { version = "0.8", features = ["v2_46"] }
-gdk = "0.12"
+gtk = { version = "0.9", features = ["v3_22"] }
+glib = "0.10"
+gio = { version = "0.9", features = ["v2_46"] }
+gdk = "0.13"
 ring = "0.16"
 secret-service = "1.0"
 serde = { version = "1.0", features = ["derive"] }
