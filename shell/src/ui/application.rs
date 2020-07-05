@@ -8,7 +8,7 @@ use crate::consts::{APP_ID, APP_VERSION, ABOUT_UI, BASE_CSS, IMPORT_UI, SETUP_UI
 use crate::secret;
 use crate::storage::Storage;
 use crate::ui::controller::Controller;
-use crate::ui::state::{User, RemoteAuth, AppEvent};
+use crate::ui::state::{RemoteAuth, AppEvent};
 use standardfile::{remote, Exported, Credentials};
 
 pub struct Application {
@@ -27,14 +27,11 @@ fn setup_server_dialog(builder: &gtk::Builder) {
     sync_button.bind_property("active", &server_entry, "sensitive").flags(glib::BindingFlags::SYNC_CREATE).build();
 }
 
-fn get_user_details(builder: &gtk::Builder) -> User {
+fn get_user_details(builder: &gtk::Builder) -> Credentials {
     let identifier_entry = get_widget!(builder, gtk::Entry, "identifier-entry");
     let password_entry = get_widget!(builder, gtk::Entry, "password-entry");
 
-    User {
-        identifier: identifier_entry.get_text().to_string(),
-        password: password_entry.get_text().to_string(),
-    }
+    Credentials::from_defaults(&identifier_entry.get_text(), &password_entry.get_text())
 }
 
 fn get_auth_details(builder: &gtk::Builder) -> RemoteAuth {
@@ -42,7 +39,7 @@ fn get_auth_details(builder: &gtk::Builder) -> RemoteAuth {
 
     RemoteAuth {
         server: server_combo_box.get_active_text().unwrap().to_string(),
-        user: get_user_details(&builder),
+        credentials: get_user_details(&builder),
     }
 }
 
@@ -113,14 +110,12 @@ impl Application {
 
         let mut storage = match config {
             Some(config) => {
-                let user = User {
-                    password: secret::load(&config.identifier, config.server.as_deref())?,
-                    identifier: config.identifier.clone(),
-                };
+                let password = secret::load(&config.identifier, config.server.as_deref())?;
+                let credentials = Credentials::from_defaults(&config.identifier, &password);
 
                 if let Some(server) = &config.server {
                     let auth = RemoteAuth {
-                        user: user,
+                        credentials: credentials,
                         server: server.clone(),
                     };
                     sender.send(AppEvent::SignIn(auth)).unwrap();
@@ -333,7 +328,7 @@ impl Application {
                     }
                     AppEvent::Register(auth) => {
                         log::info!("Registering with {}", auth.server);
-                        let client = remote::Client::new_register(&auth.server, &auth.user.identifier, &auth.user.password);
+                        let client = remote::Client::new_register(&auth.server, &auth.credentials.identifier, &auth.credentials.password);
 
                         match client {
                             Ok(client) => {
@@ -351,7 +346,7 @@ impl Application {
                     }
                     AppEvent::SignIn(auth) => {
                         log::info!("Signing in to {}", auth.server);
-                        let client = remote::Client::new_sign_in(&auth.server, &auth.user.identifier, &auth.user.password);
+                        let client = remote::Client::new_sign_in(&auth.server, &auth.credentials.identifier, &auth.credentials.password);
 
                         match client {
                             Ok(client) => {
