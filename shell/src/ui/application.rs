@@ -114,7 +114,7 @@ impl Application {
         let search_bar = get_widget!(builder, gtk::SearchBar, "iridium-search-bar");
         let search_entry = get_widget!(builder, gtk::SearchEntry, "iridium-search-entry");
 
-        let mut model = Model::new(note_list_box.clone(), title_entry.clone());
+        let mut model = Model::new(&builder);
 
         setup_overlay_help(&window);
         setup_style_provider(&window);

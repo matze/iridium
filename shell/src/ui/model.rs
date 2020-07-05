@@ -20,11 +20,11 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new(list_box: gtk::ListBox, title_entry: gtk::Entry) -> Self {
+    pub fn new(builder: &gtk::Builder) -> Self {
         Self {
             items: Vec::new(),
-            list_box: list_box,
-            title_entry: title_entry,
+            list_box: get_widget!(builder, gtk::ListBox, "iridium-note-list"),
+            title_entry: get_widget!(builder, gtk::Entry, "iridium-title-entry"),
             binding: None,
         }
     }
