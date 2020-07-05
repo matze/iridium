@@ -9,7 +9,7 @@
     <property name="website">https://github.com/matze/iridium</property>
     <property name="authors">Matthias Vogelgesang</property>
     <property name="translator_credits" translatable="yes">translator-credits</property>
-    <property name="license_type">mit-x11</property>
+    <property name="license_type">gpl-3-0</property>
     <child type="titlebar">
       <placeholder/>
     </child>

@@ -3,6 +3,7 @@ name = "iridium"
 version = "0.2.0"
 authors = ["Matthias Vogelgesang"]
 edition = "2018"
+license = "GPL-3.0-or-later"
 
 [dependencies]
 anyhow = "1.0"

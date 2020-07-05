@@ -3,6 +3,7 @@ name = "standardfile"
 version = "0.2.0"
 authors = ["Matthias Vogelgesang"]
 edition = "2018"
+license = "LGPL-3.0"
 
 [dependencies]
 anyhow = "1.0"
