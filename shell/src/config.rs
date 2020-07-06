@@ -8,11 +8,21 @@ use std::fs;
 use std::fs::{create_dir_all, read_to_string};
 
 #[derive(Serialize, Deserialize)]
+pub struct Geometry {
+    pub width: i32,
+    pub height: i32,
+    pub x: i32,
+    pub y: i32,
+    pub maximized: bool,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct Config {
     pub identifier: String,
     pub nonce: String,
     pub cost: u32,
     pub server: Option<String>,
+    pub geometry: Option<Geometry>,
 }
 
 fn get_path() -> PathBuf {
@@ -23,19 +33,6 @@ fn get_path() -> PathBuf {
     path
 }
 
-/// Write configuration with the given credentials.
-pub fn write(credentials: &Credentials) -> Result<()> {
-    let config = Config::new(credentials);
-    Ok(config.write()?)
-}
-
-/// Write configuration with given credentials and server.
-pub fn write_with_server(credentials: &Credentials, server: &str) -> Result<()> {
-    let mut config = Config::new(credentials);
-    config.server = Some(server.to_string());
-    Ok(config.write()?)
-}
-
 impl Config {
     pub fn new(credentials: &Credentials) -> Config {
         Self {
@@ -43,6 +40,7 @@ impl Config {
             nonce: credentials.nonce.clone(),
             cost: credentials.cost,
             server: None,
+            geometry: None,
         }
     }
 

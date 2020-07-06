@@ -5,6 +5,7 @@ use glib::translate::{ToGlib, from_glib};
 use std::env;
 use std::path::PathBuf;
 use crate::config;
+use crate::config::{Config, Geometry};
 use crate::consts::{APP_ID, APP_VERSION, ABOUT_UI, BASE_CSS, IMPORT_UI, SETUP_UI, SHORTCUTS_UI, WINDOW_UI};
 use crate::secret;
 use crate::storage::Storage;
@@ -90,6 +91,31 @@ fn setup_overlay_help(window: &gtk::ApplicationWindow) {
     window.set_help_overlay(Some(&shortcuts_window));
 }
 
+fn write_config(window: &gtk::ApplicationWindow, credentials: &Credentials, server: Option<String>) {
+    let (width, height) = window.get_size();
+    let (x, y) = window.get_position();
+
+    let mut config = Config::new(credentials);
+
+    config.geometry = Some(Geometry {
+        x: x,
+        y: y,
+        width: width,
+        height: height,
+        maximized: false,
+    });
+
+    config.server = server;
+    config.write().unwrap();
+}
+
+fn restore_geometry(config: &Config, window: &gtk::ApplicationWindow) {
+    if let Some(geometry) = &config.geometry {
+        window.move_(geometry.x, geometry.y);
+        window.resize(geometry.width, geometry.height);
+    }
+}
+
 impl Application {
     pub fn new() -> Result<Self> {
         let app = gtk::Application::new(Some(APP_ID), gio::ApplicationFlags::FLAGS_NONE)?;
@@ -121,6 +147,8 @@ impl Application {
 
         let mut storage = match config {
             Some(config) => {
+                restore_geometry(&config, &window);
+
                 let password = secret::load(&config.identifier, config.server.as_deref())?;
                 let credentials = Credentials::from_defaults(&config.identifier, &password);
 
@@ -312,7 +340,7 @@ impl Application {
         let mut text_buffer_handler: Option<u64> = None;
 
         receiver.attach(None,
-            clone!(@strong sender, @strong app => move |event| {
+            clone!(@strong sender, @strong app, @strong window => move |event| {
                 match event {
                     AppEvent::Quit => {
                         if let Some(storage) = &mut storage {
@@ -327,7 +355,7 @@ impl Application {
                         match Storage::new(&credentials, None) {
                             Ok(s) => {
                                 storage = Some(s);
-                                config::write(&credentials).unwrap();
+                                write_config(&window, &credentials, None);
                                 secret::store(&credentials, None);
                             }
                             Err(message) => {
@@ -343,7 +371,7 @@ impl Application {
                             Ok(client) => {
                                 let credentials = client.credentials.clone();
                                 storage = Some(Storage::new(&credentials, Some(client)).unwrap());
-                                config::write_with_server(&credentials, &server).unwrap();
+                                write_config(&window, &credentials, Some(server.clone()));
                                 secret::store(&credentials, Some(&server));
                                 show_main_content(&builder);
                             }
@@ -366,7 +394,7 @@ impl Application {
 
                                 // Switch storage, read local files and show them in the UI.
                                 storage = Some(Storage::new(&credentials, Some(client)).unwrap());
-                                config::write_with_server(&credentials, &server).unwrap();
+                                write_config(&window, &credentials, Some(server.clone()));
 
                                 for note in storage.as_ref().unwrap().notes.values() {
                                     model.insert(&note);
@@ -390,7 +418,7 @@ impl Application {
                             if let Ok(exported) = Exported::from_str(&contents) {
                                 let credentials = Credentials::from_exported(&exported, &password);
 
-                                config::write(&credentials).unwrap();
+                                write_config(&window, &credentials, None);
                                 secret::store(&credentials, server.as_deref());
 
                                 storage = Some(Storage::new_from_items(&credentials, &exported.items).unwrap());
