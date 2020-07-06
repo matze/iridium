@@ -14,6 +14,10 @@ use standardfile::{remote, Exported, Credentials};
 
 pub struct Application {
     app: gtk::Application,
+    window: gtk::ApplicationWindow,
+    sender: glib::Sender<AppEvent>,
+    search_bar: gtk::SearchBar,
+    search_entry: gtk::SearchEntry,
 }
 
 enum AppEvent {
@@ -74,23 +78,6 @@ fn show_notification(builder: &gtk::Builder, message: &str) {
     });
 }
 
-fn setup_style_provider(window: &gtk::ApplicationWindow) {
-    let style_provider = gtk::CssProvider::new();
-    style_provider.load_from_resource(BASE_CSS);
-
-    gtk::StyleContext::add_provider_for_screen(
-        &window.get_screen().unwrap(),
-        &style_provider,
-        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-    );
-}
-
-fn setup_overlay_help(window: &gtk::ApplicationWindow) {
-    let builder = gtk::Builder::from_resource(SHORTCUTS_UI);
-    let shortcuts_window = get_widget!(builder, gtk::ShortcutsWindow,"shortcuts");
-    window.set_help_overlay(Some(&shortcuts_window));
-}
-
 fn write_config(window: &gtk::ApplicationWindow, credentials: &Credentials, server: Option<String>) {
     let (width, height) = window.get_size();
     let (x, y) = window.get_position();
@@ -117,13 +104,153 @@ fn restore_geometry(config: &Config, window: &gtk::ApplicationWindow) {
 }
 
 impl Application {
+    fn setup_overlay_help(&self) {
+        let builder = gtk::Builder::from_resource(SHORTCUTS_UI);
+        let shortcuts_window = get_widget!(builder, gtk::ShortcutsWindow, "shortcuts");
+        self.window.set_help_overlay(Some(&shortcuts_window));
+    }
+
+    fn setup_style_provider(&self) {
+        let style_provider = gtk::CssProvider::new();
+        style_provider.load_from_resource(BASE_CSS);
+
+        gtk::StyleContext::add_provider_for_screen(
+            &self.window.get_screen().unwrap(),
+            &style_provider,
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
+    }
+
+    fn setup_actions(&self) {
+        action!(self.app, "quit",
+            clone!(@strong self.sender as sender => move |_, _| {
+                sender.send(AppEvent::Quit).unwrap();
+            })
+        );
+
+        action!(self.app, "about",
+            clone!(@weak self.window as window => move |_, _| {
+                let builder = gtk::Builder::from_resource(ABOUT_UI);
+                let dialog = get_widget!(builder, gtk::AboutDialog, "about-dialog");
+                dialog.set_version(Some(APP_VERSION));
+                dialog.set_logo_icon_name(Some(APP_ID));
+                dialog.set_transient_for(Some(&window));
+                dialog.connect_response(|dialog, _| dialog.close());
+                dialog.show();
+            })
+        );
+
+        action!(self.app, "add",
+            clone!(@strong self.sender as sender => move |_, _| {
+                sender.send(AppEvent::AddNote).unwrap();
+            })
+        );
+
+        action!(self.app, "delete",
+            clone!(@strong self.sender as sender => move |_, _| {
+                sender.send(AppEvent::DeleteNote).unwrap();
+            })
+        );
+
+        action!(self.app, "setup",
+            clone!(@weak self.window as window => move |_, _| {
+                let builder = gtk::Builder::from_resource(SETUP_UI);
+                let dialog = get_widget!(builder, gtk::Dialog, "setup-dialog");
+
+                setup_server_dialog(&builder);
+                dialog.set_transient_for(Some(&window));
+                dialog.set_modal(true);
+                dialog.connect_response(|dialog, _| dialog.close());
+                dialog.show();
+            })
+        );
+
+        action!(self.app, "search",
+            clone!(@strong self.search_bar as search_bar => move |_, _| {
+                search_bar.set_search_mode(!search_bar.get_search_mode());
+            })
+        );
+
+        action!(self.app, "import",
+            clone!(@weak self.window as window, @strong self.sender as sender => move |_, _| {
+                let builder = gtk::Builder::from_resource(IMPORT_UI);
+                let dialog = get_widget!(builder, gtk::Dialog, "import-dialog");
+
+                setup_server_dialog(&builder);
+                dialog.set_transient_for(Some(&window));
+                dialog.set_modal(true);
+
+                match dialog.run() {
+                    gtk::ResponseType::Ok => {
+                        let file_chooser = get_widget!(builder, gtk::FileChooserButton, "import-file-button");
+
+                        if let Some(filename) = file_chooser.get_filename() {
+                            let password_entry = get_widget!(builder, gtk::Entry, "import-password");
+                            let server_box = get_widget!(builder, gtk::ComboBoxText, "server-box");
+                            let server_entry = server_box.get_child().unwrap().downcast::<gtk::Entry>().unwrap();
+                            let server = server_entry.get_text().to_string();
+
+                            sender.send(AppEvent::Import(filename, password_entry.get_text().to_string(), Some(server))).unwrap();
+                        }
+                    }
+                    _ => {}
+                }
+
+                dialog.close();
+            })
+        );
+
+        self.app.set_accels_for_action("app.quit", &["<primary>q"]);
+        self.app.set_accels_for_action("app.search", &["<primary>f"]);
+    }
+
+    fn setup_signals(&self) {
+        self.app.connect_activate(
+            clone!(@weak self.window as window => move |app| {
+                window.set_application(Some(app));
+                app.add_window(&window);
+                window.present();
+            })
+        );
+
+        self.window.connect_destroy(
+            clone!(@strong self.sender as sender => move |_| {
+                sender.send(AppEvent::Quit).unwrap();
+            })
+        );
+
+        self.search_bar.connect_entry(&self.search_entry);
+
+        self.search_entry.connect_search_changed(
+            clone!(@strong self.sender as sender => move |entry| {
+                let text = entry.get_text();
+
+                if text.len() > 2 {
+                    sender.send(AppEvent::UpdateFilter(Some(text.as_str().to_string()))).unwrap();
+                }
+                else {
+                    sender.send(AppEvent::UpdateFilter(None)).unwrap();
+                }
+            })
+        );
+    }
+
     pub fn new() -> Result<Self> {
         let app = gtk::Application::new(Some(APP_ID), gio::ApplicationFlags::FLAGS_NONE)?;
-
-        let (sender, receiver) = glib::MainContext::channel::<AppEvent>(glib::PRIORITY_DEFAULT);
-
         let builder = gtk::Builder::from_resource(WINDOW_UI);
         let window = get_widget!(builder, gtk::ApplicationWindow, "window");
+        let (sender, receiver) = glib::MainContext::channel::<AppEvent>(glib::PRIORITY_DEFAULT);
+
+        let application = Self {
+            app: app.clone(),
+            window: window.clone(),
+            sender: sender.clone(),
+            search_bar: get_widget!(builder, gtk::SearchBar, "iridium-search-bar"),
+            search_entry: get_widget!(builder, gtk::SearchEntry, "iridium-search-entry"),
+        };
+
+        let main_box = get_widget!(builder, gtk::Box, "iridium-main-content");
+        let main_stack = get_widget!(builder, gtk::Stack, "iridium-main-stack");
         let note_list_box = get_widget!(builder, gtk::ListBox, "iridium-note-list");
         let title_entry = get_widget!(builder, gtk::Entry, "iridium-title-entry");
         let note_popover = get_widget!(builder, gtk::PopoverMenu, "note_menu");
@@ -135,13 +262,10 @@ impl Application {
         let text_view = get_widget!(builder, gtk::TextView, "iridium-text-view");
         let text_buffer = text_view.get_buffer().unwrap();
 
-        let search_bar = get_widget!(builder, gtk::SearchBar, "iridium-search-bar");
-        let search_entry = get_widget!(builder, gtk::SearchEntry, "iridium-search-entry");
-
         let mut model = Controller::new(&builder);
 
-        setup_overlay_help(&window);
-        setup_style_provider(&window);
+        application.setup_overlay_help();
+        application.setup_style_provider();
 
         let config = config::Config::new_from_file()?;
 
@@ -170,19 +294,7 @@ impl Application {
             None => None
         };
 
-        app.connect_activate(
-            clone!(@weak window => move |app| {
-                window.set_application(Some(app));
-                app.add_window(&window);
-                window.present();
-            })
-        );
-
-        window.connect_destroy(
-            clone!(@strong sender as sender => move |_| {
-                sender.send(AppEvent::Quit).unwrap();
-            })
-        );
+        application.setup_actions();
 
         identifier_entry.bind_property("text-length", &local_button, "sensitive")
             .flags(glib::BindingFlags::SYNC_CREATE)
@@ -196,11 +308,11 @@ impl Application {
             .flags(glib::BindingFlags::SYNC_CREATE)
             .build();
 
+        application.setup_signals();
+
         local_button.connect_clicked(
             clone!(@strong builder, @strong sender => move |_| {
-                let main_box = get_widget!(builder, gtk::Box, "iridium-main-content");
-                let stack = get_widget!(builder, gtk::Stack, "iridium-main-stack");
-                stack.set_visible_child(&main_box);
+                main_stack.set_visible_child(&main_box);
 
                 let user = get_user_details(&builder);
                 sender.send(AppEvent::CreateStorage(user)).unwrap();
@@ -221,21 +333,6 @@ impl Application {
             })
         );
 
-        search_bar.connect_entry(&search_entry);
-
-        search_entry.connect_search_changed(
-            clone!(@weak search_entry, @strong sender => move |entry| {
-                let text = entry.get_text();
-
-                if text.len() > 2 {
-                    sender.send(AppEvent::UpdateFilter(Some(text.as_str().to_string()))).unwrap();
-                }
-                else {
-                    sender.send(AppEvent::UpdateFilter(None)).unwrap();
-                }
-            })
-        );
-
         note_list_box.connect_row_selected(
             clone!(@strong sender, @strong note_popover => move |_, row| {
                 if let Some(row) = row {
@@ -253,87 +350,6 @@ impl Application {
                 glib::signal::Inhibit(false)
             })
         );
-
-        action!(app, "quit",
-            clone!(@strong sender as sender => move |_, _| {
-                sender.send(AppEvent::Quit).unwrap();
-            })
-        );
-
-        action!(app, "about",
-            clone!(@weak window => move |_, _| {
-                let builder = gtk::Builder::from_resource(ABOUT_UI);
-                let dialog = get_widget!(builder, gtk::AboutDialog, "about-dialog");
-                dialog.set_version(Some(APP_VERSION));
-                dialog.set_logo_icon_name(Some(APP_ID));
-                dialog.set_transient_for(Some(&window));
-                dialog.connect_response(|dialog, _| dialog.close());
-                dialog.show();
-            })
-        );
-
-        action!(app, "add",
-            clone!(@strong sender as sender => move |_, _| {
-                sender.send(AppEvent::AddNote).unwrap();
-            })
-        );
-
-        action!(app, "delete",
-            clone!(@strong sender as sender => move |_, _| {
-                sender.send(AppEvent::DeleteNote).unwrap();
-            })
-        );
-
-        action!(app, "search",
-            clone!(@strong search_bar => move |_, _| {
-                search_bar.set_search_mode(!search_bar.get_search_mode());
-            })
-        );
-
-        action!(app, "import",
-            clone!(@weak  window, @strong sender => move |_, _| {
-                let builder = gtk::Builder::from_resource(IMPORT_UI);
-                let dialog = get_widget!(builder, gtk::Dialog, "import-dialog");
-
-                setup_server_dialog(&builder);
-                dialog.set_transient_for(Some(&window));
-                dialog.set_modal(true);
-
-                match dialog.run() {
-                    gtk::ResponseType::Ok => {
-                        let file_chooser = get_widget!(builder, gtk::FileChooserButton, "import-file-button");
-
-                        if let Some(filename) = file_chooser.get_filename() {
-                            let password_entry = get_widget!(builder, gtk::Entry, "import-password");
-                            let server_box = get_widget!(builder, gtk::ComboBoxText, "server-box");
-                            let server_entry = server_box.get_child().unwrap().downcast::<gtk::Entry>().unwrap();
-                            let server = server_entry.get_text().to_string();
-
-                            sender.send(AppEvent::Import(filename, password_entry.get_text().to_string(), Some(server))).unwrap();
-                        }
-                    }
-                    _ => {}
-                }
-
-                dialog.close();
-            })
-        );
-
-        action!(app, "setup",
-            clone!(@weak window => move |_, _| {
-                let builder = gtk::Builder::from_resource(SETUP_UI);
-                let dialog = get_widget!(builder, gtk::Dialog, "setup-dialog");
-
-                setup_server_dialog(&builder);
-                dialog.set_transient_for(Some(&window));
-                dialog.set_modal(true);
-                dialog.connect_response(|dialog, _| dialog.close());
-                dialog.show();
-            })
-        );
-
-        app.set_accels_for_action("app.quit", &["<primary>q"]);
-        app.set_accels_for_action("app.search", &["<primary>f"]);
 
         let mut flush_timer_running = false;
         let mut title_entry_handler: Option<u64> = None;
@@ -541,7 +557,7 @@ impl Application {
             })
         );
 
-        Ok(Self { app })
+        Ok(application)
     }
 
     pub fn run(&self) {
