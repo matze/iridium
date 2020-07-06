@@ -259,9 +259,6 @@ impl Application {
         let mut model = Controller::new(&builder);
         let mut config = Config::new()?;
 
-        application.setup_overlay_help();
-        application.setup_style_provider();
-
         let mut storage = match &config {
             Some(config) => {
                 application.restore_geometry(&config);
@@ -287,7 +284,10 @@ impl Application {
             None => None
         };
 
+        application.setup_overlay_help();
+        application.setup_style_provider();
         application.setup_actions();
+        application.setup_signals();
 
         identifier_entry.bind_property("text-length", &local_button, "sensitive")
             .flags(glib::BindingFlags::SYNC_CREATE)
@@ -300,8 +300,6 @@ impl Application {
         identifier_entry.bind_property("text-length", &signup_button, "sensitive")
             .flags(glib::BindingFlags::SYNC_CREATE)
             .build();
-
-        application.setup_signals();
 
         local_button.connect_clicked(
             clone!(@strong builder, @strong sender => move |_| {
