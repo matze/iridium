@@ -34,17 +34,7 @@ fn get_path() -> PathBuf {
 }
 
 impl Config {
-    pub fn new(credentials: &Credentials) -> Config {
-        Self {
-            identifier: credentials.identifier.clone(),
-            nonce: credentials.nonce.clone(),
-            cost: credentials.cost,
-            server: None,
-            geometry: None,
-        }
-    }
-
-    pub fn new_from_file() -> Result<Option<Config>> {
+    pub fn new() -> Result<Option<Config>> {
         let path = get_path();
 
         if path.exists() {
@@ -54,6 +44,20 @@ impl Config {
         else {
             Ok(None)
         }
+    }
+
+    pub fn new_from_credentials(credentials: &Credentials) -> Config {
+        Self {
+            identifier: credentials.identifier.clone(),
+            nonce: credentials.nonce.clone(),
+            cost: credentials.cost,
+            server: None,
+            geometry: None,
+        }
+    }
+
+    pub fn set_server(&mut self, server: &str) {
+        self.server = Some(server.to_string());
     }
 
     pub fn to_credentials(&self) -> Result<Credentials> {

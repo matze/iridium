@@ -4,7 +4,6 @@ use gtk::prelude::*;
 use glib::translate::{ToGlib, from_glib};
 use std::env;
 use std::path::PathBuf;
-use crate::config;
 use crate::config::{Config, Geometry};
 use crate::consts::{APP_ID, APP_VERSION, ABOUT_UI, BASE_CSS, IMPORT_UI, SETUP_UI, SHORTCUTS_UI, WINDOW_UI};
 use crate::secret;
@@ -78,28 +77,16 @@ fn show_notification(builder: &gtk::Builder, message: &str) {
     });
 }
 
-fn write_config(window: &gtk::ApplicationWindow, credentials: &Credentials, server: Option<String>) {
+fn geometry_from_window(window: &gtk::ApplicationWindow) -> Geometry {
     let (width, height) = window.get_size();
     let (x, y) = window.get_position();
 
-    let mut config = Config::new(credentials);
-
-    config.geometry = Some(Geometry {
+    Geometry {
         x: x,
         y: y,
         width: width,
         height: height,
         maximized: false,
-    });
-
-    config.server = server;
-    config.write().unwrap();
-}
-
-fn restore_geometry(config: &Config, window: &gtk::ApplicationWindow) {
-    if let Some(geometry) = &config.geometry {
-        window.move_(geometry.x, geometry.y);
-        window.resize(geometry.width, geometry.height);
     }
 }
 
@@ -235,6 +222,13 @@ impl Application {
         );
     }
 
+    fn restore_geometry(&self, config: &Config) {
+        if let Some(geometry) = &config.geometry {
+            self.window.move_(geometry.x, geometry.y);
+            self.window.resize(geometry.width, geometry.height);
+        }
+    }
+
     pub fn new() -> Result<Self> {
         let app = gtk::Application::new(Some(APP_ID), gio::ApplicationFlags::FLAGS_NONE)?;
         let builder = gtk::Builder::from_resource(WINDOW_UI);
@@ -263,15 +257,14 @@ impl Application {
         let text_buffer = text_view.get_buffer().unwrap();
 
         let mut model = Controller::new(&builder);
+        let mut config = Config::new()?;
 
         application.setup_overlay_help();
         application.setup_style_provider();
 
-        let config = config::Config::new_from_file()?;
-
-        let mut storage = match config {
+        let mut storage = match &config {
             Some(config) => {
-                restore_geometry(&config, &window);
+                application.restore_geometry(&config);
 
                 let password = secret::load(&config.identifier, config.server.as_deref())?;
                 let credentials = Credentials::from_defaults(&config.identifier, &password);
@@ -363,6 +356,11 @@ impl Application {
                             storage.flush_dirty().unwrap();
                         }
 
+                        if let Some(config) = &mut config {
+                            config.geometry = Some(geometry_from_window(&window));
+                            config.write().unwrap();
+                        }
+
                         app.quit();
                     }
                     AppEvent::CreateStorage(user) => {
@@ -371,7 +369,7 @@ impl Application {
                         match Storage::new(&credentials, None) {
                             Ok(s) => {
                                 storage = Some(s);
-                                write_config(&window, &credentials, None);
+                                config = Some(Config::new_from_credentials(&credentials));
                                 secret::store(&credentials, None);
                             }
                             Err(message) => {
@@ -387,8 +385,10 @@ impl Application {
                             Ok(client) => {
                                 let credentials = client.credentials.clone();
                                 storage = Some(Storage::new(&credentials, Some(client)).unwrap());
-                                write_config(&window, &credentials, Some(server.clone()));
                                 secret::store(&credentials, Some(&server));
+
+                                config = Some(Config::new_from_credentials(&credentials));
+                                config.as_mut().unwrap().set_server(&server);
                                 show_main_content(&builder);
                             }
                             Err(message) => {
@@ -410,7 +410,9 @@ impl Application {
 
                                 // Switch storage, read local files and show them in the UI.
                                 storage = Some(Storage::new(&credentials, Some(client)).unwrap());
-                                write_config(&window, &credentials, Some(server.clone()));
+
+                                config = Some(Config::new_from_credentials(&credentials));
+                                config.as_mut().unwrap().set_server(&server);
 
                                 for note in storage.as_ref().unwrap().notes.values() {
                                     model.insert(&note);
@@ -434,9 +436,10 @@ impl Application {
                             if let Ok(exported) = Exported::from_str(&contents) {
                                 let credentials = Credentials::from_exported(&exported, &password);
 
-                                write_config(&window, &credentials, None);
                                 secret::store(&credentials, server.as_deref());
 
+                                // FIXME: actually pass the server if it exists
+                                config = Some(Config::new_from_credentials(&credentials));
                                 storage = Some(Storage::new_from_items(&credentials, &exported.items).unwrap());
 
                                 if let Some(storage) = &storage {
