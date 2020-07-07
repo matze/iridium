@@ -15,8 +15,15 @@ pub struct Application {
     app: gtk::Application,
     window: gtk::ApplicationWindow,
     sender: glib::Sender<AppEvent>,
+    builder: gtk::Builder,
     search_bar: gtk::SearchBar,
     search_entry: gtk::SearchEntry,
+    setup_identifier_entry: gtk::Entry,
+    setup_create_button: gtk::Button,
+    setup_signup_button: gtk::Button,
+    setup_login_button: gtk::Button,
+    note_list_box: gtk::ListBox,
+    note_popover: gtk::PopoverMenu,
 }
 
 enum AppEvent {
@@ -220,6 +227,64 @@ impl Application {
                 }
             })
         );
+
+        self.setup_create_button.connect_clicked(
+            clone!(@strong self.builder as builder, @strong self.sender as sender => move |_| {
+                let main_box = get_widget!(builder, gtk::Box, "iridium-main-content");
+                let main_stack = get_widget!(builder, gtk::Stack, "iridium-main-stack");
+
+                main_stack.set_visible_child(&main_box);
+
+                let user = get_user_details(&builder);
+                sender.send(AppEvent::CreateStorage(user)).unwrap();
+            })
+        );
+
+        self.setup_signup_button.connect_clicked(
+            clone!(@strong self.builder as builder, @strong self.sender as sender => move |_| {
+                let (server, credentials) = get_auth_details(&builder);
+                sender.send(AppEvent::Register(server, credentials)).unwrap();
+            })
+        );
+
+        self.setup_login_button.connect_clicked(
+            clone!(@strong self.builder as builder, @strong self.sender as sender => move |_| {
+                let (server, credentials) = get_auth_details(&builder);
+                sender.send(AppEvent::SignIn(server, credentials)).unwrap();
+            })
+        );
+
+        self.note_list_box.connect_row_selected(
+            clone!(@strong self.sender as sender, @strong self.note_popover as popover => move |_, row| {
+                if let Some(row) = row {
+                    popover.set_relative_to(Some(row));
+                    sender.send(AppEvent::SelectNote).unwrap();
+                }
+            })
+        );
+
+        self.note_list_box.connect_button_press_event(
+            clone!(@strong self.note_popover as popover => move |_, event_button| {
+                if event_button.get_button() == 3 {
+                    popover.popup();
+                }
+                glib::signal::Inhibit(false)
+            })
+        );
+    }
+
+    fn setup_binds(&self) {
+        self.setup_identifier_entry.bind_property("text-length", &self.setup_create_button, "sensitive")
+            .flags(glib::BindingFlags::SYNC_CREATE)
+            .build();
+
+        self.setup_identifier_entry.bind_property("text-length", &self.setup_login_button, "sensitive")
+            .flags(glib::BindingFlags::SYNC_CREATE)
+            .build();
+
+        self.setup_identifier_entry.bind_property("text-length", &self.setup_signup_button, "sensitive")
+            .flags(glib::BindingFlags::SYNC_CREATE)
+            .build();
     }
 
     fn restore_geometry(&self, config: &Config) {
@@ -232,29 +297,30 @@ impl Application {
     pub fn new() -> Result<Self> {
         let app = gtk::Application::new(Some(APP_ID), gio::ApplicationFlags::FLAGS_NONE)?;
         let builder = gtk::Builder::from_resource(WINDOW_UI);
-        let window = get_widget!(builder, gtk::ApplicationWindow, "window");
+
         let (sender, receiver) = glib::MainContext::channel::<AppEvent>(glib::PRIORITY_DEFAULT);
+
+        let window = get_widget!(builder, gtk::ApplicationWindow, "window");
+        let note_list_box = get_widget!(builder, gtk::ListBox, "iridium-note-list");
+        let note_popover = get_widget!(builder, gtk::PopoverMenu, "note_menu");
+        let title_entry = get_widget!(builder, gtk::Entry, "iridium-title-entry");
+        let text_view = get_widget!(builder, gtk::TextView, "iridium-text-view");
+        let text_buffer = text_view.get_buffer().unwrap();
 
         let application = Self {
             app: app.clone(),
             window: window.clone(),
             sender: sender.clone(),
+            builder: builder.clone(),
             search_bar: get_widget!(builder, gtk::SearchBar, "iridium-search-bar"),
             search_entry: get_widget!(builder, gtk::SearchEntry, "iridium-search-entry"),
+            setup_identifier_entry: get_widget!(builder, gtk::Entry, "identifier-entry"),
+            setup_create_button: get_widget!(builder, gtk::Button, "create-local-button"),
+            setup_signup_button: get_widget!(builder, gtk::Button, "signup-button"),
+            setup_login_button: get_widget!(builder, gtk::Button, "login-button"),
+            note_list_box: note_list_box.clone(),
+            note_popover: note_popover.clone(),
         };
-
-        let main_box = get_widget!(builder, gtk::Box, "iridium-main-content");
-        let main_stack = get_widget!(builder, gtk::Stack, "iridium-main-stack");
-        let note_list_box = get_widget!(builder, gtk::ListBox, "iridium-note-list");
-        let title_entry = get_widget!(builder, gtk::Entry, "iridium-title-entry");
-        let note_popover = get_widget!(builder, gtk::PopoverMenu, "note_menu");
-        let identifier_entry = get_widget!(builder, gtk::Entry, "identifier-entry");
-        let local_button = get_widget!(builder, gtk::Button, "create-local-button");
-        let signup_button = get_widget!(builder, gtk::Button, "signup-button");
-        let login_button = get_widget!(builder, gtk::Button, "login-button");
-
-        let text_view = get_widget!(builder, gtk::TextView, "iridium-text-view");
-        let text_buffer = text_view.get_buffer().unwrap();
 
         let mut model = Controller::new(&builder);
         let mut config = Config::new()?;
@@ -288,59 +354,7 @@ impl Application {
         application.setup_style_provider();
         application.setup_actions();
         application.setup_signals();
-
-        identifier_entry.bind_property("text-length", &local_button, "sensitive")
-            .flags(glib::BindingFlags::SYNC_CREATE)
-            .build();
-
-        identifier_entry.bind_property("text-length", &login_button, "sensitive")
-            .flags(glib::BindingFlags::SYNC_CREATE)
-            .build();
-
-        identifier_entry.bind_property("text-length", &signup_button, "sensitive")
-            .flags(glib::BindingFlags::SYNC_CREATE)
-            .build();
-
-        local_button.connect_clicked(
-            clone!(@strong builder, @strong sender => move |_| {
-                main_stack.set_visible_child(&main_box);
-
-                let user = get_user_details(&builder);
-                sender.send(AppEvent::CreateStorage(user)).unwrap();
-            })
-        );
-
-        signup_button.connect_clicked(
-            clone!(@strong builder, @strong sender => move |_| {
-                let (server, credentials) = get_auth_details(&builder);
-                sender.send(AppEvent::Register(server, credentials)).unwrap();
-            })
-        );
-
-        login_button.connect_clicked(
-            clone!(@strong builder, @strong sender => move |_| {
-                let (server, credentials) = get_auth_details(&builder);
-                sender.send(AppEvent::SignIn(server, credentials)).unwrap();
-            })
-        );
-
-        note_list_box.connect_row_selected(
-            clone!(@strong sender, @strong note_popover => move |_, row| {
-                if let Some(row) = row {
-                    note_popover.set_relative_to(Some(row));
-                    sender.send(AppEvent::SelectNote).unwrap();
-                }
-            })
-        );
-
-        note_list_box.connect_button_press_event(
-            clone!(@strong note_popover => move |_, event_button| {
-                if event_button.get_button() == 3 {
-                    note_popover.popup();
-                }
-                glib::signal::Inhibit(false)
-            })
-        );
+        application.setup_binds();
 
         let mut flush_timer_running = false;
         let mut title_entry_handler: Option<u64> = None;
