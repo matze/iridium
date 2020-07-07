@@ -289,11 +289,9 @@ impl Application {
             .build();
     }
 
-    fn restore_geometry(&self, config: &Config) {
-        if let Some(geometry) = &config.geometry {
-            self.window.move_(geometry.x, geometry.y);
-            self.window.resize(geometry.width, geometry.height);
-        }
+    fn restore_geometry(&self, geometry: &Geometry) {
+        self.window.move_(geometry.x, geometry.y);
+        self.window.resize(geometry.width, geometry.height);
     }
 
     pub fn new() -> Result<Self> {
@@ -325,20 +323,23 @@ impl Application {
         let mut model = Controller::new(&builder);
         let mut config = Config::new()?;
 
-        let mut storage = match &config {
-            Some(config) => {
-                application.restore_geometry(&config);
+        let mut storage = match &config.identifier {
+            Some(identifier) => {
+                if let Some(geometry) = &config.geometry {
+                    application.restore_geometry(&geometry);
+                }
 
-                let password = secret::load(&config.identifier, config.server.as_deref())?;
-                let credentials = Credentials::from_defaults(&config.identifier, &password);
+                let server = config.server();
+                let password = secret::load(&identifier, &server)?;
+                let credentials = Credentials::from_defaults(&identifier, &password);
 
-                if let Some(server) = &config.server {
+                if let Some(server) = server {
                     sender.send(AppEvent::SignIn(server.to_string(), credentials)).unwrap();
                 }
 
                 show_main_content(&builder);
 
-                let credentials = config.to_credentials()?;
+                let credentials = config.credentials()?;
                 let storage = Storage::new(&credentials, None)?;
 
                 for note in storage.notes.values() {
@@ -368,10 +369,8 @@ impl Application {
                             storage.flush_dirty().unwrap();
                         }
 
-                        if let Some(config) = &mut config {
-                            config.geometry = Some(geometry_from_window(&window));
-                            config.write().unwrap();
-                        }
+                        config.geometry = Some(geometry_from_window(&window));
+                        config.write().unwrap();
 
                         app.quit();
                     }
@@ -381,7 +380,7 @@ impl Application {
                         match Storage::new(&credentials, None) {
                             Ok(s) => {
                                 storage = Some(s);
-                                config = Some(Config::new_from_credentials(&credentials));
+                                config.add(&credentials, None);
                                 secret::store(&credentials, None);
                             }
                             Err(message) => {
@@ -399,8 +398,7 @@ impl Application {
                                 storage = Some(Storage::new(&credentials, Some(client)).unwrap());
                                 secret::store(&credentials, Some(&server));
 
-                                config = Some(Config::new_from_credentials(&credentials));
-                                config.as_mut().unwrap().set_server(&server);
+                                config.add(&credentials, Some(server));
                                 show_main_content(&builder);
                             }
                             Err(message) => {
@@ -423,15 +421,14 @@ impl Application {
                                 // Switch storage, read local files and show them in the UI.
                                 storage = Some(Storage::new(&credentials, Some(client)).unwrap());
 
-                                config = Some(Config::new_from_credentials(&credentials));
-                                config.as_mut().unwrap().set_server(&server);
-
                                 for note in storage.as_ref().unwrap().notes.values() {
                                     model.insert(&note);
                                 }
 
                                 // Store the encryption password and auth token in the keyring.
                                 secret::store(&credentials, Some(&server));
+
+                                config.add(&credentials, Some(server));
 
                                 show_main_content(&builder);
                             }
@@ -450,8 +447,7 @@ impl Application {
 
                                 secret::store(&credentials, server.as_deref());
 
-                                // FIXME: actually pass the server if it exists
-                                config = Some(Config::new_from_credentials(&credentials));
+                                config.add(&credentials, server);
                                 storage = Some(Storage::new_from_items(&credentials, &exported.items).unwrap());
 
                                 if let Some(storage) = &storage {

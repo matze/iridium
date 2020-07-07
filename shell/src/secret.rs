@@ -28,7 +28,7 @@ pub fn store(credentials: &Credentials, server: Option<&str>) {
 }
 
 /// Load password for a given identifier.
-pub fn load(identifier: &str, server: Option<&str>) -> Result<String> {
+pub fn load(identifier: &str, server: &Option<String>) -> Result<String> {
     let service = SecretService::new(EncryptionType::Dh).unwrap();
     let mut query = vec![
         ("service", "iridium"),
