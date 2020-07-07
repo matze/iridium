@@ -17,8 +17,6 @@ pub struct Application {
     sender: glib::Sender<AppEvent>,
     builder: gtk::Builder,
     search_bar: gtk::SearchBar,
-    search_entry: gtk::SearchEntry,
-    setup_identifier_entry: gtk::Entry,
     setup_create_button: gtk::Button,
     setup_signup_button: gtk::Button,
     setup_login_button: gtk::Button,
@@ -199,6 +197,23 @@ impl Application {
     }
 
     fn setup_signals(&self) {
+        let search_entry = get_widget!(self.builder, gtk::SearchEntry, "iridium-search-entry");
+
+        search_entry.connect_search_changed(
+            clone!(@strong self.sender as sender => move |entry| {
+                let text = entry.get_text();
+
+                if text.len() > 2 {
+                    sender.send(AppEvent::UpdateFilter(Some(text.as_str().to_string()))).unwrap();
+                }
+                else {
+                    sender.send(AppEvent::UpdateFilter(None)).unwrap();
+                }
+            })
+        );
+
+        self.search_bar.connect_entry(&search_entry);
+
         self.app.connect_activate(
             clone!(@weak self.window as window => move |app| {
                 window.set_application(Some(app));
@@ -210,21 +225,6 @@ impl Application {
         self.window.connect_destroy(
             clone!(@strong self.sender as sender => move |_| {
                 sender.send(AppEvent::Quit).unwrap();
-            })
-        );
-
-        self.search_bar.connect_entry(&self.search_entry);
-
-        self.search_entry.connect_search_changed(
-            clone!(@strong self.sender as sender => move |entry| {
-                let text = entry.get_text();
-
-                if text.len() > 2 {
-                    sender.send(AppEvent::UpdateFilter(Some(text.as_str().to_string()))).unwrap();
-                }
-                else {
-                    sender.send(AppEvent::UpdateFilter(None)).unwrap();
-                }
             })
         );
 
@@ -274,15 +274,17 @@ impl Application {
     }
 
     fn setup_binds(&self) {
-        self.setup_identifier_entry.bind_property("text-length", &self.setup_create_button, "sensitive")
+        let setup_identifier_entry = get_widget!(self.builder, gtk::Entry, "identifier-entry");
+
+        setup_identifier_entry.bind_property("text-length", &self.setup_create_button, "sensitive")
             .flags(glib::BindingFlags::SYNC_CREATE)
             .build();
 
-        self.setup_identifier_entry.bind_property("text-length", &self.setup_login_button, "sensitive")
+        setup_identifier_entry.bind_property("text-length", &self.setup_login_button, "sensitive")
             .flags(glib::BindingFlags::SYNC_CREATE)
             .build();
 
-        self.setup_identifier_entry.bind_property("text-length", &self.setup_signup_button, "sensitive")
+        setup_identifier_entry.bind_property("text-length", &self.setup_signup_button, "sensitive")
             .flags(glib::BindingFlags::SYNC_CREATE)
             .build();
     }
@@ -313,8 +315,6 @@ impl Application {
             sender: sender.clone(),
             builder: builder.clone(),
             search_bar: get_widget!(builder, gtk::SearchBar, "iridium-search-bar"),
-            search_entry: get_widget!(builder, gtk::SearchEntry, "iridium-search-entry"),
-            setup_identifier_entry: get_widget!(builder, gtk::Entry, "identifier-entry"),
             setup_create_button: get_widget!(builder, gtk::Button, "create-local-button"),
             setup_signup_button: get_widget!(builder, gtk::Button, "signup-button"),
             setup_login_button: get_widget!(builder, gtk::Button, "login-button"),
