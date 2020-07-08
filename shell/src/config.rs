@@ -121,12 +121,12 @@ impl Config {
         let identifier = self.identifier.as_ref().unwrap();
 
         if let Some(identity) = self.identities.get(identifier) {
-            // FIXME: this looks very suspicious
-            Some(identity.server.as_ref().unwrap().clone())
+            if let Some(server) = identity.server.as_ref() {
+                return Some(server.clone());
+            }
         }
-        else {
-            None
-        }
+
+        None
     }
 
     /// Write configuration to disk.
