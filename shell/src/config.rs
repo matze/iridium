@@ -39,18 +39,18 @@ pub struct Config {
     pub geometry: Option<Geometry>,
 }
 
-fn get_path() -> PathBuf {
-    let dirs = BaseDirs::new().unwrap();
+fn get_path() -> Result<PathBuf> {
+    let dirs = BaseDirs::new().ok_or(anyhow!("Could not get XDG config dir"))?;
     let mut path = PathBuf::from(dirs.config_dir());
     path.push("iridium");
     path.push("config.toml");
-    path
+    Ok(path)
 }
 
 impl Config {
     /// Create a new Config and load from filesystem if possible.
     pub fn new() -> Result<Self> {
-        let path = get_path();
+        let path = get_path()?;
 
         if path.exists() {
             let contents = read_to_string(path)?;
@@ -101,7 +101,7 @@ impl Config {
 
     /// Return credentials for current identity.
     pub fn credentials(&self) -> Result<Credentials> {
-        let identifier = self.identifier.as_ref().unwrap();
+        let identifier = self.identifier.as_ref().ok_or(anyhow!("No identifier set"))?;
 
         if let Some(identity) = self.identities.get(identifier) {
             Ok(Credentials {
@@ -131,10 +131,10 @@ impl Config {
 
     /// Write configuration to disk.
     pub fn write(&self) -> Result<()> {
-        let identifier = self.identifier.as_ref().unwrap();
+        let identifier = self.identifier.as_ref().ok_or(anyhow!("No identifier set"))?;
 
         if let Some(identity) = self.identities.get(identifier) {
-            let path = get_path();
+            let path = get_path()?;
 
             if !path.exists() {
                 create_dir_all(path.parent().unwrap())?;
@@ -160,10 +160,10 @@ impl Config {
             };
 
             fs::write(path, toml::to_string(&root)?)?;
+            Ok(())
         }
         else {
-            // FIXME: return an error
+            Err(anyhow!("No identity found for current identifier"))
         }
-        Ok(())
     }
 }
