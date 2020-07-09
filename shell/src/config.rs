@@ -17,20 +17,19 @@ pub struct Geometry {
     pub maximized: bool,
 }
 
-#[derive(Serialize, Deserialize)]
-struct Root {
-    pub identifier: String,
-    pub nonce: String,
-    pub cost: u32,
-    pub server: Option<String>,
-    pub geometry: Option<Geometry>,
-}
-
+#[derive(Serialize, Deserialize, Clone)]
 struct Identity {
     pub identifier: String,
     pub nonce: String,
     pub cost: u32,
     pub server: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Root {
+    pub current: String,
+    pub identities: Vec<Identity>,
+    pub geometry: Option<Geometry>,
 }
 
 pub struct Config {
@@ -56,20 +55,16 @@ impl Config {
             let contents = read_to_string(path)?;
             let root: Root = toml::from_str(&contents)?;
 
-            let identity = Identity {
-                identifier: root.identifier.clone(),
-                nonce: root.nonce,
-                cost: root.cost,
-                server: root.server,
-            };
-
             let mut config = Self {
-                identifier: Some(root.identifier.clone()),
+                identifier: Some(root.current.clone()),
                 identities: HashMap::new(),
                 geometry: root.geometry,
             };
 
-            config.identities.insert(root.identifier, identity);
+            for identity in root.identities {
+                config.identities.insert(identity.identifier.clone(), identity);
+            }
+
             Ok(config)
         }
         else {
@@ -151,11 +146,14 @@ impl Config {
                 None => None,
             };
 
+            let identities = self.identities
+                .values()
+                .map(|identity| identity.clone())
+                .collect();
+
             let root = Root {
-                identifier: identifier.clone(),
-                nonce: identity.nonce.clone(),
-                cost: identity.cost,
-                server: identity.server.clone(),
+                current: identity.identifier.clone(),
+                identities: identities,
                 geometry: geometry,
             };
 
