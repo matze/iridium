@@ -7,6 +7,7 @@ use data_encoding::{BASE64, HEXLOWER};
 use rand::prelude::*;
 use ring::{digest, hmac, error};
 use std::str;
+use std::num::NonZeroU32;
 use uuid::Uuid;
 
 pub type Key = [u8; 768 / 8 / 3];
@@ -75,19 +76,6 @@ fn encrypt(s: &str, ek: &Key, ak: &Key, uuid: &Uuid) -> Result<String> {
     ))
 }
 
-fn get_nonzero_cost(credentials: &Credentials) -> Result<std::num::NonZeroU32> {
-    let cost = std::num::NonZeroU32::new(credentials.cost);
-
-    match cost {
-        Some(cost) => {
-            Ok(cost)
-        },
-        None => {
-            Err(anyhow!("Cost must be larger than zero"))
-        }
-    }
-}
-
 /// Create random nonce.
 pub fn make_nonce() -> String {
     let mut rng = rand_chacha::ChaCha20Rng::from_entropy();
@@ -98,7 +86,7 @@ pub fn make_nonce() -> String {
 
 impl Crypto {
     pub fn new(credentials: &Credentials) -> Result<Self> {
-        let cost = get_nonzero_cost(&credentials)?;
+        let cost = NonZeroU32::new(credentials.cost).ok_or(anyhow!("Cost must be larger than zero"))?;
         let salt_input = std::format!("{}:SF:003:{}:{}", credentials.identifier, credentials.cost, credentials.nonce);
         let salt = digest::digest(&digest::SHA256, salt_input.as_bytes());
         let hex_salt = HEXLOWER.encode(salt.as_ref());

@@ -41,11 +41,5 @@ pub fn load(identifier: &str, server: &Option<String>) -> Result<String> {
     }
 
     let items = service.search_items(query).unwrap();
-
-    if items.len() == 0 {
-        Err(anyhow!("Password not found"))
-    } else {
-        let item = items.get(0).unwrap();
-        Ok(String::from_utf8(item.get_secret().unwrap()).unwrap())
-    }
+    Ok(String::from_utf8(items.get(0).ok_or(anyhow!("Password not found"))?.get_secret().unwrap())?)
 }
