@@ -33,6 +33,7 @@ enum AppEvent {
     Import(PathBuf, String, Option<String>),
     Update(Option<String>, Option<String>),
     UpdateFilter(Option<String>),
+    UpdateGeometry(Geometry),
     CreateStorage(Credentials),
     FlushDirty,
     Quit,
@@ -80,19 +81,6 @@ fn show_notification(builder: &gtk::Builder, message: &str) {
     close_button.connect_clicked(move |_| {
         revealer.set_reveal_child(false);
     });
-}
-
-fn geometry_from_window(window: &gtk::ApplicationWindow) -> Geometry {
-    let (width, height) = window.get_size();
-    let (x, y) = window.get_position();
-
-    Geometry {
-        x: x,
-        y: y,
-        width: width,
-        height: height,
-        maximized: false,
-    }
 }
 
 impl Application {
@@ -228,6 +216,23 @@ impl Application {
             })
         );
 
+        self.window.connect_configure_event(
+            clone!(@strong self.sender as sender => move |window, event| {
+                let (width, height) = event.get_size();
+                let (x, y) = window.get_position();
+
+                sender.send(AppEvent::UpdateGeometry(Geometry {
+                    x: x,
+                    y: y,
+                    width: width,
+                    height: height,
+                    maximized: false,
+                })).unwrap();
+
+                false
+            })
+        );
+
         self.setup_create_button.connect_clicked(
             clone!(@strong self.builder as builder, @strong self.sender as sender => move |_| {
                 let main_box = get_widget!(builder, gtk::Box, "iridium-main-content");
@@ -291,7 +296,7 @@ impl Application {
 
     fn restore_geometry(&self, geometry: &Geometry) {
         self.window.move_(geometry.x, geometry.y);
-        self.window.resize(geometry.width, geometry.height);
+        self.window.resize(geometry.width as i32, geometry.height as i32);
     }
 
     pub fn new() -> Result<Self> {
@@ -369,10 +374,12 @@ impl Application {
                             storage.flush_dirty().unwrap();
                         }
 
-                        config.geometry = Some(geometry_from_window(&window));
                         config.write().unwrap();
 
                         app.quit();
+                    }
+                    AppEvent::UpdateGeometry(geometry) => {
+                        config.geometry = Some(geometry);
                     }
                     AppEvent::CreateStorage(user) => {
                         let credentials = Credentials::from_defaults(&user.identifier, &user.password);

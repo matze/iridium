@@ -8,10 +8,10 @@ use std::fs;
 use std::collections::HashMap;
 use std::fs::{create_dir_all, read_to_string};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Geometry {
-    pub width: i32,
-    pub height: i32,
+    pub width: u32,
+    pub height: u32,
     pub x: i32,
     pub y: i32,
     pub maximized: bool,
