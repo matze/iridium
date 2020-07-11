@@ -174,15 +174,14 @@ impl Storage {
 
     /// Encrypt single item, write it to disk and sync with remote.
     pub fn flush(&mut self, uuid: &Uuid) -> Result<()> {
-        if let Some(item) = self.notes.get(uuid) {
-            let encrypted = self.crypto.encrypt(item, uuid)?;
+        let item = self.notes.get(uuid).ok_or(anyhow!("uuid does not exist"))?;
+        let encrypted = self.crypto.encrypt(item, uuid)?;
 
-            self.flush_to_disk(&uuid, &encrypted)?;
+        self.flush_to_disk(&uuid, &encrypted)?;
 
-            if let Some(client) = &mut self.client {
-                log::info!("Syncing {}", uuid);
-                client.sync(vec![encrypted])?;
-            }
+        if let Some(client) = &mut self.client {
+            log::info!("Syncing {}", uuid);
+            client.sync(vec![encrypted])?;
         }
 
         Ok(())
@@ -193,12 +192,11 @@ impl Storage {
         let mut encrypted_items: Vec<Item> = Vec::new();
 
         for uuid in &self.dirty {
-            if let Some(item) = self.notes.get(uuid) {
-                let encrypted = self.crypto.encrypt(item, uuid)?;
+            let item = self.notes.get(uuid).ok_or(anyhow!("uuid dirty but not found"))?;
+            let encrypted = self.crypto.encrypt(item, uuid)?;
 
-                self.flush_to_disk(&uuid, &encrypted)?;
-                encrypted_items.push(encrypted);
-            }
+            self.flush_to_disk(&uuid, &encrypted)?;
+            encrypted_items.push(encrypted);
         }
 
         if let Some(client) = &mut self.client {
