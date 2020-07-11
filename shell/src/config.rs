@@ -97,71 +97,59 @@ impl Config {
     /// Return credentials for current identity.
     pub fn credentials(&self) -> Result<Credentials> {
         let identifier = self.identifier.as_ref().ok_or(anyhow!("No identifier set"))?;
+        let identity = self.identities.get(identifier).ok_or(anyhow!("No identity found for current identifier"))?;
 
-        if let Some(identity) = self.identities.get(identifier) {
-            Ok(Credentials {
-                password: secret::load(&identity.identifier, &None)?,
-                identifier: identity.identifier.clone(),
-                cost: identity.cost,
-                nonce: identity.nonce.clone(),
-            })
-        }
-        else {
-            Err(anyhow!("Current identity not found"))
-        }
+        Ok(Credentials {
+            password: secret::load(&identity.identifier, &None)?,
+            identifier: identity.identifier.clone(),
+            cost: identity.cost,
+            nonce: identity.nonce.clone(),
+        })
     }
 
     /// Get server for current identity.
     pub fn server(&self) -> Option<String> {
         let identifier = self.identifier.as_ref().unwrap();
 
-        if let Some(identity) = self.identities.get(identifier) {
-            if let Some(server) = identity.server.as_ref() {
-                return Some(server.clone());
-            }
-        }
-
-        None
+        self.identities
+            .get(identifier)
+            .map_or(None, |identity| identity.server.as_ref())
+            .map_or(None, |server| Some(server.clone()))
     }
 
     /// Write configuration to disk.
     pub fn write(&self) -> Result<()> {
         let identifier = self.identifier.as_ref().ok_or(anyhow!("No identifier set"))?;
+        let identity = self.identities.get(identifier).ok_or(anyhow!("No identity found for current identifier"))?;
+        let path = get_path()?;
 
-        if let Some(identity) = self.identities.get(identifier) {
-            let path = get_path()?;
-
-            if !path.exists() {
-                create_dir_all(path.parent().unwrap())?;
-            }
-
-            let geometry = match &self.geometry {
-                Some(geometry) => Some(Geometry {
-                    width: geometry.width,
-                    height: geometry.height,
-                    x: geometry.x,
-                    y: geometry.y,
-                    maximized: geometry.maximized,
-                }),
-                None => None,
-            };
-
-            let identities = self.identities
-                .values()
-                .map(|identity| identity.clone())
-                .collect();
-
-            let root = Root {
-                current: identity.identifier.clone(),
-                identities: identities,
-                geometry: geometry,
-            };
-
-            fs::write(path, toml::to_string(&root)?)?;
-            Ok(())
+        if !path.exists() {
+            create_dir_all(path.parent().unwrap())?;
         }
-        else {
-            Err(anyhow!("No identity found for current identifier"))
-        }
+
+        let geometry = match &self.geometry {
+            Some(geometry) => Some(Geometry {
+                width: geometry.width,
+                height: geometry.height,
+                x: geometry.x,
+                y: geometry.y,
+                maximized: geometry.maximized,
+            }),
+            None => None,
+        };
+
+        let identities = self.identities
+            .values()
+            .map(|identity| identity.clone())
+            .collect();
+
+        let root = Root {
+            current: identity.identifier.clone(),
+            identities: identities,
+            geometry: geometry,
+        };
+
+        fs::write(path, toml::to_string(&root)?)?;
+        Ok(())
     }
 }
