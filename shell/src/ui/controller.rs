@@ -58,10 +58,8 @@ impl Controller {
         // could use the model itself.
         let mut position: i32 = -1;
 
-        for item in &self.items {
-            if note.updated_at > item.last_updated {
-                position = item.row.get_index() - 1;
-            }
+        for item in self.items.iter().filter(|item| note.updated_at > item.last_updated) {
+            position = item.row.get_index() - 1;
         }
 
         self.list_box.insert(&row, position);
@@ -82,11 +80,9 @@ impl Controller {
     pub fn delete(&mut self, uuid: &Uuid) {
         let mut index = 0;
 
-        for item in &self.items {
-            if item.uuid == *uuid {
-                index = cmp::max(0, item.row.get_index() - 1);
-                self.list_box.remove(&item.row);
-            }
+        for item in self.items.iter().filter(|item| item.uuid == *uuid) {
+            index = cmp::max(0, item.row.get_index() - 1);
+            self.list_box.remove(&item.row);
         }
 
         self.items.retain(|item| item.uuid != *uuid);
@@ -105,25 +101,21 @@ impl Controller {
             binding.unbind();
         }
 
-        for item in &self.items {
-            if item.row == *selected_row {
-                self.binding = Some(self.title_entry.bind_property("text", &item.label, "label").build().unwrap());
-                return Some(item.uuid);
-            }
+        for item in self.items.iter().filter(|item| item.row == *selected_row) {
+            self.binding = Some(self.title_entry.bind_property("text", &item.label, "label").build().unwrap());
+            return Some(item.uuid);
         }
 
         None
     }
 
     pub fn updated(&mut self, uuid: &Uuid) {
-        for item in &mut self.items {
-            if item.uuid == *uuid {
-                item.last_updated = Utc::now();
+        for item in self.items.iter_mut().filter(|item| item.uuid == *uuid) {
+            item.last_updated = Utc::now();
 
-                if item.row.get_index() > 0 {
-                    self.list_box.remove(&item.row);
-                    self.list_box.insert(&item.row, 0);
-                }
+            if item.row.get_index() > 0 {
+                self.list_box.remove(&item.row);
+                self.list_box.insert(&item.row, 0);
             }
         }
     }
