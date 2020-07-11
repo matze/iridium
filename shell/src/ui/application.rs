@@ -320,7 +320,7 @@ impl Application {
             note_popover: note_popover.clone(),
         };
 
-        let mut model = Controller::new(&builder);
+        let mut controller = Controller::new(&builder);
         let mut config = Config::new()?;
 
         let mut storage = match &config.identifier {
@@ -343,7 +343,7 @@ impl Application {
                 let storage = Storage::new(&credentials, None)?;
 
                 for note in storage.notes.values() {
-                    model.insert(&note);
+                    controller.insert(&note);
                 }
 
                 Some(storage)
@@ -422,7 +422,7 @@ impl Application {
                                 storage = Some(Storage::new(&credentials, Some(client)).unwrap());
 
                                 for note in storage.as_ref().unwrap().notes.values() {
-                                    model.insert(&note);
+                                    controller.insert(&note);
                                 }
 
                                 // Store the encryption password and auth token in the keyring.
@@ -452,7 +452,7 @@ impl Application {
 
                                 if let Some(storage) = &storage {
                                     for note in storage.notes.values() {
-                                        model.insert(&note);
+                                        controller.insert(&note);
                                     }
                                 }
                             }
@@ -470,14 +470,14 @@ impl Application {
                         if let Some(storage) = &mut storage {
                             let uuid = storage.create_note();
                             let note = storage.notes.get(&uuid).unwrap();
-                            model.insert(&note);
+                            controller.insert(&note);
                         }
                     }
                     AppEvent::DeleteNote => {
                         if let Some(storage) = &mut storage {
                             if let Some(uuid) = storage.current {
                                 log::info!("Deleting {}", uuid);
-                                model.delete(&uuid);
+                                controller.delete(&uuid);
                                 storage.delete(&uuid).unwrap();
                             }
                         }
@@ -485,12 +485,12 @@ impl Application {
                     AppEvent::SelectNote => {
                         let row = note_list_box.get_selected_row().unwrap();
 
-                        if let Some(uuid) = model.select(&row) {
+                        if let Some(uuid) = controller.select(&row) {
                             if let Some(storage) = &mut storage {
                                 storage.set_current_uuid(&uuid).unwrap();
 
                                 // We first disconnect the change handlers before setting the text
-                                // and content to avoid updating the storage and model which would
+                                // and content to avoid updating the storage and controller which would
                                 // unnecessarily cause row movement and a server sync.
 
                                 if let Some(handler) = title_entry_handler {
@@ -533,7 +533,7 @@ impl Application {
                                 storage.set_text(&text);
                             }
 
-                            model.updated(&storage.current.unwrap());
+                            controller.updated(&storage.current.unwrap());
 
                             if !flush_timer_running {
                                 glib::source::timeout_add_seconds(5,
@@ -550,10 +550,10 @@ impl Application {
                     AppEvent::UpdateFilter(term) => {
                         if let Some(term) = term {
                             let term = term.to_lowercase();
-                            model.show_matching_rows(&term);
+                            controller.show_matching_rows(&term);
                         }
                         else {
-                            model.show_all_rows();
+                            controller.show_all_rows();
                         }
                     }
                     AppEvent::FlushDirty => {
