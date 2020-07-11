@@ -536,7 +536,9 @@ impl Application {
                                 storage.set_text(&text);
                             }
 
-                            controller.updated(&storage.current.unwrap());
+                            if let Some(uuid) = storage.current {
+                                controller.updated(&uuid);
+                            }
 
                             if !flush_timer_running {
                                 glib::source::timeout_add_seconds(5,
