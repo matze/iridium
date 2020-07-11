@@ -96,6 +96,19 @@ impl Controller {
         }
     }
 
+    pub fn clear(&mut self) {
+        if let Some(binding) = &self.binding {
+            binding.unbind();
+        }
+
+        for item in &self.items {
+            self.list_box.remove(&item.row);
+        }
+
+        self.items.clear();
+        self.note_stack.set_visible_child(&self.note_info);
+    }
+
     pub fn select(&mut self, selected_row: &gtk::ListBoxRow) -> Option<Uuid> {
         if let Some(binding) = &self.binding {
             binding.unbind();

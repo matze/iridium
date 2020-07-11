@@ -214,7 +214,7 @@
             <property name="transition-type">GTK_STACK_TRANSITION_TYPE_SLIDE_UP</property>
             <child>
               <!-- Initial page -->
-              <object class="GtkBox">
+              <object class="GtkBox" id="iridium-main-setup">
                 <property name="visible">True</property>
                 <property name="halign">GTK_ALIGN_CENTER</property>
                 <property name="valign">GTK_ALIGN_CENTER</property>

@@ -5,7 +5,7 @@ use glib::translate::{ToGlib, from_glib};
 use std::env;
 use std::path::PathBuf;
 use crate::config::{Config, Geometry};
-use crate::consts::{APP_ID, APP_VERSION, ABOUT_UI, BASE_CSS, IMPORT_UI, SETUP_UI, SHORTCUTS_UI, WINDOW_UI};
+use crate::consts::{APP_ID, APP_VERSION, ABOUT_UI, BASE_CSS, IMPORT_UI, SHORTCUTS_UI, WINDOW_UI};
 use crate::secret;
 use crate::storage::Storage;
 use crate::ui::controller::Controller;
@@ -133,15 +133,10 @@ impl Application {
         );
 
         action!(self.app, "setup",
-            clone!(@weak self.window as window => move |_, _| {
-                let builder = gtk::Builder::from_resource(SETUP_UI);
-                let dialog = get_widget!(builder, gtk::Dialog, "setup-dialog");
-
-                setup_server_dialog(&builder);
-                dialog.set_transient_for(Some(&window));
-                dialog.set_modal(true);
-                dialog.connect_response(|dialog, _| dialog.close());
-                dialog.show();
+            clone!(@weak self.builder as builder => move |_, _| {
+                let stack = get_widget!(builder, gtk::Stack, "iridium-main-stack");
+                let setup_box = get_widget!(builder, gtk::Box, "iridium-main-setup");
+                stack.set_visible_child(&setup_box);
             })
         );
 
@@ -389,6 +384,7 @@ impl Application {
                                 storage = Some(s);
                                 config.add(&credentials, None);
                                 secret::store(&credentials, None);
+                                controller.clear();
                             }
                             Err(message) => {
                                 show_notification(&builder, &format!("Error: {}.", message));
