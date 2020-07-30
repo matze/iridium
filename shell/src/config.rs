@@ -117,6 +117,11 @@ impl Config {
             .map_or(None, |server| Some(server.clone()))
     }
 
+    /// Get existing identifiers.
+    pub fn identifiers(&self) -> Vec<String> {
+        self.identities.keys().map(|s| s.clone()).collect()
+    }
+
     /// Write configuration to disk.
     pub fn write(&self) -> Result<()> {
         let identifier = self.identifier.as_ref().ok_or(anyhow!("No identifier set"))?;

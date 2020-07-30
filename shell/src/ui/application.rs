@@ -303,6 +303,7 @@ impl Application {
         let window = get_widget!(builder, gtk::ApplicationWindow, "window");
         let note_list_box = get_widget!(builder, gtk::ListBox, "iridium-note-list");
         let note_popover = get_widget!(builder, gtk::PopoverMenu, "note_menu");
+        let profile_menu = get_widget!(builder, gtk::Box, "profile-menu");
         let title_entry = get_widget!(builder, gtk::Entry, "iridium-title-entry");
         let text_view = get_widget!(builder, gtk::TextView, "iridium-text-view");
         let text_buffer = text_view.get_buffer().unwrap();
@@ -322,6 +323,13 @@ impl Application {
 
         let mut controller = Controller::new(&builder);
         let mut config = Config::new()?;
+
+        for identifier in config.identifiers() {
+            let button = gtk::ModelButton::new();
+            button.set_property_text(Some(&identifier));
+            button.show();
+            profile_menu.pack_end(&button, false, true, 0);
+        }
 
         let mut storage = match &config.identifier {
             Some(identifier) => {
