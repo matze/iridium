@@ -35,6 +35,7 @@ enum AppEvent {
     UpdateFilter(Option<String>),
     UpdateGeometry(Geometry),
     CreateStorage(Credentials),
+    Switch(String),
     FlushDirty,
     Quit,
 }
@@ -329,6 +330,13 @@ impl Application {
             button.set_property_text(Some(&identifier));
             button.show();
             profile_menu.pack_end(&button, false, true, 0);
+
+            button.connect_clicked(
+                clone!(@strong sender => move |button| {
+                    let identifier = button.get_property_text().unwrap().to_string();
+                    sender.send(AppEvent::Switch(identifier)).unwrap();
+                })
+            );
         }
 
         let mut storage = match &config.identifier {
@@ -476,6 +484,22 @@ impl Application {
                             let message = format!("{} does not contain UTF-8 data.", filename);
                             show_notification(&builder, &message);
                         }
+                    }
+                    AppEvent::Switch(identifier) => {
+                        controller.clear();
+
+                        // FIXME: we should not manipulate the state directly
+                        config.identifier = Some(identifier);
+
+                        // FIXME: do something about the unwraps
+                        let credentials = config.credentials().unwrap();
+                        let new_storage = Storage::new(&credentials, None).unwrap();
+
+                        for note in new_storage.notes.values() {
+                            controller.insert(&note);
+                        }
+
+                        storage = Some(new_storage);
                     }
                     AppEvent::AddNote => {
                         if let Some(storage) = &mut storage {
