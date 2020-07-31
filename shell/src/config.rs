@@ -33,7 +33,7 @@ struct Root {
 }
 
 pub struct Config {
-    pub identifier: Option<String>,
+    identifier: Option<String>,
     identities: HashMap<String, Identity>,
     pub geometry: Option<Geometry>,
 }
@@ -94,6 +94,17 @@ impl Config {
         self.add_identity(identity);
     }
 
+    /// Switch identities and return an error if it does not exist.
+    pub fn switch(&mut self, identifier: &str) -> Result<()> {
+        if !self.identities.contains_key(identifier) {
+            Err(anyhow!("Identifier does not exist"))
+        }
+        else {
+            self.identifier = Some(identifier.to_string());
+            Ok(())
+        }
+    }
+
     /// Return credentials for current identity.
     pub fn credentials(&self) -> Result<Credentials> {
         let identifier = self.identifier.as_ref().ok_or(anyhow!("No identifier set"))?;
@@ -120,6 +131,10 @@ impl Config {
     /// Get existing identifiers.
     pub fn identifiers(&self) -> Vec<String> {
         self.identities.keys().map(|s| s.clone()).collect()
+    }
+
+    pub fn identifier(&self) -> Option<&String> {
+        self.identifier.as_ref()
     }
 
     /// Write configuration to disk.

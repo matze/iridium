@@ -339,7 +339,7 @@ impl Application {
             );
         }
 
-        let mut storage = match &config.identifier {
+        let mut storage = match &config.identifier() {
             Some(identifier) => {
                 if let Some(geometry) = &config.geometry {
                     application.restore_geometry(&geometry);
@@ -487,9 +487,7 @@ impl Application {
                     }
                     AppEvent::Switch(identifier) => {
                         controller.clear();
-
-                        // FIXME: we should not manipulate the state directly
-                        config.identifier = Some(identifier);
+                        config.switch(&identifier).unwrap();
 
                         // FIXME: do something about the unwraps
                         let credentials = config.credentials().unwrap();
