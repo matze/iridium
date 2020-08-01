@@ -56,16 +56,19 @@ impl Controller {
 
         // Do stupid insertion sort until we figured out how gtk::ListBox::set_sort_func's closure
         // could use the model itself.
-        let mut position: i32 = -1;
+        let mut position = self.items.len();
 
-        for item in self.items.iter().filter(|item| note.updated_at > item.last_updated) {
-            position = item.row.get_index() - 1;
+        for (i, item) in self.items.iter().enumerate() {
+            if item.last_updated < note.updated_at {
+                position = i;
+                break;
+            }
         }
 
-        self.list_box.insert(&row, position);
+        self.list_box.insert(&row, position as i32);
         self.list_box.select_row(Some(&row));
 
-        self.items.push(Item {
+        self.items.insert(position, Item {
             uuid: note.uuid,
             row: row.clone(),
             label: label.clone(),
