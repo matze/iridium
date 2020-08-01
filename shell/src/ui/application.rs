@@ -165,8 +165,9 @@ impl Application {
                             let server_box = get_widget!(builder, gtk::ComboBoxText, "server-box");
                             let server_entry = server_box.get_child().unwrap().downcast::<gtk::Entry>().unwrap();
                             let server = server_entry.get_text().to_string();
+                            let server = if server != "" { Some(server) } else { None };
 
-                            sender.send(AppEvent::Import(filename, password_entry.get_text().to_string(), Some(server))).unwrap();
+                            sender.send(AppEvent::Import(filename, password_entry.get_text().to_string(), server)).unwrap();
                         }
                     }
                     _ => {}
