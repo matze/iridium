@@ -362,6 +362,8 @@ impl Application {
                     controller.insert(&note);
                 }
 
+                controller.select_first();
+
                 Some(storage)
             }
             None => None

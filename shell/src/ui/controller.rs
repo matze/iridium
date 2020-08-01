@@ -112,6 +112,12 @@ impl Controller {
         self.note_stack.set_visible_child(&self.note_info);
     }
 
+    pub fn select_first(&self) {
+        if let Some(item) = self.items.get(0) {
+            self.list_box.select_row(Some(&item.row));
+        }
+    }
+
     pub fn select(&mut self, selected_row: &gtk::ListBoxRow) -> Option<Uuid> {
         if let Some(binding) = &self.binding {
             binding.unbind();
