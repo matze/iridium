@@ -15,3 +15,8 @@ with
     $ cargo build --release
     $ cargo test --release
     $ cargo run --release
+
+To display logs during execution set the `RUST_LOG` environment variable, e.g.
+to display debug logs run via
+
+    $ RUST_LOG=debug cargo run
