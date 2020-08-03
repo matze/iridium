@@ -1,0 +1,11 @@
+[package]
+name = "iridium-decrypt"
+version = "0.2.0"
+authors = ["Matthias Vogelgesang"]
+edition = "2018"
+license = "GPL-3.0-or-later"
+
+[dependencies]
+anyhow = "1.0"
+standardfile = { path = "../libs/standardfile" }
+structopt = "0"
