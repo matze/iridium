@@ -537,8 +537,11 @@ impl Application {
                                     text_buffer.disconnect(from_glib(handler));
                                 }
 
-                                title_entry.set_text(&storage.get_title());
-                                text_buffer.set_text(&storage.get_text());
+                                let title = storage.get_title().unwrap();
+                                let text = storage.get_text().unwrap();
+
+                                title_entry.set_text(&title);
+                                text_buffer.set_text(&text);
 
                                 title_entry_handler = Some(title_entry.connect_changed(
                                     clone!(@strong sender => move |entry| {
@@ -562,11 +565,11 @@ impl Application {
                     AppEvent::Update(title, text) => {
                         if let Some(storage) = &mut storage {
                             if let Some(title) = title {
-                                storage.set_title(&title);
+                                storage.set_title(&title).unwrap();
                             }
 
                             if let Some(text) = text {
-                                storage.set_text(&text);
+                                storage.set_text(&text).unwrap();
                             }
 
                             if let Some(uuid) = storage.current {

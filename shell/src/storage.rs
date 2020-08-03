@@ -111,44 +111,44 @@ impl Storage {
         Ok(())
     }
 
+    fn get_uuid(&self) -> Result<Uuid> {
+        Ok(self.current.ok_or(anyhow!("No current uuid set"))?)
+    }
+
+    fn get_note(&self) -> Result<&Note> {
+        Ok(self.notes.get(&self.get_uuid()?).ok_or(anyhow!("uuid mapping not found"))?)
+    }
+
     /// Update the contents of the currently selected item.
-    pub fn set_text(&mut self, text: &str) {
-        let uuid = &self.current.unwrap();
+    pub fn set_text(&mut self, text: &str) -> Result<()> {
+        let uuid = self.get_uuid()?;
+        let note = self.notes.get_mut(&uuid).ok_or(anyhow!("uuid mapping not found"))?;
+        note.updated_at = Utc::now();
+        note.text = text.to_owned();
 
-        if let Some(item) = self.notes.get_mut(uuid) {
-            item.updated_at = Utc::now();
-            item.text = text.to_owned();
-        }
-
-        self.dirty.insert(*uuid);
-
-        // Returning an error?
+        self.dirty.insert(note.uuid);
+        Ok(())
     }
 
     /// Get text of the currently selected item.
-    pub fn get_text(&self) -> String {
-        // FIXME: for obvious reasons
-        self.notes.get(&self.current.unwrap()).unwrap().text.clone()
+    pub fn get_text(&self) -> Result<String> {
+        Ok(self.get_note()?.text.clone())
     }
 
     /// Update the title of the currently selected item.
-    pub fn set_title(&mut self, title: &str) {
-        let uuid = &self.current.unwrap();
+    pub fn set_title(&mut self, title: &str) -> Result<()> {
+        let uuid = self.get_uuid()?;
+        let note = self.notes.get_mut(&uuid).ok_or(anyhow!("uuid mapping not found"))?;
+        note.updated_at = Utc::now();
+        note.title = title.to_owned();
 
-        if let Some(item) = self.notes.get_mut(uuid) {
-            item.updated_at = Utc::now();
-            item.title = title.to_owned();
-        }
-
-        self.dirty.insert(*uuid);
-
-        // Returning an error?
+        self.dirty.insert(note.uuid);
+        Ok(())
     }
 
     /// Get title of the currently selected item.
-    pub fn get_title(&self) -> String {
-        // FIXME: for obvious reasons
-        self.notes.get(&self.current.unwrap()).unwrap().title.clone()
+    pub fn get_title(&self) -> Result<String> {
+        Ok(self.get_note()?.title.clone())
     }
 
     /// Decrypt item and add it to the storage.
