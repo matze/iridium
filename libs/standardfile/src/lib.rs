@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
@@ -45,6 +45,10 @@ pub struct Note {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub uuid: Uuid,
+}
+
+pub trait Encrypted<T> {
+    fn from_encrypted(crypto: &crypto::Crypto, item: &Item) -> Result<T>;
 }
 
 /// Authentication parameters constructed locally, from a remote server or an imported file and
@@ -101,5 +105,24 @@ impl Credentials {
             nonce: crypto::make_nonce(),
             password: password.to_string(),
         }
+    }
+}
+
+impl Encrypted<Note> for Note {
+    fn from_encrypted(crypto: &crypto::Crypto, item: &Item) -> Result<Note> {
+        if item.content_type != "Note" {
+            return Err(anyhow!("Not a note"));
+        }
+
+        let decrypted = crypto.decrypt(item)?;
+        let content = serde_json::from_str::<NoteContent>(&decrypted)?;
+
+        Ok(Note {
+            title: content.title.unwrap_or("".to_string()),
+            text: content.text,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            uuid: item.uuid,
+        })
     }
 }

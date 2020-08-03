@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use standardfile::{encrypted_notes, remote, Item, Note, Credentials};
+use standardfile::{encrypted_notes, remote, Encrypted, Item, Note, Credentials};
 use standardfile::crypto::Crypto;
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
@@ -153,8 +153,7 @@ impl Storage {
 
     /// Decrypt item and add it to the storage.
     pub fn decrypt_and_add(&mut self, item: &Item) -> Result<Uuid> {
-        let note = self.crypto.decrypt(item)?;
-        self.notes.insert(item.uuid, note);
+        self.notes.insert(item.uuid, Note::from_encrypted(&self.crypto, item)?);
         Ok(item.uuid)
     }
 

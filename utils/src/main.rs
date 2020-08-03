@@ -21,7 +21,7 @@ fn main() -> Result<()> {
     let crypto = Crypto::new(&credentials)?;
 
     for item in exported.items {
-        let decrypted = crypto.decrypt_to_string(&item)?;
+        let decrypted = crypto.decrypt(&item)?;
         println!("{}: {}\n{}\n", item.uuid, item.content_type, decrypted);
     }
 

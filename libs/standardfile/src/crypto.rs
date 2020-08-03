@@ -115,7 +115,7 @@ impl Crypto {
         HEXLOWER.encode(&self.pw)
     }
 
-    pub fn decrypt_to_string(&self, item: &Item) -> Result<String> {
+    pub fn decrypt(&self, item: &Item) -> Result<String> {
         if item.enc_item_key.is_none() || item.content.is_none() {
             return Err(anyhow!("Cannot decrypt without key"));
         }
@@ -134,24 +134,6 @@ impl Crypto {
             .expect("foo");
 
         Ok(decrypt(&content, &item_ek, &item_ak, &item.uuid)?)
-    }
-
-    pub fn decrypt(&self, item: &Item) -> Result<Note> {
-        let decrypted = self.decrypt_to_string(item)?;
-
-        if item.content_type == "Note" {
-            let content = serde_json::from_str::<NoteContent>(&decrypted)?;
-
-            Ok(Note {
-                title: content.title.unwrap_or("".to_string()),
-                text: content.text,
-                created_at: item.created_at,
-                updated_at: item.updated_at,
-                uuid: item.uuid,
-            })
-        } else {
-            Err(anyhow!("Not a note"))
-        }
     }
 
     pub fn encrypt(&self, note: &Note, uuid: &Uuid) -> Result<Item> {
@@ -192,6 +174,7 @@ impl Crypto {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Encrypted;
     use chrono::Utc;
 
     #[test]
@@ -216,7 +199,8 @@ mod tests {
         };
         let crypto = Crypto::new(&credentials).unwrap();
         let encrypted = crypto.encrypt(&note, &uuid).unwrap();
-        let decrypted = crypto.decrypt(&encrypted).unwrap();
+        let decrypted = Note::from_encrypted(&crypto, &encrypted).unwrap();
+        // let decrypted = crypto.decrypt(&encrypted).unwrap();
 
         assert_eq!(decrypted.title, note.title);
         assert_eq!(decrypted.text, note.text);
