@@ -115,7 +115,7 @@ impl Crypto {
         HEXLOWER.encode(&self.pw)
     }
 
-    pub fn decrypt(&self, item: &Item) -> Result<Note> {
+    pub fn decrypt_to_string(&self, item: &Item) -> Result<String> {
         if item.enc_item_key.is_none() || item.content.is_none() {
             return Err(anyhow!("Cannot decrypt without key"));
         }
@@ -133,7 +133,11 @@ impl Crypto {
             .decode_mut(item_key[64..].as_bytes(), &mut item_ak)
             .expect("foo");
 
-        let decrypted = decrypt(&content, &item_ek, &item_ak, &item.uuid)?;
+        Ok(decrypt(&content, &item_ek, &item_ak, &item.uuid)?)
+    }
+
+    pub fn decrypt(&self, item: &Item) -> Result<Note> {
+        let decrypted = self.decrypt_to_string(item)?;
 
         if item.content_type == "Note" {
             let content = serde_json::from_str::<NoteContent>(&decrypted)?;
