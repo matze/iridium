@@ -39,12 +39,29 @@ pub struct NoteContent {
     pub text: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Reference {
+    pub uuid: Uuid,
+    pub content_type: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct TagContent {
+    pub title: String,
+    pub references: Vec<Reference>,
+}
+
 pub struct Note {
     pub title: String,
     pub text: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub uuid: Uuid,
+}
+
+pub struct Tag {
+    pub title: String,
+    pub references: Vec<Uuid>,
 }
 
 pub trait Encrypted<T> {
@@ -108,13 +125,17 @@ impl Credentials {
     }
 }
 
+fn decrypt(crypto: &crypto::Crypto, item: &Item, content_type: &str) -> Result<String> {
+    if item.content_type != content_type {
+        return Err(anyhow!("{} is not {}", item.content_type, content_type));
+    }
+
+    Ok(crypto.decrypt(item)?)
+}
+
 impl Encrypted<Note> for Note {
     fn from_encrypted(crypto: &crypto::Crypto, item: &Item) -> Result<Note> {
-        if item.content_type != "Note" {
-            return Err(anyhow!("Not a note"));
-        }
-
-        let decrypted = crypto.decrypt(item)?;
+        let decrypted = decrypt(crypto, item, "Note")?;
         let content = serde_json::from_str::<NoteContent>(&decrypted)?;
 
         Ok(Note {
@@ -123,6 +144,22 @@ impl Encrypted<Note> for Note {
             created_at: item.created_at,
             updated_at: item.updated_at,
             uuid: item.uuid,
+        })
+    }
+}
+
+impl Encrypted<Tag> for Tag {
+    fn from_encrypted(crypto: &crypto::Crypto, item: &Item) -> Result<Tag> {
+        let decrypted = decrypt(crypto, item, "Tag")?;
+        let content = serde_json::from_str::<TagContent>(&decrypted)?;
+        let references = content.references
+            .iter()
+            .map(|reference| reference.uuid)
+            .collect::<_>();
+
+        Ok(Tag {
+            title: content.title,
+            references: references,
         })
     }
 }
