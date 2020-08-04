@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use standardfile::{remote, Encrypted, Item, Note, Credentials};
+use standardfile::{remote, Encrypted, Item, Note, Tag, Credentials};
 use standardfile::crypto::Crypto;
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
@@ -13,6 +13,7 @@ use uuid::Uuid;
 pub struct Storage {
     path: PathBuf,
     pub notes: HashMap<Uuid, Note>,
+    pub tags: HashMap<Uuid, Tag>,
     crypto: Crypto,
     pub current: Option<Uuid>,
 
@@ -49,6 +50,7 @@ impl Storage {
         let mut storage = Self {
             path: data_path_from_identifier(&credentials.identifier)?,
             notes: HashMap::new(),
+            tags: HashMap::new(),
             crypto: Crypto::new(&credentials)?,
             current: None,
             dirty: HashSet::new(),
@@ -72,7 +74,7 @@ impl Storage {
                         return Err(anyhow!("File is corrupted"));
                     }
 
-                    storage.decrypt_and_add(&encrypted_item)?;
+                    storage.notes.insert(uuid, Note::from_encrypted(&storage.crypto, &encrypted_item)?);
                     encrypted_items.push(encrypted_item);
                 }
             }
@@ -87,8 +89,15 @@ impl Storage {
 
             for item in filter_encrypted(&items, "Note") {
                 if !item.deleted.unwrap_or(false) {
-                    let uuid = storage.decrypt_and_add(&item)?;
-                    storage.flush(&uuid)?;
+                    storage.notes.insert(item.uuid, Note::from_encrypted(&storage.crypto, &item)?);
+                    storage.flush(&item.uuid)?;
+                }
+            }
+
+            for item in filter_encrypted(&items, "Tag") {
+                if !item.deleted.unwrap_or(false) {
+                    storage.tags.insert(item.uuid, Tag::from_encrypted(&storage.crypto, &item)?);
+                    storage.flush(&item.uuid)?;
                 }
             }
         }
@@ -101,8 +110,13 @@ impl Storage {
         let mut storage = Storage::new(credentials, None)?;
 
         for item in filter_encrypted(items, "Note") {
-            let uuid = storage.decrypt_and_add(&item)?;
-            storage.flush(&uuid)?;
+            storage.notes.insert(item.uuid, Note::from_encrypted(&storage.crypto, &item)?);
+            storage.flush(&item.uuid)?;
+        }
+
+        for item in filter_encrypted(items, "Tag") {
+            storage.tags.insert(item.uuid, Tag::from_encrypted(&storage.crypto, &item)?);
+            storage.flush(&item.uuid)?;
         }
 
         Ok(storage)
@@ -156,12 +170,6 @@ impl Storage {
     /// Get title of the currently selected item.
     pub fn get_title(&self) -> Result<String> {
         Ok(self.get_note()?.title.clone())
-    }
-
-    /// Decrypt item and add it to the storage.
-    pub fn decrypt_and_add(&mut self, item: &Item) -> Result<Uuid> {
-        self.notes.insert(item.uuid, Note::from_encrypted(&self.crypto, item)?);
-        Ok(item.uuid)
     }
 
     fn flush_to_disk(&self, uuid: &Uuid, encrypted: &Item) -> Result<()> {
