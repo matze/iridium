@@ -49,6 +49,7 @@ pub struct Reference {
 pub struct TagContent {
     pub title: String,
     pub references: Vec<Reference>,
+    pub uuid: Uuid,
 }
 
 pub struct Note {
@@ -62,6 +63,7 @@ pub struct Note {
 pub struct Tag {
     pub title: String,
     pub references: Vec<Uuid>,
+    pub uuid: Uuid,
 }
 
 pub trait Encrypted<T> {
@@ -152,6 +154,7 @@ impl Encrypted<Tag> for Tag {
         Ok(Tag {
             title: content.title,
             references: references,
+            uuid: content.uuid,
         })
     }
 }
