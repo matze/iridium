@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use standardfile::{encrypted_notes, remote, Encrypted, Item, Note, Credentials};
+use standardfile::{remote, Encrypted, Item, Note, Credentials};
 use standardfile::crypto::Crypto;
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
@@ -35,6 +35,13 @@ fn data_path_from_identifier(identifier: &str) -> Result<PathBuf> {
     else {
         Err(anyhow!("Could not determine XDG data dir"))
     }
+}
+
+fn filter_encrypted<'a>(items: &'a Vec<Item>, content_type: &str) -> Vec<&'a Item> {
+    items
+    .iter()
+    .filter(|x| x.content_type == content_type)
+    .collect::<Vec<&Item>>()
 }
 
 impl Storage {
@@ -78,7 +85,7 @@ impl Storage {
             // Decrypt, flush and show notes we have retrieved from the initial sync.
             let items = client.sync(encrypted_items)?;
 
-            for item in encrypted_notes(&items) {
+            for item in filter_encrypted(&items, "Note") {
                 if !item.deleted.unwrap_or(false) {
                     let uuid = storage.decrypt_and_add(&item)?;
                     storage.flush(&uuid)?;
@@ -93,7 +100,7 @@ impl Storage {
     pub fn new_from_items(credentials: &Credentials, items: &Vec<Item>) -> Result<Self> {
         let mut storage = Storage::new(credentials, None)?;
 
-        for item in encrypted_notes(items) {
+        for item in filter_encrypted(items, "Note") {
             let uuid = storage.decrypt_and_add(&item)?;
             storage.flush(&uuid)?;
         }

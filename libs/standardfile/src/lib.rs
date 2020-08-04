@@ -78,14 +78,6 @@ pub struct Credentials {
     pub password: String,
 }
 
-/// Retrieve all items of content_type Note.
-pub fn encrypted_notes(items: &Vec<Item>) -> Vec<&Item> {
-    items
-    .iter()
-    .filter(|x| x.content_type == "Note")
-    .collect::<Vec<&Item>>()
-}
-
 impl Item {
     /// Deserialize Item from JSON string.
     pub fn from_str(s: &str) -> Result<Self> {
