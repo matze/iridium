@@ -86,20 +86,7 @@ impl Storage {
             // Use all items we haven't synced yet. For now pretend we have never synced an item.
             // Decrypt, flush and show notes we have retrieved from the initial sync.
             let items = client.sync(encrypted_items)?;
-
-            for item in filter_encrypted(&items, "Note") {
-                if !item.deleted.unwrap_or(false) {
-                    storage.notes.insert(item.uuid, Note::from_encrypted(&storage.crypto, &item)?);
-                    storage.flush(&item.uuid)?;
-                }
-            }
-
-            for item in filter_encrypted(&items, "Tag") {
-                if !item.deleted.unwrap_or(false) {
-                    storage.tags.insert(item.uuid, Tag::from_encrypted(&storage.crypto, &item)?);
-                    storage.flush(&item.uuid)?;
-                }
-            }
+            storage.insert_encrypted_items(&items)?;
         }
 
         Ok(storage)
@@ -108,17 +95,7 @@ impl Storage {
     /// Create storage from vector of encrypted items.
     pub fn new_from_items(credentials: &Credentials, items: &Vec<Item>) -> Result<Self> {
         let mut storage = Storage::new(credentials, None)?;
-
-        for item in filter_encrypted(items, "Note") {
-            storage.notes.insert(item.uuid, Note::from_encrypted(&storage.crypto, &item)?);
-            storage.flush(&item.uuid)?;
-        }
-
-        for item in filter_encrypted(items, "Tag") {
-            storage.tags.insert(item.uuid, Tag::from_encrypted(&storage.crypto, &item)?);
-            storage.flush(&item.uuid)?;
-        }
-
+        storage.insert_encrypted_items(items)?;
         Ok(storage)
     }
 
@@ -129,6 +106,20 @@ impl Storage {
         }
 
         self.current = Some(*uuid);
+        Ok(())
+    }
+
+    fn insert_encrypted_items(&mut self, items: &Vec<Item>) -> Result<()> {
+        for item in filter_encrypted(&items, "Note").iter().filter(|x| !x.deleted.unwrap_or(false)) {
+            self.notes.insert(item.uuid, Note::from_encrypted(&self.crypto, &item)?);
+            self.flush(&item.uuid)?;
+        }
+
+        for item in filter_encrypted(&items, "Tag").iter().filter(|x| !x.deleted.unwrap_or(false)) {
+            self.tags.insert(item.uuid, Tag::from_encrypted(&self.crypto, &item)?);
+            self.flush(&item.uuid)?;
+        }
+
         Ok(())
     }
 
