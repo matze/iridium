@@ -117,7 +117,7 @@ impl Storage {
 
         for item in filter_encrypted(&items, "Tag").iter().filter(|x| !x.deleted.unwrap_or(false)) {
             self.tags.insert(item.uuid, Tag::from_encrypted(&self.crypto, &item)?);
-            self.flush(&item.uuid)?;
+            // self.flush(&item.uuid)?;
         }
 
         Ok(())
