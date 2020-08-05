@@ -74,7 +74,16 @@ impl Storage {
                         return Err(anyhow!("File is corrupted"));
                     }
 
-                    storage.notes.insert(uuid, Note::decrypt(&storage.crypto, &encrypted_item)?);
+                    if encrypted_item.content_type == "Note" {
+                        storage.notes.insert(uuid, Note::decrypt(&storage.crypto, &encrypted_item)?);
+                    }
+                    else if encrypted_item.content_type == "Tag" {
+                        storage.tags.insert(uuid, Tag::decrypt(&storage.crypto, &encrypted_item)?);
+                    }
+                    else {
+                        Err(anyhow!("Cannot handle {}", encrypted_item.content_type))?;
+                    }
+
                     encrypted_items.push(encrypted_item);
                 }
             }
@@ -112,12 +121,12 @@ impl Storage {
     fn insert_encrypted_items(&mut self, items: &Vec<Item>) -> Result<()> {
         for item in filter_encrypted(&items, "Note").iter().filter(|x| !x.deleted.unwrap_or(false)) {
             self.notes.insert(item.uuid, Note::decrypt(&self.crypto, &item)?);
-            self.flush(&item.uuid)?;
+            self.flush(&item)?;
         }
 
         for item in filter_encrypted(&items, "Tag").iter().filter(|x| !x.deleted.unwrap_or(false)) {
             self.tags.insert(item.uuid, Tag::decrypt(&self.crypto, &item)?);
-            // self.flush(&item.uuid)?;
+            self.flush(&item)?;
         }
 
         Ok(())
@@ -177,16 +186,24 @@ impl Storage {
         Ok(())
     }
 
-    /// Encrypt single item, write it to disk and sync with remote.
-    pub fn flush(&mut self, uuid: &Uuid) -> Result<()> {
-        let note = self.notes.get(uuid).ok_or(anyhow!("uuid does not exist"))?;
-        let encrypted = Note::encrypt(&self.crypto, note)?;
-
-        self.flush_to_disk(&uuid, &encrypted)?;
+    /// Write encrypted item to disk and sync with remote.
+    fn flush(&mut self, encrypted: &Item) -> Result<()> {
+        self.flush_to_disk(&encrypted.uuid, &encrypted)?;
 
         if let Some(client) = &mut self.client {
-            log::info!("Syncing {}", uuid);
-            client.sync(vec![encrypted])?;
+            log::info!("Syncing {}", encrypted.uuid);
+
+            let copy = Item {
+                uuid: encrypted.uuid,
+                content: encrypted.content.clone(),
+                content_type: encrypted.content_type.clone(),
+                enc_item_key: encrypted.enc_item_key.clone(),
+                created_at: encrypted.created_at,
+                updated_at: encrypted.updated_at,
+                deleted: encrypted.deleted,
+            };
+
+            client.sync(vec![copy])?;
         }
 
         Ok(())
