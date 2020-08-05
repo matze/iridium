@@ -62,6 +62,8 @@ pub struct Note {
 pub struct Tag {
     pub title: String,
     pub references: Vec<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub uuid: Uuid,
 }
 
@@ -70,8 +72,9 @@ pub struct EncryptedItem {
     pub enc_item_key: String,
 }
 
-pub trait Encrypted<T> {
-    fn from_encrypted(crypto: &crypto::Crypto, item: &Item) -> Result<T>;
+pub trait Cipher<T> {
+    fn encrypt(crypto: &crypto::Crypto, item: &T) -> Result<Item>;
+    fn decrypt(crypto: &crypto::Crypto, item: &Item) -> Result<T>;
 }
 
 /// Authentication parameters constructed locally, from a remote server or an imported file and
@@ -131,8 +134,28 @@ fn decrypt(crypto: &crypto::Crypto, item: &Item, content_type: &str) -> Result<S
     Ok(crypto.decrypt(item)?)
 }
 
-impl Encrypted<Note> for Note {
-    fn from_encrypted(crypto: &crypto::Crypto, item: &Item) -> Result<Note> {
+impl Cipher<Note> for Note {
+    fn encrypt(crypto: &crypto::Crypto, note: &Note) -> Result<Item> {
+        let content = NoteContent {
+            title: Some(note.title.clone()),
+            text: note.text.clone(),
+        };
+
+        let to_encrypt = serde_json::to_string(&content)?;
+        let encrypted = crypto.encrypt(&to_encrypt, &note.uuid)?;
+
+        Ok(Item {
+            uuid: note.uuid,
+            content: Some(encrypted.content),
+            content_type: "Note".to_owned(),
+            enc_item_key: Some(encrypted.enc_item_key),
+            created_at: note.created_at,
+            updated_at: note.updated_at,
+            deleted: Some(false),
+        })
+    }
+
+    fn decrypt(crypto: &crypto::Crypto, item: &Item) -> Result<Note> {
         let decrypted = decrypt(crypto, item, "Note")?;
         let content = serde_json::from_str::<NoteContent>(&decrypted)?;
 
@@ -146,8 +169,34 @@ impl Encrypted<Note> for Note {
     }
 }
 
-impl Encrypted<Tag> for Tag {
-    fn from_encrypted(crypto: &crypto::Crypto, item: &Item) -> Result<Tag> {
+impl Cipher<Tag> for Tag {
+    fn encrypt(crypto: &crypto::Crypto, tag: &Tag) -> Result<Item> {
+        let content = TagContent {
+            title: tag.title.clone(),
+            references: tag.references
+                .iter()
+                .map(|uuid| Reference {
+                    uuid: uuid.clone(),
+                    content_type: "Note".to_string(),
+                })
+                .collect::<_>()
+        };
+
+        let to_encrypt = serde_json::to_string(&content)?;
+        let encrypted = crypto.encrypt(&to_encrypt, &tag.uuid)?;
+
+        Ok(Item {
+            uuid: tag.uuid,
+            content: Some(encrypted.content),
+            content_type: "Note".to_owned(),
+            enc_item_key: Some(encrypted.enc_item_key),
+            created_at: tag.created_at,
+            updated_at: tag.updated_at,
+            deleted: Some(false),
+        })
+    }
+
+    fn decrypt(crypto: &crypto::Crypto, item: &Item) -> Result<Tag> {
         let decrypted = decrypt(crypto, item, "Tag")?;
         let content = serde_json::from_str::<TagContent>(&decrypted)?;
         let references = content.references
@@ -158,6 +207,8 @@ impl Encrypted<Tag> for Tag {
         Ok(Tag {
             title: content.title,
             references: references,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
             uuid: item.uuid,
         })
     }

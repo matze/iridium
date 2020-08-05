@@ -1,4 +1,4 @@
-use crate::{Item, EncryptedItem, NoteContent, Note, Credentials};
+use crate::{Item, EncryptedItem, Credentials};
 use aes::Aes256;
 use anyhow::{anyhow, Result};
 use block_modes::block_padding::Pkcs7;
@@ -136,7 +136,7 @@ impl Crypto {
         Ok(decrypt(&content, &item_ek, &item_ak, &item.uuid)?)
     }
 
-    pub fn encrypt_string(&self, content: &str, uuid: &Uuid) -> Result<EncryptedItem> {
+    pub fn encrypt(&self, content: &str, uuid: &Uuid) -> Result<EncryptedItem> {
         let mut rng = rand_chacha::ChaCha20Rng::from_entropy();
         let mut item_key = [0u8; 64];
         rng.fill_bytes(&mut item_key);
@@ -157,32 +157,12 @@ impl Crypto {
             enc_item_key: encrypt(item_key_encoded.as_ref(), &self.mk, &self.ak, &uuid)?,
         })
     }
-
-    pub fn encrypt(&self, note: &Note, uuid: &Uuid) -> Result<Item> {
-        let content = NoteContent {
-            title: Some(note.title.clone()),
-            text: note.text.clone(),
-        };
-
-        let to_encrypt = serde_json::to_string(&content)?;
-        let encrypted = self.encrypt_string(&to_encrypt, uuid)?;
-
-        Ok(Item {
-            uuid: uuid.clone(),
-            content: Some(encrypted.content),
-            content_type: "Note".to_owned(),
-            enc_item_key: Some(encrypted.enc_item_key),
-            created_at: note.created_at,
-            updated_at: note.updated_at,
-            deleted: Some(false),
-        })
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Encrypted;
+    use crate::{Cipher, Note};
     use chrono::Utc;
 
     #[test]
@@ -206,9 +186,8 @@ mod tests {
             password: "secret".to_string(),
         };
         let crypto = Crypto::new(&credentials).unwrap();
-        let encrypted = crypto.encrypt(&note, &uuid).unwrap();
-        let decrypted = Note::from_encrypted(&crypto, &encrypted).unwrap();
-        // let decrypted = crypto.decrypt(&encrypted).unwrap();
+        let encrypted = Note::encrypt(&crypto, &note).unwrap();
+        let decrypted = Note::decrypt(&crypto, &encrypted).unwrap();
 
         assert_eq!(decrypted.title, note.title);
         assert_eq!(decrypted.text, note.text);

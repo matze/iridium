@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use standardfile::{remote, Encrypted, Item, Note, Tag, Credentials};
+use standardfile::{remote, Cipher, Item, Note, Tag, Credentials};
 use standardfile::crypto::Crypto;
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
@@ -74,7 +74,7 @@ impl Storage {
                         return Err(anyhow!("File is corrupted"));
                     }
 
-                    storage.notes.insert(uuid, Note::from_encrypted(&storage.crypto, &encrypted_item)?);
+                    storage.notes.insert(uuid, Note::decrypt(&storage.crypto, &encrypted_item)?);
                     encrypted_items.push(encrypted_item);
                 }
             }
@@ -111,12 +111,12 @@ impl Storage {
 
     fn insert_encrypted_items(&mut self, items: &Vec<Item>) -> Result<()> {
         for item in filter_encrypted(&items, "Note").iter().filter(|x| !x.deleted.unwrap_or(false)) {
-            self.notes.insert(item.uuid, Note::from_encrypted(&self.crypto, &item)?);
+            self.notes.insert(item.uuid, Note::decrypt(&self.crypto, &item)?);
             self.flush(&item.uuid)?;
         }
 
         for item in filter_encrypted(&items, "Tag").iter().filter(|x| !x.deleted.unwrap_or(false)) {
-            self.tags.insert(item.uuid, Tag::from_encrypted(&self.crypto, &item)?);
+            self.tags.insert(item.uuid, Tag::decrypt(&self.crypto, &item)?);
             // self.flush(&item.uuid)?;
         }
 
@@ -179,8 +179,8 @@ impl Storage {
 
     /// Encrypt single item, write it to disk and sync with remote.
     pub fn flush(&mut self, uuid: &Uuid) -> Result<()> {
-        let item = self.notes.get(uuid).ok_or(anyhow!("uuid does not exist"))?;
-        let encrypted = self.crypto.encrypt(item, uuid)?;
+        let note = self.notes.get(uuid).ok_or(anyhow!("uuid does not exist"))?;
+        let encrypted = Note::encrypt(&self.crypto, note)?;
 
         self.flush_to_disk(&uuid, &encrypted)?;
 
@@ -197,8 +197,8 @@ impl Storage {
         let mut encrypted_items: Vec<Item> = Vec::new();
 
         for uuid in &self.dirty {
-            let item = self.notes.get(uuid).ok_or(anyhow!("uuid dirty but not found"))?;
-            let encrypted = self.crypto.encrypt(item, uuid)?;
+            let note = self.notes.get(uuid).ok_or(anyhow!("uuid dirty but not found"))?;
+            let encrypted = Note::encrypt(&self.crypto, note)?;
 
             self.flush_to_disk(&uuid, &encrypted)?;
             encrypted_items.push(encrypted);
@@ -222,7 +222,7 @@ impl Storage {
 
         if let Some(client) = &mut self.client {
             if let Some(note) = self.notes.get(&uuid) {
-                let mut encrypted = self.crypto.encrypt(&note, &uuid)?;
+                let mut encrypted = Note::encrypt(&self.crypto, note)?;
                 encrypted.deleted = Some(true);
 
                 // Apparently, we do not receive the item back as marked deleted
