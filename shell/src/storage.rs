@@ -57,7 +57,7 @@ impl Storage {
             client: client,
         };
 
-        let mut encrypted_items: Vec<Item> = Vec::new();
+        let mut items: Vec<Item> = Vec::new();
 
         if storage.path.exists() {
             log::info!("Loading {:?}", storage.path);
@@ -68,23 +68,23 @@ impl Storage {
                 if let Some(file_name) = file_path.file_name() {
                     let uuid = Uuid::parse_str(file_name.to_string_lossy().as_ref())?;
                     let contents = read_to_string(file_path)?;
-                    let encrypted_item = Item::from_str(&contents)?;
+                    let item = Item::from_str(&contents)?;
 
-                    if uuid != encrypted_item.uuid {
+                    if uuid != item.uuid {
                         return Err(anyhow!("File is corrupted"));
                     }
 
-                    if encrypted_item.content_type == "Note" {
-                        storage.notes.insert(uuid, Note::decrypt(&storage.crypto, &encrypted_item)?);
+                    if item.content_type == "Note" {
+                        storage.notes.insert(uuid, Note::decrypt(&storage.crypto, &item)?);
                     }
-                    else if encrypted_item.content_type == "Tag" {
-                        storage.tags.insert(uuid, Tag::decrypt(&storage.crypto, &encrypted_item)?);
+                    else if item.content_type == "Tag" {
+                        storage.tags.insert(uuid, Tag::decrypt(&storage.crypto, &item)?);
                     }
                     else {
-                        Err(anyhow!("Cannot handle {}", encrypted_item.content_type))?;
+                        Err(anyhow!("Cannot handle {}", item.content_type))?;
                     }
 
-                    encrypted_items.push(encrypted_item);
+                    items.push(item);
                 }
             }
         }
@@ -94,7 +94,7 @@ impl Storage {
 
             // Use all items we haven't synced yet. For now pretend we have never synced an item.
             // Decrypt, flush and show notes we have retrieved from the initial sync.
-            let items = client.sync(encrypted_items)?;
+            let items = client.sync(items)?;
             storage.insert_encrypted_items(&items)?;
         }
 
@@ -172,7 +172,7 @@ impl Storage {
         Ok(self.get_note()?.title.clone())
     }
 
-    fn flush_to_disk(&self, uuid: &Uuid, encrypted: &Item) -> Result<()> {
+    fn flush_to_disk(&self, uuid: &Uuid, item: &Item) -> Result<()> {
         let path = self.path_from_uuid(&uuid);
 
         if let Some(parent) = path.parent() {
@@ -181,26 +181,26 @@ impl Storage {
             }
         }
 
-        write(&path, encrypted.to_string()?)?;
+        write(&path, item.to_string()?)?;
 
         Ok(())
     }
 
     /// Write encrypted item to disk and sync with remote.
-    fn flush(&mut self, encrypted: &Item) -> Result<()> {
-        self.flush_to_disk(&encrypted.uuid, &encrypted)?;
+    fn flush(&mut self, item: &Item) -> Result<()> {
+        self.flush_to_disk(&item.uuid, &item)?;
 
         if let Some(client) = &mut self.client {
-            log::info!("Syncing {}", encrypted.uuid);
+            log::info!("Syncing {}", item.uuid);
 
             let copy = Item {
-                uuid: encrypted.uuid,
-                content: encrypted.content.clone(),
-                content_type: encrypted.content_type.clone(),
-                enc_item_key: encrypted.enc_item_key.clone(),
-                created_at: encrypted.created_at,
-                updated_at: encrypted.updated_at,
-                deleted: encrypted.deleted,
+                uuid: item.uuid,
+                content: item.content.clone(),
+                content_type: item.content_type.clone(),
+                enc_item_key: item.enc_item_key.clone(),
+                created_at: item.created_at,
+                updated_at: item.updated_at,
+                deleted: item.deleted,
             };
 
             client.sync(vec![copy])?;
@@ -211,19 +211,19 @@ impl Storage {
 
     /// Encrypt all dirty items, write them to disk and sync with remote.
     pub fn flush_dirty(&mut self) -> Result<()> {
-        let mut encrypted_items: Vec<Item> = Vec::new();
+        let mut items: Vec<Item> = Vec::new();
 
         for uuid in &self.dirty {
             let note = self.notes.get(uuid).ok_or(anyhow!("uuid dirty but not found"))?;
-            let encrypted = Note::encrypt(&self.crypto, note)?;
+            let item = Note::encrypt(&self.crypto, note)?;
 
-            self.flush_to_disk(&uuid, &encrypted)?;
-            encrypted_items.push(encrypted);
+            self.flush_to_disk(&uuid, &item)?;
+            items.push(item);
         }
 
         if let Some(client) = &mut self.client {
             log::info!("Syncing dirty items");
-            client.sync(encrypted_items)?;
+            client.sync(items)?;
         }
 
         self.dirty.clear();
@@ -239,12 +239,12 @@ impl Storage {
 
         if let Some(client) = &mut self.client {
             if let Some(note) = self.notes.get(&uuid) {
-                let mut encrypted = Note::encrypt(&self.crypto, note)?;
-                encrypted.deleted = Some(true);
+                let mut item = Note::encrypt(&self.crypto, note)?;
+                item.deleted = Some(true);
 
                 // Apparently, we do not receive the item back as marked deleted
                 // but on subsequent syncs only.
-                client.sync(vec![encrypted])?;
+                client.sync(vec![item])?;
             }
         }
 
