@@ -65,6 +65,11 @@ pub struct Tag {
     pub uuid: Uuid,
 }
 
+pub struct EncryptedItem {
+    pub content: String,
+    pub enc_item_key: String,
+}
+
 pub trait Encrypted<T> {
     fn from_encrypted(crypto: &crypto::Crypto, item: &Item) -> Result<T>;
 }

@@ -1,4 +1,4 @@
-use crate::{Item, NoteContent, Note, Credentials};
+use crate::{Item, EncryptedItem, NoteContent, Note, Credentials};
 use aes::Aes256;
 use anyhow::{anyhow, Result};
 use block_modes::block_padding::Pkcs7;
@@ -136,12 +136,7 @@ impl Crypto {
         Ok(decrypt(&content, &item_ek, &item_ak, &item.uuid)?)
     }
 
-    pub fn encrypt(&self, note: &Note, uuid: &Uuid) -> Result<Item> {
-        let content = NoteContent {
-            title: Some(note.title.clone()),
-            text: note.text.clone(),
-        };
-
+    pub fn encrypt_string(&self, content: &str, uuid: &Uuid) -> Result<EncryptedItem> {
         let mut rng = rand_chacha::ChaCha20Rng::from_entropy();
         let mut item_key = [0u8; 64];
         rng.fill_bytes(&mut item_key);
@@ -152,18 +147,31 @@ impl Crypto {
         item_ek.clone_from_slice(&item_key[..32]);
         item_ak.clone_from_slice(&item_key[32..]);
 
-        let to_encrypt = serde_json::to_string(&content)?;
-
         let mut iv_bytes = [0u8; 16];
         rng.fill_bytes(&mut iv_bytes);
 
         let item_key_encoded = HEXLOWER.encode(item_key.as_ref());
 
+        Ok(EncryptedItem {
+            content: encrypt(content, &item_ek, &item_ak, &uuid)?,
+            enc_item_key: encrypt(item_key_encoded.as_ref(), &self.mk, &self.ak, &uuid)?,
+        })
+    }
+
+    pub fn encrypt(&self, note: &Note, uuid: &Uuid) -> Result<Item> {
+        let content = NoteContent {
+            title: Some(note.title.clone()),
+            text: note.text.clone(),
+        };
+
+        let to_encrypt = serde_json::to_string(&content)?;
+        let encrypted = self.encrypt_string(&to_encrypt, uuid)?;
+
         Ok(Item {
             uuid: uuid.clone(),
-            content: Some(encrypt(to_encrypt.as_ref(), &item_ek, &item_ak, &uuid)?),
+            content: Some(encrypted.content),
             content_type: "Note".to_owned(),
-            enc_item_key: Some(encrypt(item_key_encoded.as_ref(), &self.mk, &self.ak, &uuid)?),
+            enc_item_key: Some(encrypted.enc_item_key),
             created_at: note.created_at,
             updated_at: note.updated_at,
             deleted: Some(false),
