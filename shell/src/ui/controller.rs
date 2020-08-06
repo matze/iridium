@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use gio::prelude::*;
 use gtk::prelude::*;
 use standardfile::Note;
-use std::cmp;
+use std::{cmp, cmp::{Ord, Ordering}};
 use uuid::Uuid;
 
 struct Item {
@@ -21,6 +21,26 @@ pub struct Controller {
     note_content: gtk::Box,
     binding: Option<glib::Binding>,
 }
+
+impl Ord for Item {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.last_updated.cmp(&other.last_updated)
+    }
+}
+
+impl PartialOrd for Item {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Item {
+    fn eq(&self, other: &Self) -> bool {
+        self.last_updated == other.last_updated
+    }
+}
+
+impl Eq for Item {}
 
 impl Controller {
     pub fn new(builder: &gtk::Builder) -> Self {
