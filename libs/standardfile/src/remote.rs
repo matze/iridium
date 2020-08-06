@@ -1,9 +1,7 @@
 use super::crypto::Crypto;
 use super::{Credentials, Item};
 use anyhow::{anyhow, Result};
-use reqwest::StatusCode;
-use reqwest::blocking::Response;
-use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
+use reqwest::{StatusCode, blocking::Response, header::{HeaderMap, HeaderValue, CONTENT_TYPE}};
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 

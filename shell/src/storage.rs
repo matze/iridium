@@ -1,7 +1,6 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use standardfile::{remote, Cipher, Item, Note, Tag, Credentials};
-use standardfile::crypto::Crypto;
+use standardfile::{remote, Cipher, Item, Note, Tag, Credentials, crypto::Crypto};
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
 use ring::digest;
