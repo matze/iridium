@@ -43,7 +43,7 @@ impl Eq for Item {}
 
 impl Controller {
     pub fn new(builder: &gtk::Builder) -> Self {
-        Self {
+        let controller = Self {
             items: Rc::new(RefCell::new(HashMap::new())),
             list_box: get_widget!(builder, gtk::ListBox, "iridium-note-list"),
             title_entry: get_widget!(builder, gtk::Entry, "iridium-title-entry"),
@@ -51,7 +51,16 @@ impl Controller {
             note_info: get_widget!(builder, gtk::Label, "right-hand-info-label"),
             note_content: get_widget!(builder, gtk::Box, "iridium-entry-box"),
             binding: None,
-        }
+        };
+
+        controller.list_box.set_sort_func(Some(Box::new(clone!(@strong controller.items as items => move |row_a, row_b| {
+            let items = items.borrow();
+            let item_a = &items[row_a];
+            let item_b = &items[row_b];
+            (item_a < item_b) as i32
+        }))));
+
+        controller
     }
 
     pub fn insert(&mut self, note: &Note) {
@@ -73,22 +82,22 @@ impl Controller {
         row.set_widget_name("iridium-note-row");
         row.show_all();
 
-        // Do stupid insertion sort until we figured out how gtk::ListBox::set_sort_func's closure
-        // could use the model itself.
-        let mut items = self.items.borrow_mut();
+        {
+            let mut items = self.items.borrow_mut();
+
+            items.insert(row.clone(), Item {
+                uuid: note.uuid,
+                label: label.clone(),
+                last_updated: note.updated_at,
+            });
+
+            if items.len() == 1 {
+                self.note_stack.set_visible_child(&self.note_content);
+            }
+        }
 
         self.list_box.insert(&row, 0);
         self.list_box.select_row(Some(&row));
-
-        items.insert(row, Item {
-            uuid: note.uuid,
-            label: label.clone(),
-            last_updated: note.updated_at,
-        });
-
-        if items.len() == 1 {
-            self.note_stack.set_visible_child(&self.note_content);
-        }
     }
 
     pub fn delete(&mut self, uuid: &Uuid) {
@@ -146,33 +155,32 @@ impl Controller {
     }
 
     pub fn updated(&mut self, uuid: &Uuid) {
-        for (row, item) in self.items.borrow_mut().iter_mut().filter(|(_, item)| item.uuid == *uuid) {
+        for item in self.items.borrow_mut()
+            .iter_mut()
+            .filter(|(_, item)| item.uuid == *uuid)
+            .map(|(_, item)| item) {
             item.last_updated = Utc::now();
+        }
 
-            if row.get_index() > 0 {
-                self.list_box.remove(row);
-                self.list_box.insert(row, 0);
-            }
+        for row in self.items.borrow()
+            .iter()
+            .filter(|(row, item)| item.uuid == *uuid && row.get_index() > 0)
+            .map(|(row, _)| row) {
+            self.list_box.remove(row);
+            self.list_box.insert(row, 0);
         }
     }
 
-    pub fn show_matching_rows(&self, term: &str) {
-        for (row, item) in self.items.borrow().iter() {
-            let label_text = item.label.get_text().to_string().to_lowercase();
-
-            if label_text.contains(&term) {
-                row.show();
-            }
-            else {
-                row.hide();
-            }
-        }
+    pub fn show_matching_rows(&self, term: String) {
+        self.list_box.set_filter_func(Some(Box::new(clone!(@strong self.items as items => move |row| {
+            let items = items.borrow();
+            let label_text = items[row].label.get_text().to_string().to_lowercase();
+            label_text.contains(&term)
+        }))));
     }
 
     pub fn show_all_rows(&self) {
-        for row in self.items.borrow().keys() {
-            row.show();
-        }
+        self.list_box.set_filter_func(None);
     }
 
     fn have(&self, uuid: &Uuid) -> bool {

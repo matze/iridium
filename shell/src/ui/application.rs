@@ -591,7 +591,7 @@ impl Application {
                     AppEvent::UpdateFilter(term) => {
                         if let Some(term) = term {
                             let term = term.to_lowercase();
-                            controller.show_matching_rows(&term);
+                            controller.show_matching_rows(term);
                         }
                         else {
                             controller.show_all_rows();
