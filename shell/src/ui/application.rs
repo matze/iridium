@@ -388,7 +388,9 @@ impl Application {
                             storage.flush_dirty().unwrap();
                         }
 
-                        config.write().unwrap();
+                        if let Err(err) = config.write() {
+                            log::warn!("Could not write config: {}", err);
+                        }
 
                         app.quit();
                     }
