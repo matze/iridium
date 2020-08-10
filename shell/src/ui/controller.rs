@@ -171,16 +171,19 @@ impl Controller {
         }
     }
 
-    pub fn show_matching_rows(&self, term: String) {
-        self.list_box.set_filter_func(Some(Box::new(clone!(@strong self.items as items => move |row| {
-            let items = items.borrow();
-            let label_text = items[row].label.get_text().to_string().to_lowercase();
-            label_text.contains(&term)
-        }))));
-    }
-
-    pub fn show_all_rows(&self) {
-        self.list_box.set_filter_func(None);
+    pub fn filter_rows(&self, term: Option<String>) {
+        if let Some(term) = term {
+            self.list_box.set_filter_func(Some(Box::new(
+                clone!(@strong self.items as items => move |row| {
+                    let items = items.borrow();
+                    let label_text = items[row].label.get_text().to_string().to_lowercase();
+                    label_text.contains(&term)
+                })
+            )));
+        }
+        else {
+            self.list_box.set_filter_func(None);
+        }
     }
 
     fn have(&self, uuid: &Uuid) -> bool {
