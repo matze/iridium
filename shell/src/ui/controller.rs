@@ -53,12 +53,14 @@ impl Controller {
             binding: None,
         };
 
-        controller.list_box.set_sort_func(Some(Box::new(clone!(@strong controller.items as items => move |row_a, row_b| {
-            let items = items.borrow();
-            let item_a = &items[row_a];
-            let item_b = &items[row_b];
-            (item_a < item_b) as i32
-        }))));
+        controller.list_box.set_sort_func(Some(Box::new(
+            clone!(@strong controller.items as items => move |row_a, row_b| {
+                let items = items.borrow();
+                let item_a = &items[row_a];
+                let item_b = &items[row_b];
+                (item_a < item_b) as i32
+            })
+        )));
 
         controller
     }
