@@ -136,7 +136,10 @@ impl Controller {
     }
 
     pub fn select_first(&self) {
-        if let Some((row, _)) = self.items.borrow().iter().next() {
+        let items = self.items.borrow();
+        let most_recent = items.iter().max_by(|(_, x), (_, y)| x.cmp(y));
+
+        if let Some((row, _)) = most_recent {
             self.list_box.select_row(Some(row));
         }
     }
