@@ -8,6 +8,11 @@
   font-weight: bold;
 }
 
+#iridium-tag-entry {
+  border: none;
+  font-family: 'Fira Mono', monospace;
+}
+
 #iridium-text-view {
   background-color: transparent;
   font-family: 'Fira Mono', monospace;
