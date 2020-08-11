@@ -9,7 +9,7 @@ license = "GPL-3.0-or-later"
 anyhow = "1.0"
 chrono = { version = "0.4" }
 data-encoding = "2.2.0"
-directories = "2.0"
+directories = "3"
 env_logger = "0"
 log = "0"
 gtk = { version = "0.9", features = ["v3_22"] }
