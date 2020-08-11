@@ -25,7 +25,6 @@ fn init_resources() -> Result<()> {
 }
 
 fn main() -> Result<()> {
-    env_logger::init();
     gtk::init()?;
     init_resources()?;
     let app = Application::new()?;

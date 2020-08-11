@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
+use crate::consts::APP_DOMAIN;
 use standardfile::{remote, Cipher, Item, Note, Tag, Credentials, crypto::Crypto};
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
@@ -59,7 +60,7 @@ impl Storage {
         let mut items: Vec<Item> = Vec::new();
 
         if storage.path.exists() {
-            log::info!("Loading {:?}", storage.path);
+            g_info!(APP_DOMAIN, "Loading {:?}", storage.path);
 
             for entry in read_dir(&storage.path)? {
                 let file_path = entry?.path();
@@ -89,7 +90,7 @@ impl Storage {
         }
 
         if let Some(client) = &mut storage.client {
-            log::info!("Syncing with remote");
+            g_info!(APP_DOMAIN, "Syncing with remote");
 
             // Use all items we haven't synced yet. For now pretend we have never synced an item.
             // Decrypt, flush and show notes we have retrieved from the initial sync.
@@ -190,7 +191,7 @@ impl Storage {
         self.flush_to_disk(&item.uuid, &item)?;
 
         if let Some(client) = &mut self.client {
-            log::info!("Syncing {}", item.uuid);
+            g_info!(APP_DOMAIN, "Syncing {}", item.uuid);
 
             let copy = Item {
                 uuid: item.uuid,
@@ -221,7 +222,7 @@ impl Storage {
         }
 
         if let Some(client) = &mut self.client {
-            log::info!("Syncing dirty items");
+            g_info!(APP_DOMAIN, "Syncing dirty items");
             client.sync(items)?;
         }
 
@@ -248,7 +249,7 @@ impl Storage {
         }
 
         let path = self.path_from_uuid(&uuid);
-        log::info!("Deleting {:?}", path);
+        g_info!(APP_DOMAIN, "Deleting {:?}", path);
         remove_file(path)?;
         self.notes.remove(&uuid);
 

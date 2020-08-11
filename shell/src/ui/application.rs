@@ -5,7 +5,7 @@ use glib::translate::{ToGlib, from_glib};
 use std::env;
 use std::path::PathBuf;
 use crate::config::{Config, Geometry};
-use crate::consts::{APP_ID, APP_VERSION, ABOUT_UI, BASE_CSS, IMPORT_UI, SHORTCUTS_UI, WINDOW_UI};
+use crate::consts::{APP_DOMAIN, APP_ID, APP_VERSION, ABOUT_UI, BASE_CSS, IMPORT_UI, SHORTCUTS_UI, WINDOW_UI};
 use crate::secret;
 use crate::storage::Storage;
 use crate::ui::controller::Controller;
@@ -389,7 +389,7 @@ impl Application {
                         }
 
                         if let Err(err) = config.write() {
-                            log::warn!("Could not write config: {}", err);
+                            g_warning!(APP_DOMAIN, "Could not write config: {}", err);
                         }
 
                         app.quit();
@@ -413,7 +413,7 @@ impl Application {
                         };
                     }
                     AppEvent::Register(server, credentials) => {
-                        log::info!("Registering with {}", server);
+                        g_info!(APP_DOMAIN, "Registering with {}", server);
                         let client = remote::Client::new_register(&server, credentials);
 
                         match client {
@@ -432,7 +432,7 @@ impl Application {
                         };
                     }
                     AppEvent::SignIn(server, credentials) => {
-                        log::info!("Signing in to {}", server);
+                        g_info!(APP_DOMAIN, "Signing in to {}", server);
                         let client = remote::Client::new_sign_in(&server, &credentials);
 
                         match client {
@@ -514,7 +514,7 @@ impl Application {
                     AppEvent::DeleteNote => {
                         if let Some(storage) = &mut storage {
                             if let Some(uuid) = storage.current {
-                                log::info!("Deleting {}", uuid);
+                                g_info!(APP_DOMAIN, "Deleting {}", uuid);
                                 controller.delete(&uuid);
                                 storage.delete(&uuid).unwrap();
                             }

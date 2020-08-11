@@ -16,10 +16,10 @@ with
     $ cargo test --release
     $ cargo run --release
 
-To display logs during execution set the `RUST_LOG` environment variable, e.g.
-to display debug logs run via
+To display logs during execution set the `G_MESSAGES_DEBUG` environment variable
+to either `iridium` for application logs or `all` for everything:
 
-    $ RUST_LOG=debug cargo run
+    $ G_MESSAGES_DEBUG=iridium cargo run
 
 ## License
 

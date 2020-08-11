@@ -1,3 +1,4 @@
+pub static APP_DOMAIN: &str = "iridium";
 pub static APP_ID: &str = "net.bloerg.Iridium";
 pub static APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
