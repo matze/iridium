@@ -385,7 +385,9 @@ impl Application {
                 match event {
                     AppEvent::Quit => {
                         if let Some(storage) = &mut storage {
-                            storage.flush_dirty().unwrap();
+                            if let Err(err) = storage.flush_dirty() {
+                                g_error!(APP_DOMAIN, "Could not flush: {}", err);
+                            }
                         }
 
                         if let Err(err) = config.write() {
@@ -595,8 +597,12 @@ impl Application {
                     }
                     AppEvent::FlushDirty => {
                         if let Some(storage) = &mut storage {
-                            storage.flush_dirty().unwrap();
-                            flush_timer_running = false;
+                            if let Err(err) = storage.flush_dirty() {
+                                g_error!(APP_DOMAIN, "Could not flush: {}", err);
+                            }
+                            else {
+                                flush_timer_running = false;
+                            }
                         }
                     }
                 }
