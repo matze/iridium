@@ -9,7 +9,7 @@ pub mod crypto;
 pub mod remote;
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Item {
+pub struct Envelope {
     pub uuid: Uuid,
     pub content: Option<String>,
     pub content_type: String,
@@ -30,7 +30,7 @@ pub struct ExportedAuthParams {
 #[derive(Deserialize)]
 pub struct Exported {
     pub auth_params: ExportedAuthParams,
-    pub items: Vec<Item>,
+    pub items: Vec<Envelope>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -73,8 +73,8 @@ pub struct EncryptedItem {
 }
 
 pub trait Cipher<T> {
-    fn encrypt(crypto: &crypto::Crypto, item: &T) -> Result<Item>;
-    fn decrypt(crypto: &crypto::Crypto, item: &Item) -> Result<T>;
+    fn encrypt(crypto: &crypto::Crypto, item: &T) -> Result<Envelope>;
+    fn decrypt(crypto: &crypto::Crypto, item: &Envelope) -> Result<T>;
 }
 
 /// Authentication parameters constructed locally, from a remote server or an imported file and
@@ -87,13 +87,13 @@ pub struct Credentials {
     pub password: String,
 }
 
-impl Item {
-    /// Deserialize Item from JSON string.
+impl Envelope {
+    /// Deserialize Envelope from JSON string.
     pub fn from_str(s: &str) -> Result<Self> {
         Ok(serde_json::from_str(s)?)
     }
 
-    /// Serialize Item as JSON string.
+    /// Serialize Envelope as JSON string.
     pub fn to_string(&self) -> Result<String> {
         Ok(serde_json::to_string(&self)?)
     }
@@ -126,7 +126,7 @@ impl Credentials {
     }
 }
 
-fn decrypt(crypto: &crypto::Crypto, item: &Item, content_type: &str) -> Result<String> {
+fn decrypt(crypto: &crypto::Crypto, item: &Envelope, content_type: &str) -> Result<String> {
     if item.content_type != content_type {
         return Err(anyhow!("{} is not {}", item.content_type, content_type));
     }
@@ -135,7 +135,7 @@ fn decrypt(crypto: &crypto::Crypto, item: &Item, content_type: &str) -> Result<S
 }
 
 impl Cipher<Note> for Note {
-    fn encrypt(crypto: &crypto::Crypto, note: &Note) -> Result<Item> {
+    fn encrypt(crypto: &crypto::Crypto, note: &Note) -> Result<Envelope> {
         let content = NoteContent {
             title: Some(note.title.clone()),
             text: note.text.clone(),
@@ -144,7 +144,7 @@ impl Cipher<Note> for Note {
         let to_encrypt = serde_json::to_string(&content)?;
         let encrypted = crypto.encrypt(&to_encrypt, &note.uuid)?;
 
-        Ok(Item {
+        Ok(Envelope {
             uuid: note.uuid,
             content: Some(encrypted.content),
             content_type: "Note".to_owned(),
@@ -155,7 +155,7 @@ impl Cipher<Note> for Note {
         })
     }
 
-    fn decrypt(crypto: &crypto::Crypto, item: &Item) -> Result<Note> {
+    fn decrypt(crypto: &crypto::Crypto, item: &Envelope) -> Result<Note> {
         let decrypted = decrypt(crypto, item, "Note")?;
         let content = serde_json::from_str::<NoteContent>(&decrypted)?;
 
@@ -170,7 +170,7 @@ impl Cipher<Note> for Note {
 }
 
 impl Cipher<Tag> for Tag {
-    fn encrypt(crypto: &crypto::Crypto, tag: &Tag) -> Result<Item> {
+    fn encrypt(crypto: &crypto::Crypto, tag: &Tag) -> Result<Envelope> {
         let content = TagContent {
             title: tag.title.clone(),
             references: tag.references
@@ -185,7 +185,7 @@ impl Cipher<Tag> for Tag {
         let to_encrypt = serde_json::to_string(&content)?;
         let encrypted = crypto.encrypt(&to_encrypt, &tag.uuid)?;
 
-        Ok(Item {
+        Ok(Envelope {
             uuid: tag.uuid,
             content: Some(encrypted.content),
             content_type: "Note".to_owned(),
@@ -196,7 +196,7 @@ impl Cipher<Tag> for Tag {
         })
     }
 
-    fn decrypt(crypto: &crypto::Crypto, item: &Item) -> Result<Tag> {
+    fn decrypt(crypto: &crypto::Crypto, item: &Envelope) -> Result<Tag> {
         let decrypted = decrypt(crypto, item, "Tag")?;
         let content = serde_json::from_str::<TagContent>(&decrypted)?;
         let references = content.references

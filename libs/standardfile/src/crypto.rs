@@ -1,4 +1,4 @@
-use crate::{Item, EncryptedItem, Credentials};
+use crate::{Envelope, EncryptedItem, Credentials};
 use aes::Aes256;
 use anyhow::{anyhow, Result};
 use block_modes::block_padding::Pkcs7;
@@ -115,7 +115,7 @@ impl Crypto {
         HEXLOWER.encode(&self.pw)
     }
 
-    pub fn decrypt(&self, item: &Item) -> Result<String> {
+    pub fn decrypt(&self, item: &Envelope) -> Result<String> {
         if item.enc_item_key.is_none() || item.content.is_none() {
             return Err(anyhow!("Cannot decrypt without key"));
         }

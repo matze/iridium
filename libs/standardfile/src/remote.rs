@@ -1,5 +1,4 @@
-use super::crypto::Crypto;
-use super::{Credentials, Item};
+use super::{Credentials, Envelope, crypto::Crypto};
 use anyhow::{anyhow, Result};
 use reqwest::{StatusCode, blocking::Response, header::{HeaderMap, HeaderValue, CONTENT_TYPE}};
 use serde::{Serialize, Deserialize};
@@ -46,16 +45,16 @@ struct SignInResponse {
 
 #[derive(Serialize)]
 struct SyncRequest {
-    pub items: Vec<Item>,
+    pub items: Vec<Envelope>,
     pub sync_token: Option<String>,
     pub cursor_token: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
 struct SyncResponse {
-    pub retrieved_items: Vec<Item>,
-    pub saved_items: Vec<Item>,
-    pub unsaved: Option<Vec<Item>>,
+    pub retrieved_items: Vec<Envelope>,
+    pub saved_items: Vec<Envelope>,
+    pub unsaved: Option<Vec<Envelope>>,
     pub sync_token: Option<String>,
     pub cursor_token: Option<String>,
 }
@@ -139,7 +138,7 @@ impl Client {
         })
     }
 
-    pub fn sync(&mut self, items: Vec<Item>) -> Result<Vec<Item>> {
+    pub fn sync(&mut self, items: Vec<Envelope>) -> Result<Vec<Envelope>> {
         let url = format!("{}/items/sync", &self.host);
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));

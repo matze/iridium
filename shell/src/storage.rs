@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
 use crate::consts::APP_DOMAIN;
-use standardfile::{remote, Cipher, Item, Note, Tag, Credentials, crypto::Crypto};
+use standardfile::{remote, Cipher, Envelope, Note, Tag, Credentials, crypto::Crypto};
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
 use ring::digest;
@@ -38,11 +38,11 @@ fn data_path_from_identifier(identifier: &str) -> Result<PathBuf> {
     }
 }
 
-fn filter_encrypted<'a>(items: &'a Vec<Item>, content_type: &str) -> Vec<&'a Item> {
+fn filter_encrypted<'a>(items: &'a Vec<Envelope>, content_type: &str) -> Vec<&'a Envelope> {
     items
     .iter()
     .filter(|x| x.content_type == content_type)
-    .collect::<Vec<&Item>>()
+    .collect::<Vec<&Envelope>>()
 }
 
 impl Storage {
@@ -57,7 +57,7 @@ impl Storage {
             client: client,
         };
 
-        let mut items: Vec<Item> = Vec::new();
+        let mut items: Vec<Envelope> = Vec::new();
 
         if storage.path.exists() {
             g_info!(APP_DOMAIN, "Loading {:?}", storage.path);
@@ -68,7 +68,7 @@ impl Storage {
                 if let Some(file_name) = file_path.file_name() {
                     let uuid = Uuid::parse_str(file_name.to_string_lossy().as_ref())?;
                     let contents = read_to_string(file_path)?;
-                    let item = Item::from_str(&contents)?;
+                    let item = Envelope::from_str(&contents)?;
 
                     if uuid != item.uuid {
                         return Err(anyhow!("File is corrupted"));
@@ -102,7 +102,7 @@ impl Storage {
     }
 
     /// Create storage from vector of encrypted items.
-    pub fn new_from_items(credentials: &Credentials, items: &Vec<Item>) -> Result<Self> {
+    pub fn new_from_items(credentials: &Credentials, items: &Vec<Envelope>) -> Result<Self> {
         let mut storage = Storage::new(credentials, None)?;
         storage.insert_encrypted_items(items)?;
         Ok(storage)
@@ -118,7 +118,7 @@ impl Storage {
         Ok(())
     }
 
-    fn insert_encrypted_items(&mut self, items: &Vec<Item>) -> Result<()> {
+    fn insert_encrypted_items(&mut self, items: &Vec<Envelope>) -> Result<()> {
         for item in filter_encrypted(&items, "Note").iter().filter(|x| !x.deleted.unwrap_or(false)) {
             self.notes.insert(item.uuid, Note::decrypt(&self.crypto, &item)?);
             self.flush(&item)?;
@@ -172,7 +172,7 @@ impl Storage {
         Ok(self.get_note()?.title.clone())
     }
 
-    fn flush_to_disk(&self, uuid: &Uuid, item: &Item) -> Result<()> {
+    fn flush_to_disk(&self, uuid: &Uuid, item: &Envelope) -> Result<()> {
         let path = self.path_from_uuid(&uuid);
 
         if let Some(parent) = path.parent() {
@@ -187,13 +187,13 @@ impl Storage {
     }
 
     /// Write encrypted item to disk and sync with remote.
-    fn flush(&mut self, item: &Item) -> Result<()> {
+    fn flush(&mut self, item: &Envelope) -> Result<()> {
         self.flush_to_disk(&item.uuid, &item)?;
 
         if let Some(client) = &mut self.client {
             g_info!(APP_DOMAIN, "Syncing {}", item.uuid);
 
-            let copy = Item {
+            let copy = Envelope {
                 uuid: item.uuid,
                 content: item.content.clone(),
                 content_type: item.content_type.clone(),
@@ -211,7 +211,7 @@ impl Storage {
 
     /// Encrypt all dirty items, write them to disk and sync with remote.
     pub fn flush_dirty(&mut self) -> Result<()> {
-        let mut items: Vec<Item> = Vec::new();
+        let mut items: Vec<Envelope> = Vec::new();
 
         for uuid in &self.dirty {
             let note = self.notes.get(uuid).ok_or(anyhow!("uuid dirty but not found"))?;
