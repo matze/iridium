@@ -34,7 +34,7 @@ pub struct Exported {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct NoteContent {
+struct NoteContent {
     pub title: Option<String>,
     pub text: String,
 }
@@ -46,7 +46,7 @@ pub struct Reference {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct TagContent {
+struct TagContent {
     pub title: String,
     pub references: Vec<Reference>,
 }
