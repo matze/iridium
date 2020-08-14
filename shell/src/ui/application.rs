@@ -9,7 +9,7 @@ use crate::consts::{APP_DOMAIN, APP_ID, APP_VERSION, ABOUT_UI, BASE_CSS, IMPORT_
 use crate::secret;
 use crate::storage::Storage;
 use crate::ui::controller::Controller;
-use standardfile::{remote, Exported, Credentials};
+use standardfile::{remote, Item, Exported, Credentials};
 
 pub struct Application {
     app: gtk::Application,
@@ -359,8 +359,10 @@ impl Application {
                 let credentials = config.credentials()?;
                 let storage = Storage::new(&credentials, None)?;
 
-                for note in storage.notes.values() {
-                    controller.insert(&note);
+                for item in storage.items.values() {
+                    if let Item::Note(note) = item {
+                        controller.insert(&note);
+                    }
                 }
 
                 controller.select_first();
@@ -447,8 +449,10 @@ impl Application {
                                 // Switch storage, read local files and show them in the UI.
                                 storage = Some(Storage::new(&credentials, Some(client)).unwrap());
 
-                                for note in storage.as_ref().unwrap().notes.values() {
-                                    controller.insert(&note);
+                                for item in storage.as_ref().unwrap().items.values() {
+                                    if let Item::Note(note) = item {
+                                        controller.insert(&note);
+                                    }
                                 }
 
                                 // Store the encryption password and auth token in the keyring.
@@ -477,8 +481,10 @@ impl Application {
                                 storage = Some(Storage::new_from_items(&credentials, &exported.items).unwrap());
 
                                 if let Some(storage) = &storage {
-                                    for note in storage.notes.values() {
-                                        controller.insert(&note);
+                                    for item in storage.items.values() {
+                                        if let Item::Note(note) = item {
+                                            controller.insert(&note);
+                                        }
                                     }
                                 }
                             }
@@ -500,8 +506,10 @@ impl Application {
                         let credentials = config.credentials().unwrap();
                         let new_storage = Storage::new(&credentials, None).unwrap();
 
-                        for note in new_storage.notes.values() {
-                            controller.insert(&note);
+                        for item in new_storage.items.values() {
+                            if let Item::Note(note) = item {
+                                controller.insert(&note);
+                            }
                         }
 
                         storage = Some(new_storage);
@@ -509,8 +517,11 @@ impl Application {
                     AppEvent::AddNote => {
                         if let Some(storage) = &mut storage {
                             let uuid = storage.create_note();
-                            let note = storage.notes.get(&uuid).unwrap();
-                            controller.insert(&note);
+                            let item = storage.items.get(&uuid).unwrap();
+
+                            if let Item::Note(note) = item {
+                                controller.insert(&note);
+                            }
                         }
                     }
                     AppEvent::DeleteNote => {

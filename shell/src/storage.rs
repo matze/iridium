@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
 use crate::consts::APP_DOMAIN;
-use standardfile::{remote, Cipher, Envelope, Note, Tag, Credentials, crypto::Crypto};
+use standardfile::{remote, Envelope, Item, Note, Credentials, crypto::Crypto};
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
 use ring::digest;
@@ -12,8 +12,7 @@ use uuid::Uuid;
 
 pub struct Storage {
     path: PathBuf,
-    pub notes: HashMap<Uuid, Note>,
-    pub tags: HashMap<Uuid, Tag>,
+    pub items: HashMap<Uuid, Item>,
     crypto: Crypto,
     pub current: Option<Uuid>,
 
@@ -38,19 +37,11 @@ fn data_path_from_identifier(identifier: &str) -> Result<PathBuf> {
     }
 }
 
-fn filter_encrypted<'a>(items: &'a Vec<Envelope>, content_type: &str) -> Vec<&'a Envelope> {
-    items
-    .iter()
-    .filter(|x| x.content_type == content_type)
-    .collect::<Vec<&Envelope>>()
-}
-
 impl Storage {
     pub fn new(credentials: &Credentials, client: Option<remote::Client>) -> Result<Self> {
         let mut storage = Self {
             path: data_path_from_identifier(&credentials.identifier)?,
-            notes: HashMap::new(),
-            tags: HashMap::new(),
+            items: HashMap::new(),
             crypto: Crypto::new(&credentials)?,
             current: None,
             dirty: HashSet::new(),
@@ -74,16 +65,7 @@ impl Storage {
                         return Err(anyhow!("File is corrupted"));
                     }
 
-                    if item.content_type == "Note" {
-                        storage.notes.insert(uuid, Note::decrypt(&storage.crypto, &item)?);
-                    }
-                    else if item.content_type == "Tag" {
-                        storage.tags.insert(uuid, Tag::decrypt(&storage.crypto, &item)?);
-                    }
-                    else {
-                        Err(anyhow!("Cannot handle {}", item.content_type))?;
-                    }
-
+                    storage.items.insert(uuid, item.decrypt(&storage.crypto)?);
                     items.push(item);
                 }
             }
@@ -110,7 +92,7 @@ impl Storage {
 
     /// Set the currently note to update.
     pub fn set_current_uuid(&mut self, uuid: &Uuid) -> Result<()> {
-        if !self.notes.contains_key(&uuid) {
+        if !self.items.contains_key(&uuid) {
             return Err(anyhow!(format!("{} does not exist", uuid)));
         }
 
@@ -119,13 +101,8 @@ impl Storage {
     }
 
     fn insert_encrypted_items(&mut self, items: &Vec<Envelope>) -> Result<()> {
-        for item in filter_encrypted(&items, "Note").iter().filter(|x| !x.deleted.unwrap_or(false)) {
-            self.notes.insert(item.uuid, Note::decrypt(&self.crypto, &item)?);
-            self.flush(&item)?;
-        }
-
-        for item in filter_encrypted(&items, "Tag").iter().filter(|x| !x.deleted.unwrap_or(false)) {
-            self.tags.insert(item.uuid, Tag::decrypt(&self.crypto, &item)?);
+        for item in items {
+            self.items.insert(item.uuid, item.decrypt(&self.crypto)?);
             self.flush(&item)?;
         }
 
@@ -137,18 +114,30 @@ impl Storage {
     }
 
     fn get_note(&self) -> Result<&Note> {
-        Ok(self.notes.get(&self.get_uuid()?).ok_or(anyhow!("uuid mapping not found"))?)
+        let uuid = self.get_uuid()?;
+        let item = self.items.get(&uuid).ok_or(anyhow!("uuid mapping not found"))?;
+
+        match item {
+            Item::Note(note) => Ok(note),
+            Item::Tag(_) => panic!("Current uuid is a tag"),
+        }
     }
 
     /// Update the contents of the currently selected item.
     pub fn set_text(&mut self, text: &str) -> Result<()> {
         let uuid = self.get_uuid()?;
-        let note = self.notes.get_mut(&uuid).ok_or(anyhow!("uuid mapping not found"))?;
-        note.updated_at = Utc::now();
-        note.text = text.to_owned();
+        let item = self.items.get_mut(&uuid).ok_or(anyhow!("uuid mapping not found"))?;
 
-        self.dirty.insert(note.uuid);
-        Ok(())
+        if let Item::Note(note) = item {
+            note.updated_at = Utc::now();
+            note.text = text.to_owned();
+
+            self.dirty.insert(note.uuid);
+            Ok(())
+        }
+        else {
+            panic!("Current uuid is a tag");
+        }
     }
 
     /// Get text of the currently selected item.
@@ -159,12 +148,18 @@ impl Storage {
     /// Update the title of the currently selected item.
     pub fn set_title(&mut self, title: &str) -> Result<()> {
         let uuid = self.get_uuid()?;
-        let note = self.notes.get_mut(&uuid).ok_or(anyhow!("uuid mapping not found"))?;
-        note.updated_at = Utc::now();
-        note.title = title.to_owned();
+        let item = self.items.get_mut(&uuid).ok_or(anyhow!("uuid mapping not found"))?;
 
-        self.dirty.insert(note.uuid);
-        Ok(())
+        if let Item::Note(note) = item {
+            note.updated_at = Utc::now();
+            note.title = title.to_owned();
+
+            self.dirty.insert(note.uuid);
+            Ok(())
+        }
+        else {
+            panic!("Current uuid is a tag");
+        }
     }
 
     /// Get title of the currently selected item.
@@ -214,8 +209,8 @@ impl Storage {
         let mut items: Vec<Envelope> = Vec::new();
 
         for uuid in &self.dirty {
-            let note = self.notes.get(uuid).ok_or(anyhow!("uuid dirty but not found"))?;
-            let item = Note::encrypt(&self.crypto, note)?;
+            let item = self.items.get(uuid).ok_or(anyhow!("uuid dirty but not found"))?;
+            let item = Envelope::encrypt(&self.crypto, &item)?;
 
             self.flush_to_disk(&uuid, &item)?;
             items.push(item);
@@ -238,8 +233,8 @@ impl Storage {
         }
 
         if let Some(client) = &mut self.client {
-            if let Some(note) = self.notes.get(&uuid) {
-                let mut item = Note::encrypt(&self.crypto, note)?;
+            if let Some(item) = self.items.get(&uuid) {
+                let mut item = Envelope::encrypt(&self.crypto, &item)?;
                 item.deleted = Some(true);
 
                 // Apparently, we do not receive the item back as marked deleted
@@ -251,7 +246,7 @@ impl Storage {
         let path = self.path_from_uuid(&uuid);
         g_info!(APP_DOMAIN, "Deleting {:?}", path);
         remove_file(path)?;
-        self.notes.remove(&uuid);
+        self.items.remove(&uuid);
 
         Ok(())
     }
@@ -275,7 +270,7 @@ impl Storage {
             uuid: uuid,
         };
 
-        self.notes.insert(uuid, note);
+        self.items.insert(uuid, Item::Note(note));
 
         uuid
     }

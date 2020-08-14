@@ -72,9 +72,14 @@ pub struct EncryptedItem {
     pub enc_item_key: String,
 }
 
+pub enum Item {
+    Note(Note),
+    Tag(Tag),
+}
+
 pub trait Cipher<T> {
-    fn encrypt(crypto: &crypto::Crypto, item: &T) -> Result<Envelope>;
-    fn decrypt(crypto: &crypto::Crypto, item: &Envelope) -> Result<T>;
+    fn encrypt(crypto: &crypto::Crypto, item: &Item) -> Result<Envelope>;
+    fn decrypt(crypto: &crypto::Crypto, item: &Envelope) -> Result<Item>;
 }
 
 /// Authentication parameters constructed locally, from a remote server or an imported file and
@@ -96,6 +101,26 @@ impl Envelope {
     /// Serialize Envelope as JSON string.
     pub fn to_string(&self) -> Result<String> {
         Ok(serde_json::to_string(&self)?)
+    }
+
+    /// Decrypt Envelope to an Item.
+    pub fn decrypt(&self, crypto: &crypto::Crypto) -> Result<Item> {
+        if self.content_type == "Note" {
+            Ok(Note::decrypt(crypto, &self)?)
+        }
+        else if self.content_type == "Tag" {
+            Ok(Tag::decrypt(crypto, &self)?)
+        }
+        else {
+            Err(anyhow!("Cannot handle {}", self.content_type))
+        }
+    }
+
+    pub fn encrypt(crypto: &crypto::Crypto, item: &Item) -> Result<Self> {
+        match item {
+            Item::Note(_) => Note::encrypt(crypto, item),
+            Item::Tag(_) => Tag::encrypt(crypto, item),
+        }
     }
 }
 
@@ -135,7 +160,12 @@ fn decrypt(crypto: &crypto::Crypto, item: &Envelope, content_type: &str) -> Resu
 }
 
 impl Cipher<Note> for Note {
-    fn encrypt(crypto: &crypto::Crypto, note: &Note) -> Result<Envelope> {
+    fn encrypt(crypto: &crypto::Crypto, item: &Item) -> Result<Envelope> {
+        let note = match item {
+            Item::Tag(_) => Err(anyhow!("foo"))?,
+            Item::Note(note) => note
+        };
+
         let content = NoteContent {
             title: Some(note.title.clone()),
             text: note.text.clone(),
@@ -155,22 +185,27 @@ impl Cipher<Note> for Note {
         })
     }
 
-    fn decrypt(crypto: &crypto::Crypto, item: &Envelope) -> Result<Note> {
+    fn decrypt(crypto: &crypto::Crypto, item: &Envelope) -> Result<Item> {
         let decrypted = decrypt(crypto, item, "Note")?;
         let content = serde_json::from_str::<NoteContent>(&decrypted)?;
 
-        Ok(Note {
+        Ok(Item::Note(Note {
             title: content.title.unwrap_or("".to_string()),
             text: content.text,
             created_at: item.created_at,
             updated_at: item.updated_at,
             uuid: item.uuid,
-        })
+        }))
     }
 }
 
 impl Cipher<Tag> for Tag {
-    fn encrypt(crypto: &crypto::Crypto, tag: &Tag) -> Result<Envelope> {
+    fn encrypt(crypto: &crypto::Crypto, item: &Item) -> Result<Envelope> {
+        let tag = match item {
+            Item::Tag(tag) => tag,
+            Item::Note(_) => Err(anyhow!("foo"))?
+        };
+
         let content = TagContent {
             title: tag.title.clone(),
             references: tag.references
@@ -196,7 +231,7 @@ impl Cipher<Tag> for Tag {
         })
     }
 
-    fn decrypt(crypto: &crypto::Crypto, item: &Envelope) -> Result<Tag> {
+    fn decrypt(crypto: &crypto::Crypto, item: &Envelope) -> Result<Item> {
         let decrypted = decrypt(crypto, item, "Tag")?;
         let content = serde_json::from_str::<TagContent>(&decrypted)?;
         let references = content.references
@@ -204,12 +239,12 @@ impl Cipher<Tag> for Tag {
             .map(|reference| reference.uuid)
             .collect::<_>();
 
-        Ok(Tag {
+        Ok(Item::Tag(Tag {
             title: content.title,
             references: references,
             created_at: item.created_at,
             updated_at: item.updated_at,
             uuid: item.uuid,
-        })
+        }))
     }
 }
