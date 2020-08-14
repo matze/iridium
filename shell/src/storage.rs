@@ -123,21 +123,24 @@ impl Storage {
         }
     }
 
-    /// Update the contents of the currently selected item.
-    pub fn set_text(&mut self, text: &str) -> Result<()> {
+    fn get_note_mut(&mut self) -> Result<&mut Note> {
         let uuid = self.get_uuid()?;
         let item = self.items.get_mut(&uuid).ok_or(anyhow!("uuid mapping not found"))?;
 
-        if let Item::Note(note) = item {
-            note.updated_at = Utc::now();
-            note.text = text.to_owned();
+        match item {
+            Item::Note(note) => Ok(note),
+            Item::Tag(_) => panic!("Current uuid is a tag"),
+        }
+    }
 
-            self.dirty.insert(note.uuid);
-            Ok(())
-        }
-        else {
-            panic!("Current uuid is a tag");
-        }
+    /// Update the contents of the currently selected item.
+    pub fn set_text(&mut self, text: &str) -> Result<()> {
+        let note = self.get_note_mut()?;
+        note.updated_at = Utc::now();
+        note.text = text.to_owned();
+
+        self.dirty.insert(self.get_uuid()?);
+        Ok(())
     }
 
     /// Get text of the currently selected item.
@@ -147,19 +150,12 @@ impl Storage {
 
     /// Update the title of the currently selected item.
     pub fn set_title(&mut self, title: &str) -> Result<()> {
-        let uuid = self.get_uuid()?;
-        let item = self.items.get_mut(&uuid).ok_or(anyhow!("uuid mapping not found"))?;
+        let note = self.get_note_mut()?;
+        note.updated_at = Utc::now();
+        note.title = title.to_owned();
 
-        if let Item::Note(note) = item {
-            note.updated_at = Utc::now();
-            note.title = title.to_owned();
-
-            self.dirty.insert(note.uuid);
-            Ok(())
-        }
-        else {
-            panic!("Current uuid is a tag");
-        }
+        self.dirty.insert(self.get_uuid()?);
+        Ok(())
     }
 
     /// Get title of the currently selected item.
