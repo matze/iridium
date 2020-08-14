@@ -154,14 +154,6 @@ impl Credentials {
     }
 }
 
-fn decrypt(crypto: &crypto::Crypto, item: &Envelope, content_type: &str) -> Result<String> {
-    if item.content_type != content_type {
-        return Err(anyhow!("{} is not {}", item.content_type, content_type));
-    }
-
-    Ok(crypto.decrypt(item)?)
-}
-
 impl Cipher<Note> for Note {
     fn encrypt(&self, crypto: &crypto::Crypto) -> Result<Envelope> {
         let content = NoteContent {
@@ -184,7 +176,7 @@ impl Cipher<Note> for Note {
     }
 
     fn decrypt(crypto: &crypto::Crypto, item: &Envelope) -> Result<Item> {
-        let decrypted = decrypt(crypto, item, "Note")?;
+        let decrypted = crypto.decrypt(item)?;
         let content = serde_json::from_str::<NoteContent>(&decrypted)?;
 
         Ok(Item::Note(Note {
@@ -225,7 +217,7 @@ impl Cipher<Tag> for Tag {
     }
 
     fn decrypt(crypto: &crypto::Crypto, item: &Envelope) -> Result<Item> {
-        let decrypted = decrypt(crypto, item, "Tag")?;
+        let decrypted = crypto.decrypt(item)?;
         let content = serde_json::from_str::<TagContent>(&decrypted)?;
         let references = content.references
             .iter()
