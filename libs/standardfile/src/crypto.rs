@@ -162,7 +162,7 @@ impl Crypto {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Cipher, Note};
+    use crate::{Note, Item};
     use chrono::Utc;
 
     #[test]
@@ -186,10 +186,19 @@ mod tests {
             password: "secret".to_string(),
         };
         let crypto = Crypto::new(&credentials).unwrap();
-        let encrypted = Note::encrypt(&crypto, &note).unwrap();
-        let decrypted = Note::decrypt(&crypto, &encrypted).unwrap();
 
-        assert_eq!(decrypted.title, note.title);
-        assert_eq!(decrypted.text, note.text);
+        let item = Item::Note(note);
+        let encrypted = item.encrypt(&crypto).unwrap();
+        let decrypted = encrypted.decrypt(&crypto).unwrap();
+
+        assert!(matches!(decrypted, Item::Note { .. }));
+
+        match decrypted {
+            Item::Note(decrypted) => {
+                assert_eq!(decrypted.title, "Title");
+                assert_eq!(decrypted.text, "Text");
+            },
+            _ => {}
+        };
     }
 }
