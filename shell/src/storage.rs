@@ -210,10 +210,10 @@ impl Storage {
 
         for uuid in &self.dirty {
             let item = self.items.get(uuid).ok_or(anyhow!("uuid dirty but not found"))?;
-            let item = Envelope::encrypt(&self.crypto, &item)?;
+            let envelope = item.encrypt(&self.crypto)?;
 
-            self.flush_to_disk(&uuid, &item)?;
-            items.push(item);
+            self.flush_to_disk(&uuid, &envelope)?;
+            items.push(envelope);
         }
 
         if let Some(client) = &mut self.client {
@@ -234,12 +234,12 @@ impl Storage {
 
         if let Some(client) = &mut self.client {
             if let Some(item) = self.items.get(&uuid) {
-                let mut item = Envelope::encrypt(&self.crypto, &item)?;
-                item.deleted = Some(true);
+                let mut envelope = item.encrypt(&self.crypto)?;
+                envelope.deleted = Some(true);
 
                 // Apparently, we do not receive the item back as marked deleted
                 // but on subsequent syncs only.
-                client.sync(vec![item])?;
+                client.sync(vec![envelope])?;
             }
         }
 
