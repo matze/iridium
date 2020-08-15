@@ -9,8 +9,10 @@ server but can work entirely offline as well.
 ## Building from source
 
 Iridium is written in Rust, so you will need the Rust toolchain. You could use
-[rustup](https://rustup.rs) to install update Rust and Cargo. Then build, test and run
-with
+[rustup](https://rustup.rs) to install update Rust and Cargo. You also need a
+few system dependencies, besides the obvious development libraries of GTK you
+will need OpenSSL and the `glib-compile-resources` binary. Then build, test and
+run with
 
     $ cargo build --release
     $ cargo test --release
