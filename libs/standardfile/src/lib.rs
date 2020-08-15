@@ -67,11 +67,6 @@ pub struct Tag {
     pub uuid: Uuid,
 }
 
-pub struct EncryptedItem {
-    pub content: String,
-    pub enc_item_key: String,
-}
-
 pub enum Item {
     Note(Note),
     Tag(Tag),

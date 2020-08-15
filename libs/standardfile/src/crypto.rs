@@ -1,4 +1,4 @@
-use crate::{Envelope, EncryptedItem, Credentials};
+use crate::{Envelope, Credentials};
 use aes::Aes256;
 use anyhow::{anyhow, Result};
 use block_modes::block_padding::Pkcs7;
@@ -16,6 +16,11 @@ pub struct Crypto {
     pw: Key,
     mk: Key,
     ak: Key,
+}
+
+pub struct Encrypted {
+    pub content: String,
+    pub enc_item_key: String,
 }
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
@@ -136,7 +141,7 @@ impl Crypto {
         Ok(decrypt(&content, &item_ek, &item_ak, &item.uuid)?)
     }
 
-    pub fn encrypt(&self, content: &str, uuid: &Uuid) -> Result<EncryptedItem> {
+    pub fn encrypt(&self, content: &str, uuid: &Uuid) -> Result<Encrypted> {
         let mut rng = rand_chacha::ChaCha20Rng::from_entropy();
         let mut item_key = [0u8; 64];
         rng.fill_bytes(&mut item_key);
@@ -152,7 +157,7 @@ impl Crypto {
 
         let item_key_encoded = HEXLOWER.encode(item_key.as_ref());
 
-        Ok(EncryptedItem {
+        Ok(Encrypted {
             content: encrypt(content, &item_ek, &item_ak, &uuid)?,
             enc_item_key: encrypt(item_key_encoded.as_ref(), &self.mk, &self.ak, &uuid)?,
         })
