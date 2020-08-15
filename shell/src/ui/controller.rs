@@ -45,11 +45,11 @@ impl Controller {
     pub fn new(builder: &gtk::Builder) -> Self {
         let controller = Self {
             items: Rc::new(RefCell::new(HashMap::new())),
-            list_box: get_widget!(builder, gtk::ListBox, "iridium-note-list"),
-            title_entry: get_widget!(builder, gtk::Entry, "iridium-title-entry"),
+            list_box: get_widget!(builder, gtk::ListBox, "note-list"),
+            title_entry: get_widget!(builder, gtk::Entry, "title-entry"),
             note_stack: get_widget!(builder, gtk::Stack, "right-hand-stack"),
             note_info: get_widget!(builder, gtk::Label, "right-hand-info-label"),
-            note_content: get_widget!(builder, gtk::Box, "iridium-entry-box"),
+            note_content: get_widget!(builder, gtk::Box, "entry-box"),
             binding: None,
         };
 

@@ -73,23 +73,23 @@ fn show_header_buttons(builder: &gtk::Builder, visible: bool) {
 }
 
 fn show_setup_content(builder: &gtk::Builder) {
-    let stack = get_widget!(builder, gtk::Stack, "iridium-main-stack");
-    let setup_box = get_widget!(builder, gtk::Box, "iridium-main-setup");
+    let stack = get_widget!(builder, gtk::Stack, "main-stack");
+    let setup_box = get_widget!(builder, gtk::Box, "main-setup");
     show_header_buttons(builder, false);
     stack.set_visible_child(&setup_box);
 }
 
 fn show_main_content(builder: &gtk::Builder) {
-    let stack = get_widget!(builder, gtk::Stack, "iridium-main-stack");
-    let main_box = get_widget!(builder, gtk::Box, "iridium-main-content");
+    let stack = get_widget!(builder, gtk::Stack, "main-stack");
+    let main_box = get_widget!(builder, gtk::Box, "main-content");
     show_header_buttons(builder, true);
     stack.set_visible_child(&main_box);
 }
 
 fn show_notification(builder: &gtk::Builder, message: &str) {
-    let revealer = get_widget!(builder, gtk::Revealer, "iridium-notification-revealer");
-    let label = get_widget!(builder, gtk::Label, "iridium-notification-label");
-    let close_button = get_widget!(builder, gtk::Button, "iridium-notification-button");
+    let revealer = get_widget!(builder, gtk::Revealer, "notification-revealer");
+    let label = get_widget!(builder, gtk::Label, "notification-label");
+    let close_button = get_widget!(builder, gtk::Button, "notification-button");
 
     label.set_text(&message);
     revealer.set_reveal_child(true);
@@ -195,7 +195,7 @@ impl Application {
     }
 
     fn setup_signals(&self) {
-        let search_entry = get_widget!(self.builder, gtk::SearchEntry, "iridium-search-entry");
+        let search_entry = get_widget!(self.builder, gtk::SearchEntry, "search-entry");
 
         search_entry.connect_search_changed(
             clone!(@strong self.sender as sender => move |entry| {
@@ -313,11 +313,11 @@ impl Application {
         let (sender, receiver) = glib::MainContext::channel::<AppEvent>(glib::PRIORITY_DEFAULT);
 
         let window = get_widget!(builder, gtk::ApplicationWindow, "window");
-        let note_list_box = get_widget!(builder, gtk::ListBox, "iridium-note-list");
-        let note_popover = get_widget!(builder, gtk::PopoverMenu, "note_menu");
+        let note_list_box = get_widget!(builder, gtk::ListBox, "note-list");
+        let note_popover = get_widget!(builder, gtk::PopoverMenu, "note-menu");
         let profile_menu = get_widget!(builder, gtk::Box, "profile-menu");
-        let title_entry = get_widget!(builder, gtk::Entry, "iridium-title-entry");
-        let text_view = get_widget!(builder, gtk::TextView, "iridium-text-view");
+        let title_entry = get_widget!(builder, gtk::Entry, "title-entry");
+        let text_view = get_widget!(builder, gtk::TextView, "text-view");
         let text_buffer = text_view.get_buffer().unwrap();
 
         let application = Self {
@@ -325,7 +325,7 @@ impl Application {
             window: window.clone(),
             sender: sender.clone(),
             builder: builder.clone(),
-            search_bar: get_widget!(builder, gtk::SearchBar, "iridium-search-bar"),
+            search_bar: get_widget!(builder, gtk::SearchBar, "search-bar"),
             setup_create_button: get_widget!(builder, gtk::Button, "create-local-button"),
             setup_signup_button: get_widget!(builder, gtk::Button, "signup-button"),
             setup_login_button: get_widget!(builder, gtk::Button, "login-button"),
