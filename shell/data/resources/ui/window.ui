@@ -4,7 +4,7 @@
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkPopoverMenu" id="app_menu">
     <property name="can_focus">False</property>
-    <property name="relative_to">appmenu_button</property>
+    <property name="relative_to">appmenu-button</property>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
@@ -176,7 +176,7 @@
         <property name="show_close_button">True</property>
         <child>
           <object class="GtkButton" id="add-button">
-            <property name="visible">True</property>
+            <property name="visible">False</property>
             <property name="can_focus">True</property>
             <property name="action_name">app.add</property>
             <property name="image">add-note-icon</property>
@@ -186,8 +186,8 @@
           </packing>
         </child>
         <child>
-          <object class="GtkMenuButton" id="appmenu_button">
-            <property name="visible">True</property>
+          <object class="GtkMenuButton" id="appmenu-button">
+            <property name="visible">False</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="popover">app_menu</property>

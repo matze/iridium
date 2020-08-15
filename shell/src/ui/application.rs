@@ -65,9 +65,24 @@ fn get_auth_details(builder: &gtk::Builder) -> (String, Credentials) {
     (server_combo_box.get_active_text().unwrap().to_string(), get_user_details(&builder))
 }
 
+fn show_header_buttons(builder: &gtk::Builder, visible: bool) {
+    let menu_button = get_widget!(builder, gtk::MenuButton, "appmenu-button");
+    let add_button = get_widget!(builder, gtk::Button, "add-button");
+    menu_button.set_visible(visible);
+    add_button.set_visible(visible);
+}
+
+fn show_setup_content(builder: &gtk::Builder) {
+    let stack = get_widget!(builder, gtk::Stack, "iridium-main-stack");
+    let setup_box = get_widget!(builder, gtk::Box, "iridium-main-setup");
+    show_header_buttons(builder, false);
+    stack.set_visible_child(&setup_box);
+}
+
 fn show_main_content(builder: &gtk::Builder) {
     let stack = get_widget!(builder, gtk::Stack, "iridium-main-stack");
     let main_box = get_widget!(builder, gtk::Box, "iridium-main-content");
+    show_header_buttons(builder, true);
     stack.set_visible_child(&main_box);
 }
 
@@ -135,9 +150,7 @@ impl Application {
 
         action!(self.app, "setup",
             clone!(@weak self.builder as builder => move |_, _| {
-                let stack = get_widget!(builder, gtk::Stack, "iridium-main-stack");
-                let setup_box = get_widget!(builder, gtk::Box, "iridium-main-setup");
-                stack.set_visible_child(&setup_box);
+                show_setup_content(&builder);
             })
         );
 
@@ -232,10 +245,7 @@ impl Application {
 
         self.setup_create_button.connect_clicked(
             clone!(@strong self.builder as builder, @strong self.sender as sender => move |_| {
-                let main_box = get_widget!(builder, gtk::Box, "iridium-main-content");
-                let main_stack = get_widget!(builder, gtk::Stack, "iridium-main-stack");
-
-                main_stack.set_visible_child(&main_box);
+                show_main_content(&builder);
 
                 let user = get_user_details(&builder);
                 sender.send(AppEvent::CreateStorage(user)).unwrap();
