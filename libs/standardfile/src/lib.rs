@@ -72,11 +72,6 @@ pub enum Item {
     Tag(Tag),
 }
 
-trait Cipher<T> {
-    fn encrypt(&self, crypto: &crypto::Crypto) -> Result<Envelope>;
-    fn decrypt(crypto: &crypto::Crypto, item: &Envelope) -> Result<Item>;
-}
-
 /// Authentication parameters constructed locally, from a remote server or an imported file and
 /// passed to construct the crypto used in the storage.
 #[derive(Clone)]
@@ -164,7 +159,7 @@ impl Credentials {
     }
 }
 
-impl Cipher<Note> for Note {
+impl Note {
     fn encrypt(&self, crypto: &crypto::Crypto) -> Result<Envelope> {
         let content = NoteContent {
             title: Some(self.title.clone()),
@@ -199,7 +194,7 @@ impl Cipher<Note> for Note {
     }
 }
 
-impl Cipher<Tag> for Tag {
+impl Tag {
     fn encrypt(&self, crypto: &crypto::Crypto) -> Result<Envelope> {
         let content = TagContent {
             title: self.title.clone(),
