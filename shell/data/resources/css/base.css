@@ -4,18 +4,18 @@
 
 #iridium-title-entry {
   border: none;
-  font-family: 'Fira Mono', monospace;
+  font-family: 'JetBrains Mono', 'Fira Mono', monospace;
   font-weight: bold;
 }
 
 #iridium-tag-entry {
   border: none;
-  font-family: 'Fira Mono', monospace;
+  font-family: 'JetBrains Mono', 'Fira Mono', monospace;
 }
 
 #iridium-text-view {
   background-color: transparent;
-  font-family: 'Fira Mono', monospace;
+  font-family: 'JetBrains Mono', 'Fira Mono', monospace;
 }
 
 #iridium-note-row {
