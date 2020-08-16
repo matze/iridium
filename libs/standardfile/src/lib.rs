@@ -19,7 +19,7 @@ pub struct Envelope {
     pub deleted: Option<bool>,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct AuthParams {
     pub identifier: String,
     pub pw_cost: u32,
@@ -27,7 +27,7 @@ pub struct AuthParams {
     pub version: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Exported {
     pub auth_params: AuthParams,
     pub items: Vec<Envelope>,
@@ -87,6 +87,17 @@ pub struct Credentials {
     pub password: String,
 }
 
+impl AuthParams {
+    pub fn from_credentials(credentials: &Credentials) -> Self {
+        Self {
+            identifier: credentials.identifier.clone(),
+            pw_cost: credentials.cost,
+            pw_nonce: credentials.nonce.clone(),
+            version: "003".to_string(),
+        }
+    }
+}
+
 impl Envelope {
     /// Deserialize Envelope from JSON string.
     pub fn from_str(s: &str) -> Result<Self> {
@@ -126,6 +137,10 @@ impl Exported {
     /// Deserialize Exported from JSON string.
     pub fn from_str(s: &str) -> Result<Self> {
         Ok(serde_json::from_str(s)?)
+    }
+
+    pub fn to_str(&self) -> Result<String> {
+        Ok(serde_json::to_string(&self)?)
     }
 }
 

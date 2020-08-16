@@ -31,6 +31,7 @@ enum AppEvent {
     Register(String, Credentials),
     SignIn(String, Credentials),
     Import(PathBuf, String, Option<String>),
+    Export(PathBuf),
     Update(Option<String>, Option<String>),
     UpdateFilter(Option<String>),
     UpdateGeometry(Geometry),
@@ -183,6 +184,28 @@ impl Application {
                             sender.send(AppEvent::Import(filename, password_entry.get_text().to_string(), server)).unwrap();
                         }
                     }
+                    _ => {}
+                }
+
+                dialog.close();
+            })
+        );
+
+        action!(self.app, "export",
+            clone!(@weak self.window as window, @strong self.sender as sender => move |_, _| {
+                let dialog = gtk::FileChooserDialog::with_buttons::<gtk::ApplicationWindow>(
+                    Some("Export JSON"),
+                    Some(&window),
+                    gtk::FileChooserAction::Save,
+                    &[("_Cancel", gtk::ResponseType::Cancel), ("_Save", gtk::ResponseType::Accept)]
+                );
+
+                match dialog.run() {
+                    gtk::ResponseType::Accept => {
+                        if let Some(filename) = dialog.get_filename() {
+                            sender.send(AppEvent::Export(filename)).unwrap();
+                        }
+                    },
                     _ => {}
                 }
 
@@ -500,6 +523,12 @@ impl Application {
                         else {
                             let message = format!("{} does not contain UTF-8 data.", filename);
                             show_notification(&builder, &message);
+                        }
+                    }
+                    AppEvent::Export(path) => {
+                        if let Some(storage) = &storage {
+                            let exported = storage.export().unwrap();
+                            std::fs::write(path, exported.to_str().unwrap()).unwrap();
                         }
                     }
                     AppEvent::Switch(identifier) => {

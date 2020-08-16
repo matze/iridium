@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
 use crate::consts::APP_DOMAIN;
-use standardfile::{remote, Envelope, Item, Note, Credentials, crypto::Crypto};
+use standardfile::{AuthParams, remote, Envelope, Exported, Item, Note, Credentials, crypto::Crypto};
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
 use ring::digest;
@@ -13,6 +13,7 @@ use uuid::Uuid;
 pub struct Storage {
     path: PathBuf,
     pub items: HashMap<Uuid, Item>,
+    credentials: Credentials,
     crypto: Crypto,
     pub current: Option<Uuid>,
 
@@ -42,6 +43,7 @@ impl Storage {
         let mut storage = Self {
             path: data_path_from_identifier(&credentials.identifier)?,
             items: HashMap::new(),
+            credentials: credentials.clone(),
             crypto: Crypto::new(&credentials)?,
             current: None,
             dirty: HashSet::new(),
@@ -88,6 +90,13 @@ impl Storage {
         let mut storage = Storage::new(credentials, None)?;
         storage.insert_encrypted_items(items)?;
         Ok(storage)
+    }
+
+    pub fn export(&self) -> Result<Exported> {
+        Ok(Exported {
+            auth_params: AuthParams::from_credentials(&self.credentials),
+            items: self.items.values().map(|item| item.encrypt(&self.crypto)).collect::<Result<Vec<_>, _>>()?,
+        })
     }
 
     /// Set the currently note to update.
