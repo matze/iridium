@@ -20,7 +20,7 @@ pub struct Envelope {
 }
 
 #[derive(Deserialize)]
-pub struct ExportedAuthParams {
+pub struct AuthParams {
     pub identifier: String,
     pub pw_cost: u32,
     pub pw_nonce: String,
@@ -29,7 +29,7 @@ pub struct ExportedAuthParams {
 
 #[derive(Deserialize)]
 pub struct Exported {
-    pub auth_params: ExportedAuthParams,
+    pub auth_params: AuthParams,
     pub items: Vec<Envelope>,
 }
 
