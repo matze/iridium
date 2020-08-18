@@ -126,6 +126,14 @@ impl Item {
             Item::Tag(tag) => tag.encrypt(crypto),
         }
     }
+
+    /// Get uuid.
+    pub fn uuid(&self) -> Uuid {
+        match self {
+            Item::Note(note) => note.uuid,
+            Item::Tag(tag) => tag.uuid,
+        }
+    }
 }
 
 impl Exported {

@@ -66,11 +66,11 @@ impl Controller {
     }
 
     pub fn insert(&mut self, item: &StandardItem) {
-        if let StandardItem::Note(note) = item {
-            if self.have(&note.uuid) {
-                return;
-            }
+        if self.have(&item.uuid()) {
+            return;
+        }
 
+        if let StandardItem::Note(note) = item {
             let label = gtk::Label::new(None);
             label.set_halign(gtk::Align::Start);
             label.set_margin_start(9);
