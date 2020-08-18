@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use gio::prelude::*;
 use gtk::prelude::*;
-use standardfile::Item as StandardItem;
+use standardfile::{Item as StandardItem, Note};
 use std::{cell::RefCell, cmp, cmp::{Ord, Ordering}, collections::HashMap, rc::Rc};
 use uuid::Uuid;
 
@@ -65,42 +65,46 @@ impl Controller {
         controller
     }
 
+    fn insert_note(&mut self, note: &Note) {
+        let label = gtk::Label::new(None);
+        label.set_halign(gtk::Align::Start);
+        label.set_margin_start(9);
+        label.set_margin_end(9);
+        label.set_margin_top(9);
+        label.set_margin_bottom(9);
+        label.set_widget_name("iridium-note-row-label");
+        label.set_text(&note.title);
+
+        let row = gtk::ListBoxRow::new();
+        row.add(&label);
+        row.set_widget_name("iridium-note-row");
+        row.show_all();
+
+        {
+            let mut items = self.items.borrow_mut();
+
+            items.insert(row.clone(), Item {
+                uuid: note.uuid,
+                label: label.clone(),
+                last_updated: note.updated_at,
+            });
+
+            if items.len() == 1 {
+                self.note_stack.set_visible_child(&self.note_content);
+            }
+        }
+
+        self.list_box.insert(&row, 0);
+        self.list_box.select_row(Some(&row));
+    }
+
     pub fn insert(&mut self, item: &StandardItem) {
         if self.have(&item.uuid()) {
             return;
         }
 
         if let StandardItem::Note(note) = item {
-            let label = gtk::Label::new(None);
-            label.set_halign(gtk::Align::Start);
-            label.set_margin_start(9);
-            label.set_margin_end(9);
-            label.set_margin_top(9);
-            label.set_margin_bottom(9);
-            label.set_widget_name("iridium-note-row-label");
-            label.set_text(&note.title);
-
-            let row = gtk::ListBoxRow::new();
-            row.add(&label);
-            row.set_widget_name("iridium-note-row");
-            row.show_all();
-
-            {
-                let mut items = self.items.borrow_mut();
-
-                items.insert(row.clone(), Item {
-                    uuid: note.uuid,
-                    label: label.clone(),
-                    last_updated: note.updated_at,
-                });
-
-                if items.len() == 1 {
-                    self.note_stack.set_visible_child(&self.note_content);
-                }
-            }
-
-            self.list_box.insert(&row, 0);
-            self.list_box.select_row(Some(&row));
+            self.insert_note(&note);
         }
     }
 
