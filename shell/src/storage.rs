@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
 use crate::consts::APP_DOMAIN;
-use standardfile::{AuthParams, remote, Envelope, Exported, Item, Note, Credentials, crypto::Crypto};
+use standardfile::{AuthParams, remote, DecryptError, Envelope, Exported, Item, Note, Credentials, crypto::Crypto};
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
 use ring::digest;
@@ -111,8 +111,20 @@ impl Storage {
 
     fn insert_encrypted_items(&mut self, items: &Vec<Envelope>) -> Result<()> {
         for item in items {
-            self.items.insert(item.uuid, item.decrypt(&self.crypto)?);
-            self.flush(&item)?;
+            let result = item.decrypt(&self.crypto);
+
+            match result {
+                Ok(decrypted) => {
+                    self.items.insert(item.uuid, decrypted);
+                    self.flush(&item)?;
+                }
+                Err(err) => {
+                    match err {
+                        DecryptError::Other(e) => return Err(e),
+                        DecryptError::UnknownContentType(_) => { /* ignore this one */ }
+                    }
+                }
+            }
         }
 
         Ok(())

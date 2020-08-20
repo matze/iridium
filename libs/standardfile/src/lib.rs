@@ -1,9 +1,10 @@
 #![forbid(unsafe_code)]
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
+use thiserror::Error;
 
 pub mod crypto;
 pub mod remote;
@@ -72,6 +73,14 @@ pub enum Item {
     Tag(Tag),
 }
 
+#[derive(Error, Debug)]
+pub enum DecryptError {
+    #[error("unknown item content type `{0}'")]
+    UnknownContentType(String),
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+}
+
 /// Authentication parameters constructed locally, from a remote server or an imported file and
 /// passed to construct the crypto used in the storage.
 #[derive(Clone)]
@@ -105,7 +114,7 @@ impl Envelope {
     }
 
     /// Decrypt Envelope to an Item.
-    pub fn decrypt(&self, crypto: &crypto::Crypto) -> Result<Item> {
+    pub fn decrypt(&self, crypto: &crypto::Crypto) -> Result<Item, DecryptError> {
         if self.content_type == "Note" {
             Ok(Note::decrypt(crypto, &self)?)
         }
@@ -113,7 +122,7 @@ impl Envelope {
             Ok(Tag::decrypt(crypto, &self)?)
         }
         else {
-            Err(anyhow!("Cannot handle {}", self.content_type))
+            Err(DecryptError::UnknownContentType(self.content_type.clone()))
         }
     }
 }

@@ -1843,6 +1843,7 @@ dependencies = [
  "ring",
  "serde",
  "serde_json",
+ "thiserror",
  "uuid",
 ]
 
