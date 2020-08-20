@@ -17,6 +17,7 @@ pub struct Application {
     sender: glib::Sender<AppEvent>,
     builder: gtk::Builder,
     search_bar: gtk::SearchBar,
+    tag_entry: gtk::Entry,
     setup_create_button: gtk::Button,
     setup_signup_button: gtk::Button,
     setup_login_button: gtk::Button,
@@ -161,6 +162,13 @@ impl Application {
             })
         );
 
+        action!(self.app, "tags",
+            clone!(@strong self.tag_entry as tag_entry => move |_, _| {
+                // Replace with tag_entry.set_action_name et al.
+                tag_entry.set_visible(!tag_entry.get_visible());
+            })
+        );
+
         action!(self.app, "import",
             clone!(@weak self.window as window, @strong self.sender as sender => move |_, _| {
                 let builder = gtk::Builder::from_resource(IMPORT_UI);
@@ -215,6 +223,7 @@ impl Application {
 
         self.app.set_accels_for_action("app.quit", &["<primary>q"]);
         self.app.set_accels_for_action("app.search", &["<primary>f"]);
+        self.app.set_accels_for_action("app.tags", &["<primary>t"]);
     }
 
     fn setup_signals(&self) {
@@ -348,6 +357,7 @@ impl Application {
             window: window.clone(),
             sender: sender.clone(),
             builder: builder.clone(),
+            tag_entry: get_widget!(builder, gtk::Entry, "tag-entry"),
             search_bar: get_widget!(builder, gtk::SearchBar, "search-bar"),
             setup_create_button: get_widget!(builder, gtk::Button, "create-local-button"),
             setup_signup_button: get_widget!(builder, gtk::Button, "signup-button"),
