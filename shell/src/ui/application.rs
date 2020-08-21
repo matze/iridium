@@ -517,13 +517,23 @@ impl Application {
                                 secret::store(&credentials, server.as_deref());
 
                                 config.add(&credentials, server);
-                                storage = Some(Storage::new_from_items(&credentials, &exported.items).unwrap());
 
-                                if let Some(storage) = &storage {
-                                    for item in storage.items.values() {
-                                        controller.insert(&item);
+                                let new_storage = Storage::new_from_items(&credentials, &exported.items);
+
+                                match new_storage {
+                                    Err(err) => {
+                                        let message = format!("Could not decrypt: {}", err);
+                                        show_notification(&builder, &message);
+                                    }
+                                    Ok(s) => {
+                                        for item in s.items.values() {
+                                            controller.insert(&item);
+                                        }
+
+                                        storage = Some(s);
                                     }
                                 }
+
                             }
                             else {
                                 let message = format!("{} is not exported JSON.", filename);
