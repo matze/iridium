@@ -277,8 +277,6 @@ impl Application {
 
         self.setup_create_button.connect_clicked(
             clone!(@strong self.builder as builder, @strong self.sender as sender => move |_| {
-                show_main_content(&builder);
-
                 let user = get_user_details(&builder);
                 sender.send(AppEvent::CreateStorage(user)).unwrap();
             })
@@ -451,6 +449,7 @@ impl Application {
                                 config.add(&credentials, None);
                                 secret::store(&credentials, None);
                                 controller.clear();
+                                show_main_content(&builder);
                             }
                             Err(message) => {
                                 show_notification(&builder, &format!("Error: {}.", message));
