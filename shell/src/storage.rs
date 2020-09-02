@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
 use crate::consts::APP_DOMAIN;
-use standardfile::{AuthParams, remote, DecryptError, Envelope, Exported, Item, Note, Credentials, crypto::Crypto};
+use standardfile::{AuthParams, remote, CryptoError, Envelope, Exported, Item, Note, Credentials, crypto::Crypto};
 use data_encoding::HEXLOWER;
 use directories::BaseDirs;
 use ring::digest;
@@ -120,8 +120,9 @@ impl Storage {
                 }
                 Err(err) => {
                     match err {
-                        DecryptError::Other(e) => return Err(e),
-                        DecryptError::UnknownContentType(_) => { /* ignore this one */ }
+                        CryptoError::Other(e) => return Err(e),
+                        CryptoError::UnknownContentType(_) => { /* ignore this one */ }
+                        e => return Err(anyhow!("{}", e)),
                     }
                 }
             }

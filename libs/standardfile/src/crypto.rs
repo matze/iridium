@@ -1,4 +1,4 @@
-use crate::{Envelope, Credentials};
+use crate::{Envelope, Credentials, CryptoError};
 use aes::Aes256;
 use anyhow::{anyhow, Result};
 use block_modes::block_padding::Pkcs7;
@@ -25,7 +25,7 @@ pub struct Encrypted {
 
 type Aes256Cbc = Cbc<Aes256, Pkcs7>;
 
-fn decrypt(s: &str, ek: &Key, ak: &Key, check_uuid: &Uuid) -> Result<String> {
+fn decrypt(s: &str, ek: &Key, ak: &Key, check_uuid: &Uuid) -> Result<String, CryptoError> {
     let s: Vec<&str> = s.split(':').collect();
     let version = s[0];
     let auth_hash = s[1];
@@ -34,11 +34,11 @@ fn decrypt(s: &str, ek: &Key, ak: &Key, check_uuid: &Uuid) -> Result<String> {
     let ciphertext = s[4];
 
     if version != "003" {
-        return Err(anyhow!("No support for encryption scheme < 003"));
+        return Err(CryptoError::UnsupportedScheme(version.to_string()));
     }
 
     if &uuid != check_uuid {
-        return Err(anyhow!("UUIDs do not match"));
+        return Err(CryptoError::UuidMismatch);
     }
 
     let to_auth = std::format!("003:{}:{}:{}", uuid, iv, ciphertext);
@@ -46,7 +46,7 @@ fn decrypt(s: &str, ek: &Key, ak: &Key, check_uuid: &Uuid) -> Result<String> {
     let key = hmac::Key::new(hmac::HMAC_SHA256, ak);
 
     if let Err(error::Unspecified) = hmac::verify(&key, to_auth.as_bytes(), &auth_hash_bytes) {
-        return Err(anyhow!("Cannot verify item"));
+        return Err(CryptoError::Verification);
     };
 
     let iv_bytes = HEXLOWER.decode(iv.as_bytes())?;

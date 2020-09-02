@@ -1,10 +1,13 @@
 #![forbid(unsafe_code)]
 
 use anyhow::Result;
-use uuid::Uuid;
+use block_modes::{BlockModeError, InvalidKeyIvLength};
 use chrono::{DateTime, Utc};
+use data_encoding::DecodeError;
+use uuid::Uuid;
 use serde::{Serialize, Deserialize};
 use thiserror::Error;
+use std::str::Utf8Error;
 
 pub mod crypto;
 pub mod remote;
@@ -74,11 +77,27 @@ pub enum Item {
 }
 
 #[derive(Error, Debug)]
-pub enum DecryptError {
+pub enum CryptoError {
     #[error("unknown item content type `{0}'")]
     UnknownContentType(String),
+    #[error("unsupported encryption scheme {0}")]
+    UnsupportedScheme(String),
+    #[error("uuid mismatch")]
+    UuidMismatch,
+    #[error("uuid decode error")]
+    UuidDecode(#[from] uuid::Error),
+    #[error("verification issue")]
+    Verification,
+    #[error("block mode error")]
+    BlockMode(#[from] BlockModeError),
+    #[error("iv length error")]
+    IvLength(#[from] InvalidKeyIvLength),
+    #[error("decode error")]
+    Decode(#[from] DecodeError),
     #[error(transparent)]
     Other(#[from] anyhow::Error),
+    #[error("utf8 decode error")]
+    Utf8Decode(#[from] Utf8Error),
 }
 
 /// Authentication parameters constructed locally, from a remote server or an imported file and
@@ -114,7 +133,7 @@ impl Envelope {
     }
 
     /// Decrypt Envelope to an Item.
-    pub fn decrypt(&self, crypto: &crypto::Crypto) -> Result<Item, DecryptError> {
+    pub fn decrypt(&self, crypto: &crypto::Crypto) -> Result<Item, CryptoError> {
         if self.content_type == "Note" {
             Ok(Note::decrypt(crypto, &self)?)
         }
@@ -122,7 +141,7 @@ impl Envelope {
             Ok(Tag::decrypt(crypto, &self)?)
         }
         else {
-            Err(DecryptError::UnknownContentType(self.content_type.clone()))
+            Err(CryptoError::UnknownContentType(self.content_type.clone()))
         }
     }
 }
