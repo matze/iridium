@@ -56,7 +56,7 @@ fn decrypt(s: &str, ek: &Key, ak: &Key, check_uuid: &Uuid) -> Result<String, Cry
     Ok(str::from_utf8(decrypted.as_ref())?.to_string())
 }
 
-fn encrypt(s: &str, ek: &Key, ak: &Key, uuid: &Uuid) -> Result<String> {
+fn encrypt(s: &str, ek: &Key, ak: &Key, uuid: &Uuid) -> Result<String, CryptoError> {
     let mut rng = rand_chacha::ChaCha20Rng::from_entropy();
     let mut iv_bytes = [0u8; 16];
     rng.fill_bytes(&mut iv_bytes);
@@ -90,7 +90,7 @@ pub fn make_nonce() -> String {
 }
 
 impl Crypto {
-    pub fn new(credentials: &Credentials) -> Result<Self> {
+    pub fn new(credentials: &Credentials) -> Result<Self, CryptoError> {
         let cost = NonZeroU32::new(credentials.cost).ok_or(anyhow!("Cost must be larger than zero"))?;
         let salt_input = std::format!("{}:SF:003:{}:{}", credentials.identifier, credentials.cost, credentials.nonce);
         let salt = digest::digest(&digest::SHA256, salt_input.as_bytes());
@@ -120,9 +120,9 @@ impl Crypto {
         HEXLOWER.encode(&self.pw)
     }
 
-    pub fn decrypt(&self, item: &Envelope) -> Result<String> {
+    pub fn decrypt(&self, item: &Envelope) -> Result<String, CryptoError> {
         if item.enc_item_key.is_none() || item.content.is_none() {
-            return Err(anyhow!("Cannot decrypt without key"));
+            return Err(CryptoError::NoKey);
         }
 
         let enc_item_key = item.enc_item_key.as_ref().ok_or(anyhow!("Encrypted item key required"))?;
@@ -141,7 +141,7 @@ impl Crypto {
         Ok(decrypt(&content, &item_ek, &item_ak, &item.uuid)?)
     }
 
-    pub fn encrypt(&self, content: &str, uuid: &Uuid) -> Result<Encrypted> {
+    pub fn encrypt(&self, content: &str, uuid: &Uuid) -> Result<Encrypted, CryptoError> {
         let mut rng = rand_chacha::ChaCha20Rng::from_entropy();
         let mut item_key = [0u8; 64];
         rng.fill_bytes(&mut item_key);
