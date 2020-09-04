@@ -1,6 +1,5 @@
 use crate::{Envelope, Credentials, CryptoError};
 use aes::Aes256;
-use anyhow::{anyhow, Result};
 use block_modes::block_padding::Pkcs7;
 use block_modes::{BlockMode, Cbc};
 use data_encoding::{BASE64, HEXLOWER};
@@ -91,7 +90,7 @@ pub fn make_nonce() -> String {
 
 impl Crypto {
     pub fn new(credentials: &Credentials) -> Result<Self, CryptoError> {
-        let cost = NonZeroU32::new(credentials.cost).ok_or(anyhow!("Cost must be larger than zero"))?;
+        let cost = NonZeroU32::new(credentials.cost).ok_or(CryptoError::InvalidCost)?;
         let salt_input = std::format!("{}:SF:003:{}:{}", credentials.identifier, credentials.cost, credentials.nonce);
         let salt = digest::digest(&digest::SHA256, salt_input.as_bytes());
         let hex_salt = HEXLOWER.encode(salt.as_ref());
@@ -125,8 +124,8 @@ impl Crypto {
             return Err(CryptoError::NoKey);
         }
 
-        let enc_item_key = item.enc_item_key.as_ref().ok_or(anyhow!("Encrypted item key required"))?;
-        let content = item.content.as_ref().ok_or(anyhow!("Encrypted content required"))?;
+        let enc_item_key = item.enc_item_key.as_ref().ok_or(CryptoError::NoKey)?;
+        let content = item.content.as_ref().ok_or(CryptoError::NoContent)?;
         let item_key = decrypt(&enc_item_key, &self.mk, &self.ak, &item.uuid)?;
         let mut item_ek: Key = [0; 32];
         let mut item_ak: Key = [0; 32];

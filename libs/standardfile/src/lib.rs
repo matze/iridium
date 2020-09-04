@@ -78,8 +78,12 @@ pub enum Item {
 
 #[derive(Error, Debug)]
 pub enum CryptoError {
+    #[error("cost must be more than zero")]
+    InvalidCost,
     #[error("no key given")]
     NoKey,
+    #[error("no encrypted content given")]
+    NoContent,
     #[error("unknown item content type `{0}'")]
     UnknownContentType(String),
     #[error("unsupported encryption scheme {0}")]
