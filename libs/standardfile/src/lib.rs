@@ -33,6 +33,7 @@ pub struct AuthParams {
 
 #[derive(Serialize, Deserialize)]
 pub struct Exported {
+    #[serde(rename = "keyParams")]
     pub auth_params: AuthParams,
     pub items: Vec<Envelope>,
 }
