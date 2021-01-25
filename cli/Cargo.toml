@@ -1,5 +1,5 @@
 [package]
-name = "iridium-decrypt"
+name = "iridium-cli"
 version = "0.2.0"
 authors = ["Matthias Vogelgesang"]
 edition = "2018"
