@@ -5,7 +5,7 @@ use standardfile::Credentials;
 /// Store password in the keyring.
 pub fn store(credentials: &Credentials, server: Option<&str>) {
     let service = SecretService::new(EncryptionType::Dh).unwrap();
-    let collection = service.get_default_collection().unwrap();
+    let collection = service.get_any_collection().unwrap();
     let mut props = vec![
         ("service", "iridium"),
         ("identifier", &credentials.identifier),
