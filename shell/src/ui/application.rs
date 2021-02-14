@@ -447,9 +447,13 @@ impl Application {
                             Ok(s) => {
                                 storage = Some(s);
                                 config.add(&credentials, None);
-                                secret::store(&credentials, None);
-                                controller.clear();
-                                show_main_content(&builder);
+                                if let Err(err) = secret::store(&credentials, None) {
+                                    show_notification(&builder, &format!("{}", err));
+                                }
+                                else {
+                                    controller.clear();
+                                    show_main_content(&builder);
+                                }
                             }
                             Err(message) => {
                                 show_notification(&builder, &format!("Error: {}.", message));
@@ -464,10 +468,14 @@ impl Application {
                             Ok(client) => {
                                 let credentials = client.credentials.clone();
                                 storage = Some(Storage::new(&credentials, Some(client)).unwrap());
-                                secret::store(&credentials, Some(&server));
 
-                                config.add(&credentials, Some(server));
-                                show_main_content(&builder);
+                                if let Err(err) = secret::store(&credentials, Some(&server)) {
+                                    show_notification(&builder, &format!("{}", err));
+                                }
+                                else {
+                                    config.add(&credentials, Some(server));
+                                    show_main_content(&builder);
+                                }
                             }
                             Err(message) => {
                                 let message = format!("Registration failed: {}.", message);
@@ -494,11 +502,13 @@ impl Application {
                                 }
 
                                 // Store the encryption password and auth token in the keyring.
-                                secret::store(&credentials, Some(&server));
-
-                                config.add(&credentials, Some(server));
-
-                                show_main_content(&builder);
+                                if let Err(err) = secret::store(&credentials, Some(&server)) {
+                                    show_notification(&builder, &format!("{}", err));
+                                }
+                                else {
+                                    config.add(&credentials, Some(server));
+                                    show_main_content(&builder);
+                                }
                             }
                             Err(message) => {
                                 let message = format!("Login failed: {}.", message);
@@ -513,10 +523,11 @@ impl Application {
                             if let Ok(exported) = Exported::from_str(&contents) {
                                 let credentials = Credentials::from_exported(&exported, &password);
 
-                                secret::store(&credentials, server.as_deref());
+                                if let Err(err) = secret::store(&credentials, server.as_deref()) {
+                                    show_notification(&builder, &format!("{}", err));
+                                }
 
                                 config.add(&credentials, server);
-
                                 let new_storage = Storage::new_from_items(&credentials, &exported.items);
 
                                 match new_storage {
